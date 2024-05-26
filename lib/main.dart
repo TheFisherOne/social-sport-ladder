@@ -179,9 +179,9 @@ class _MyHomePageState extends State<MyHomePage> {
               print('SnapShot error on Users: ${snapshot.error.toString()}');
             }
             print('in StreamBuilder 0');
-    if (!snapshot.hasData) return const LinearProgressIndicator();
+    if (!snapshot.hasData) return const CircularProgressIndicator();
 
-    if (snapshot.data == null) return const LinearProgressIndicator();
+    if (snapshot.data == null) return const CircularProgressIndicator();
 
 
     // not sure why this is needed but sometimes only a single record is returned.
@@ -190,7 +190,7 @@ class _MyHomePageState extends State<MyHomePage> {
     // and first person is marked present by admin
     //print('StreamBuilder: ${snapshot.hasError}, ${snapshot.connectionState}, ${snapshot.requireData.docs.length}');
     if (snapshot.requireData.docs.length <= 1) {
-    return const LinearProgressIndicator();
+    return const CircularProgressIndicator();
     }
 
     UserName.buildUserDB(snapshot);
