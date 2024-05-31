@@ -4,10 +4,10 @@ import 'dart:html';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:social_sport_ladder/main.dart';
 import '../Utilities/ladder_db.dart';
 import '../Utilities/user_db.dart';
-import 'package:location/location.dart';
 
 HomePageState? homeStateInstance;
 
@@ -21,34 +21,61 @@ class HomePage extends StatefulWidget {
 class HomePageState extends State<HomePage> {
   String _ladderName = '';
   List<String> _allLadders = List<String>.empty();
-  final Location _location = Location();
+
   bool _serviceEnabledFirst = false;
-  bool _serviceEnabledRequested = false;
+  LocationPermission? _serviceEnabledRequested;
   // PermissionStatus? _permissionGranted;
-  LocationData? _locationData;
+  Position? _locationData;
   // num _locationLatitude = 90.0;
   // num _locationLongitude = 90.0;
   int _numberOfGetLocations = 0;
 
   late Timer _timer;
 
-  StreamSubscription<LocationData>? _locationSubscription;
-  bool waitingForLocation = false;
+  // StreamSubscription<LocationData>? _locationSubscription;
+  // bool waitingForLocation = false;
 
   void startLocation() async {
-    _serviceEnabledFirst = await _location.serviceEnabled();
-    if (!_serviceEnabledFirst) {
-      print('startLocation: not Enabled, requestService');
-      _serviceEnabledRequested = await _location.requestService();
-      if (!_serviceEnabledRequested) {
-        print('startLocation: after request, still not enabled');
-        // return; //try onLocationChanged even if it says that it is disabled
+    print('starting startLocation');
+    try {
+      _serviceEnabledFirst = await Geolocator.isLocationServiceEnabled();
+      if (!_serviceEnabledFirst) {
+        print('startLocation: not Enabled, requestService');
+        _serviceEnabledRequested = await Geolocator.requestPermission();
+        if (_serviceEnabledRequested == LocationPermission.denied) {
+          print('startLocation: after request, still not enabled');
+          // return; //try onLocationChanged even if it says that it is disabled
+        }
+        if (_serviceEnabledRequested == LocationPermission.deniedForever) {
+          print('startLocation: after request, denied forever');
+          // return; //try onLocationChanged even if it says that it is disabled
+        }
       }
+    } catch (e){
+      print('EXCEPTION IN isLocationServiceEnabled ${e.toString()}');
+    }
+    try {
+      _locationData = await Geolocator.getCurrentPosition();
+      setState(() {
+        _numberOfGetLocations++;
+      });
+    } catch(e){
+      print('startLocation: first call got exception ${e.toString()}');
+      return;
     }
     print(
         'startLocation: location ENABLED $_serviceEnabledFirst $_serviceEnabledRequested');
-    _timer = Timer.periodic(const Duration(seconds:10), (Timer timer){
-      getLocation();
+    _timer = Timer.periodic(const Duration(seconds:10), (Timer timer) async {
+      try {
+        _locationData = await Geolocator.getCurrentPosition();
+      } catch(e){
+        print('startLocation: got exception ${e.toString()}');
+        return;
+      }
+      setState(() {
+        _numberOfGetLocations++;
+      });
+      print('got timed location update: $_locationData');
     });
 
     // try {
@@ -64,42 +91,44 @@ class HomePageState extends State<HomePage> {
     // print('startLocation: location ENABLED 2');
   }
 
-  void getLocation() async {
-    print('BUILD: _locationData=$_locationData');
-    if (waitingForLocation) {
-      // print('getLocation: skipping request as there is a pending request');
-      return;
-    }
-    waitingForLocation = true;
-    print('start getLocation');
-    try {
-      _numberOfGetLocations++;
-      _locationData = await _location.getLocation();
-    } catch (e) {
-      print('exception getLocation $e');
-    }
-    print('DONE getLocation');
-    waitingForLocation = false;
-    if (_locationData != null) {
-      // if (((_locationData!.latitude! - _locationLatitude).abs() > 0.001) ||
-      //      ((_locationData!.longitude! - _locationLongitude).abs() > 0.001)){
-      setState(() {
-      // force a refresh
-      });
-      print(
-      'getLocation updated: ${_locationData!.latitude}  ${_locationData!
-          .longitude}');
-      // _locationLatitude = _locationData!.latitude!;
-      // _locationLongitude = _locationData!.longitude!;
-      // }
-
-    } else {
-      print('getLocation: null location');
-    }
-  }
+  // void getLocation() async {
+  //
+  //   print('BUILD: _locationData=$_locationData');
+  //   if (waitingForLocation) {
+  //     // print('getLocation: skipping request as there is a pending request');
+  //     return;
+  //   }
+  //   waitingForLocation = true;
+  //   print('start getLocation');
+  //   try {
+  //     _numberOfGetLocations++;
+  //     _locationData = await _location.getLocation();
+  //   } catch (e) {
+  //     print('exception getLocation $e');
+  //   }
+  //   print('DONE getLocation');
+  //   waitingForLocation = false;
+  //   if (_locationData != null) {
+  //     // if (((_locationData!.latitude! - _locationLatitude).abs() > 0.001) ||
+  //     //      ((_locationData!.longitude! - _locationLongitude).abs() > 0.001)){
+  //     setState(() {
+  //     // force a refresh
+  //     });
+  //     print(
+  //     'getLocation updated: ${_locationData!.latitude}  ${_locationData!
+  //         .longitude}');
+  //     // _locationLatitude = _locationData!.latitude!;
+  //     // _locationLongitude = _locationData!.longitude!;
+  //     // }
+  //
+  //   } else {
+  //     print('getLocation: null location');
+  //   }
+  // }
 
   @override
   void initState() {
+    print('in initState for home');
     super.initState();
     window.addEventListener('focus', onFocus);
     _ladderName = UserName.dbEmail[loggedInUser].lastLadder;
@@ -107,6 +136,7 @@ class HomePageState extends State<HomePage> {
     if (_ladderName.isEmpty) {
       _ladderName = _allLadders[0];
     }
+    print('initState: startLocation');
     startLocation();
   }
 
@@ -115,11 +145,11 @@ class HomePageState extends State<HomePage> {
     // if (kIsWeb) {
     window.removeEventListener('focus', onFocus);
 
-    if (_locationSubscription != null) {
-      print('cancel _locationSubscription');
-      _locationSubscription!.cancel();
-      _locationSubscription = null;
-    }
+    // if (_locationSubscription != null) {
+    //   print('cancel _locationSubscription');
+    //   _locationSubscription!.cancel();
+    //   _locationSubscription = null;
+    // }
     _timer.cancel();
 
     // window.removeEventListener('blur', onBlur);
@@ -269,9 +299,9 @@ class HomePageState extends State<HomePage> {
                       itemBuilder: (BuildContext context, int row) {
                         if (row == 0) {
                           return Text(_locationData == null
-                              ? '1:$_serviceEnabledFirst 2:$_serviceEnabledRequested'
-                              : 'V2 Lat: ${(_locationData!.latitude! - 53.5327).toStringAsFixed(5)}  '
-                              'Long:${(_locationData!.longitude! + 113.5145).toStringAsFixed(5)} num:$_numberOfGetLocations');
+                              ? 'V3: 1:$_serviceEnabledFirst 2:$_serviceEnabledRequested'
+                              : 'V3: Lat: ${(_locationData!.latitude - 53.5327).toStringAsFixed(5)}  '
+                              'Long:${(_locationData!.longitude + 113.5145).toStringAsFixed(5)} num:$_numberOfGetLocations');
                         }
                         return Text(
                             'R:${Ladder.db[row - 1].rank} : ${Ladder.db[row - 1].name}');

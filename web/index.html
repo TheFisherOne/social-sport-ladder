@@ -26,8 +26,8 @@
   <meta name="apple-mobile-web-app-title" content="social_sport_ladder">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png"/>
+  <!-- Favicon <a href="https://www.flaticon.com/free-icons/stair" title="stair icons">Stair icons created by Talha Dogar - Flaticon</a>-->
+  <link rel="icon" type="image/png" href="step-ladder.png"/>
 
   <title>social_sport_ladder</title>
   <link rel="manifest" href="manifest.json">
@@ -40,20 +40,6 @@
   <script src="flutter.js" defer></script>
 </head>
 <body>
-  <script>
-    window.addEventListener('load', function(ev) {
-      // Download main.dart.js
-      _flutter.loader.loadEntrypoint({
-        serviceWorker: {
-          serviceWorkerVersion: serviceWorkerVersion,
-        },
-        onEntrypointLoaded: function(engineInitializer) {
-          engineInitializer.initializeEngine().then(function(appRunner) {
-            appRunner.runApp();
-          });
-        }
-      });
-    });
-  </script>
+<script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

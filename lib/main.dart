@@ -10,7 +10,8 @@ import 'Utilities/user_db.dart';
 
 String loggedInUser = "";
 
-MyHomePageState? globalHomePage;
+// this is used to trigger a signOut from another module
+LoginPageState? globalHomePage;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,31 +28,16 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Social Sport Ladder',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'Social Sport Ladder Login'),
+      home: const LoginPage(title: 'Social Sport Ladder Login'),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
+class LoginPage extends StatefulWidget {
+  const LoginPage({super.key, required this.title});
 
   // This widget is the home page of your application. It is stateful, meaning
   // that it has a State object (defined below) that contains fields that affect
@@ -65,10 +51,10 @@ class MyHomePage extends StatefulWidget {
   final String title;
 
   @override
-  State<MyHomePage> createState() => MyHomePageState();
+  State<LoginPage> createState() => LoginPageState();
 }
 
-class MyHomePageState extends State<MyHomePage> {
+class LoginPageState extends State<LoginPage> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -154,29 +140,16 @@ class MyHomePageState extends State<MyHomePage> {
     setState(() {
       FirebaseAuth.instance.signOut();
     });
-
   }
 
-  // Future<void> _signOut() async{
-  //   await FirebaseAuth.instance.signOut();
-  //   setLoggedInUser('');
-  //   print('signed out');
-  // }
   @override
   Widget build(BuildContext context) {
-    if (globalHomePage == null) {
-      globalHomePage = this;
-    }
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
+    globalHomePage ??= this;
+    // This method is rerun every time setState is called,
     if ((FirebaseAuth.instance.currentUser == null) ||
         (FirebaseAuth.instance.currentUser!.email == null)) {
       loggedInUser = "";
-      print('No User Logged In');
+      // print('No User Logged In');
     } else {
       loggedInUser = FirebaseAuth.instance.currentUser!.email!;
       print('build: Current User $loggedInUser');
@@ -188,7 +161,8 @@ class MyHomePageState extends State<MyHomePage> {
           builder:
               (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
             if (snapshot.error != null) {
-              print('SnapShot error on Users M1: ${snapshot.error.toString()} for USER: $loggedInUser');
+              print('SnapShot error on Users M1: ${snapshot.error.toString()}');
+              return Text('SnapShot error on Users M1: ${snapshot.error.toString()} ');
             }
             // print('in StreamBuilder 0');
             if (!snapshot.hasData) return const CircularProgressIndicator();
@@ -201,11 +175,21 @@ class MyHomePageState extends State<MyHomePage> {
             // and first person is marked present by admin
             //print('StreamBuilder: ${snapshot.hasError}, ${snapshot.connectionState}, ${snapshot.requireData.docs.length}');
             if (snapshot.requireData.docs.length <= 1) {
+              print('StreamBuilder WHY?? but only ${snapshot.requireData.docs.length} record returned');
               return const CircularProgressIndicator();
             }
-
             UserName.buildUserDB(snapshot);
-            return HomePage();
+            if (!UserName.dbEmail.containsKey(loggedInUser) ){
+              print('INVALID USER $loggedInUser');
+
+              loggedInUser='';
+              globalHomePage!.signOut();
+
+              FirebaseAuth.instance.signOut();
+              return Text('INVALID USER $loggedInUser');
+
+            }
+            return const HomePage();
 
           });
     } else {
@@ -244,7 +228,6 @@ class MyHomePageState extends State<MyHomePage> {
                 ),
               ],
             ),
-            // This trailing comma makes auto-formatting nicer for build methods.
           ));
     }
   }

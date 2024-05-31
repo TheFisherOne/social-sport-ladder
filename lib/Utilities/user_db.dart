@@ -8,12 +8,14 @@ class UserName {
   String ladders='';
   String lastLadder='';
   String email='';
+  List<String> ladderArray=[];
   static void buildUserDB(AsyncSnapshot<QuerySnapshot> snapshot) {
     dbName={};
     for (var doc in snapshot.requireData.docs) {
       UserName newUser = UserName();
       newUser.name = doc.get('Name');
       newUser.ladders = doc.get('Ladders');
+      newUser.ladderArray = newUser.ladders.split(',');
       newUser.lastLadder = doc.get('LastLadder');
       newUser.email = doc.id;
       dbName[newUser.name] = newUser;
