@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/cupertino.dart';
 
 class UserName {
   static var dbName = {};
@@ -9,9 +8,9 @@ class UserName {
   String lastLadder='';
   String email='';
   List<String> ladderArray=[];
-  static void buildUserDB(AsyncSnapshot<QuerySnapshot> snapshot) {
+  static void buildUserDB(QuerySnapshot<Map<String, dynamic>> snapshot) {
     dbName={};
-    for (var doc in snapshot.requireData.docs) {
+    for (var doc in snapshot.docs) {
       UserName newUser = UserName();
       newUser.name = doc.get('Name');
       newUser.ladders = doc.get('Ladders');

@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:social_sport_ladder/constants/constants.dart';
 import 'package:social_sport_ladder/screens/home.dart';
 import 'constants/firebase_setup2.dart';
 import 'Utilities/user_db.dart';
@@ -61,6 +62,8 @@ class LoginPageState extends State<LoginPage> {
   final GoogleSignIn _googleSignIn = GoogleSignIn(
     clientId: googleClientId,
   );
+  String _loginErrorString='';
+  bool _existingUserChecked = false;
 
   void setLoggedInUser(String newUser) {
     setState(() {
@@ -69,33 +72,71 @@ class LoginPageState extends State<LoginPage> {
     });
   }
 
+  _handleStayedSignedIn() async{
+    _existingUserChecked = false;
+    String recoveredEmail = FirebaseAuth.instance.currentUser!.email!.toLowerCase();
+    print('_handleStayedSignedIn: $recoveredEmail');
+    QuerySnapshot<Map<String, dynamic>> snapshot = await FirebaseFirestore.instance.collection('Users').get();
+    UserName.buildUserDB(snapshot);
+    if (!UserName.dbEmail.containsKey(recoveredEmail)){
+      setState(() {
+        _loginErrorString = '_handleStayedSignedIn: not a valid user: $recoveredEmail}';
+      });
+      print(_loginErrorString);
+      FirebaseAuth.instance.signOut();
+      setLoggedInUser('');
+      return;
+    }
+    setLoggedInUser(recoveredEmail);
+    if (kDebugMode) {
+      print('logged in with email: $loggedInUser');
+    }
+    _existingUserChecked = true;
+  }
   void _signInWithEmailAndPassword() async {
+    _loginErrorString = '';
     try {
       UserCredential userCredential = await _auth.signInWithEmailAndPassword(
-        email: _emailController.text,
+        email: _emailController.text.toLowerCase(),
         password: _passwordController.text,
       );
 
       if (userCredential.user == null) {
-        if (kDebugMode) {
-          print('error signInWithEmail no user');
-        }
+        setState(() {
+          _loginErrorString = 'error signInWithEmail no user';
+        });
+
+        print(_loginErrorString);
         return;
       }
       if (userCredential.user!.email == null) {
-        if (kDebugMode) {
-          print('error signInWithGoogle no user email');
-        }
+        setState(() {
+          _loginErrorString = 'error signInWithGoogle no user email';
+        });
+        print(_loginErrorString);
         return;
       }
-      setLoggedInUser(userCredential.user!.email!);
+      QuerySnapshot<Map<String, dynamic>> snapshot = await FirebaseFirestore.instance.collection('Users').get();
+      UserName.buildUserDB(snapshot);
+      if (!UserName.dbEmail.containsKey(userCredential.user!.email!)){
+        setState(() {
+          _loginErrorString = '_signInWithEmailAndPassword: not a valid user: ${userCredential.user!.email!}';
+        });
+        print(_loginErrorString);
+        FirebaseAuth.instance.signOut();
+        return;
+      }
+      setLoggedInUser(userCredential.user!.email!.toLowerCase());
       if (kDebugMode) {
         print('logged in with email: $loggedInUser');
       }
       return;
     } catch (e) {
       if (kDebugMode) {
-        print('Error: $e');
+        setState(() {
+          _loginErrorString = 'Error: $e';
+        });
+        print(_loginErrorString);
       }
       return;
     }
@@ -151,47 +192,14 @@ class LoginPageState extends State<LoginPage> {
       loggedInUser = "";
       // print('No User Logged In');
     } else {
-      loggedInUser = FirebaseAuth.instance.currentUser!.email!;
-      print('build: Current User $loggedInUser');
+      if (!_existingUserChecked) {
+        _handleStayedSignedIn();
+        return const CircularProgressIndicator();
+      }
     }
 
     if (loggedInUser.isNotEmpty) {
-      return StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance.collection('Users').snapshots(),
-          builder:
-              (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
-            if (snapshot.error != null) {
-              print('SnapShot error on Users M1: ${snapshot.error.toString()}');
-              return Text('SnapShot error on Users M1: ${snapshot.error.toString()} ');
-            }
-            // print('in StreamBuilder 0');
-            if (!snapshot.hasData) return const CircularProgressIndicator();
-
-            if (snapshot.data == null) return const CircularProgressIndicator();
-
-            // not sure why this is needed but sometimes only a single record is returned.
-            // this causes major problems in buildPlayerDB
-            // seems to occur after refresh, admin mode is selected
-            // and first person is marked present by admin
-            //print('StreamBuilder: ${snapshot.hasError}, ${snapshot.connectionState}, ${snapshot.requireData.docs.length}');
-            if (snapshot.requireData.docs.length <= 1) {
-              print('StreamBuilder WHY?? but only ${snapshot.requireData.docs.length} record returned');
-              return const CircularProgressIndicator();
-            }
-            UserName.buildUserDB(snapshot);
-            if (!UserName.dbEmail.containsKey(loggedInUser) ){
-              print('INVALID USER $loggedInUser');
-
-              loggedInUser='';
-              globalHomePage!.signOut();
-
-              FirebaseAuth.instance.signOut();
-              return Text('INVALID USER $loggedInUser');
-
-            }
-            return const HomePage();
-
-          });
+      return const HomePage();
     } else {
       return Scaffold(
           appBar: AppBar(
@@ -210,6 +218,7 @@ class LoginPageState extends State<LoginPage> {
                 TextField(
                   controller: _emailController,
                   decoration: const InputDecoration(labelText: 'Email'),
+                  inputFormatters: [LowerCaseTextInputFormatter()],
                 ),
                 TextField(
                   controller: _passwordController,
@@ -226,6 +235,8 @@ class LoginPageState extends State<LoginPage> {
                   onPressed: _signInWithGoogle,
                   child: const Text('Sign in with Google'),
                 ),
+                const SizedBox(height: 20),
+                Text(_loginErrorString),
               ],
             ),
           ));
