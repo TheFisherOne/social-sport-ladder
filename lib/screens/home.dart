@@ -6,10 +6,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:social_sport_ladder/main.dart';
-import '../Utilities/ladder_db.dart';
+import '../Utilities/player_db.dart';
 import '../Utilities/user_db.dart';
 
 HomePageState? homeStateInstance;
+String ladderName = '';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -19,7 +20,7 @@ class HomePage extends StatefulWidget {
 }
 
 class HomePageState extends State<HomePage> {
-  String _ladderName = '';
+
   List<String> _allLadders = List<String>.empty();
 
   bool _serviceEnabledFirst = false;
@@ -29,6 +30,9 @@ class HomePageState extends State<HomePage> {
   // num _locationLatitude = 90.0;
   // num _locationLongitude = 90.0;
   int _numberOfGetLocations = 0;
+
+  bool _isAdmin = false;
+  bool _isHelper = false;
 
   late Timer _timer;
 
@@ -65,7 +69,7 @@ class HomePageState extends State<HomePage> {
     }
     print(
         'startLocation: location ENABLED $_serviceEnabledFirst $_serviceEnabledRequested');
-    _timer = Timer.periodic(const Duration(seconds:10), (Timer timer) async {
+    _timer = Timer.periodic(const Duration(seconds:1000), (Timer timer) async {
       try {
         _locationData = await Geolocator.getCurrentPosition();
       } catch(e){
@@ -131,10 +135,10 @@ class HomePageState extends State<HomePage> {
     print('in initState for home');
     super.initState();
     window.addEventListener('focus', onFocus);
-    _ladderName = UserName.dbEmail[loggedInUser].lastLadder;
-    _allLadders = UserName.dbEmail[loggedInUser].ladders.split(',');
-    if (_ladderName.isEmpty) {
-      _ladderName = _allLadders[0];
+    ladderName = UserName.dbEmail[loggedInUser].lastLadder;
+    _allLadders = UserName.dbEmail[loggedInUser].ladderArray;
+    if (ladderName.isEmpty) {
+      ladderName = _allLadders[0];
     }
     print('initState: startLocation');
     startLocation();
@@ -172,67 +176,120 @@ class HomePageState extends State<HomePage> {
     }
   }
 
+  Widget buildPlayerLine(int row) {
+    // column 1:
+    // checkbox to show Present or not, but could say -- if not ReadyToPlay
+    // needs a condition based on location, but preferably not slowing down the feedback
+    // needs a color to show that it was entered by a Helper
+    // maybe present should be an int: 0: not present, 1, present, 2 present by helper, 3 is !ReadyToPlay
+    // consider disabling this field if it is not 3 hours before start time, and make start time configurable
+    // only get location if it is within the 3 hours of start time, and he is not present, and not frozen
+    if (Player.freezeCheckIns) {
+      return Text(
+          'R:${Player.db[row].rank} : ${Player.db[row].name}');
+    }
+
+    // waiting for checkbox entry for present
+    Player player = Player.db[row];
+    // print('buildPlayerLine $row  ${player.name}  ${player.updatingPresent}' );
+    return Row(
+      children:[
+        player.readyToPlay?
+        Checkbox(
+          value: player.present,
+          onChanged: player.updatingPresent?null:(bool? value) {
+            if (value == null) return;
+            setState(() {
+              player.updatePresent(value);
+            });
+          },
+        ):const Text('   --   '),
+        Text(' ${player.rank}: ${player.name}'),
+      ]
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     homeStateInstance = this;
-    print('HomePage: building ladder $_ladderName');
+    if (kDebugMode) {
+      print('HomePage: building ladder $ladderName');
+    }
     // getLocation();
 
     return StreamBuilder<DocumentSnapshot>(
         stream: FirebaseFirestore.instance
             .collection('Ladder')
-            .doc(_ladderName)
+            .doc(ladderName)
             .snapshots(),
         builder:
             (BuildContext context, AsyncSnapshot<DocumentSnapshot> snapshot) {
           if (snapshot.error != null) {
-            print('SnapShot error on Users H1: ${snapshot.error.toString()}');
+            String error = 'Snapshot error: ${snapshot.error.toString()} on getting ladder $ladderName';
+            if (kDebugMode) {
+              print(error);
+            }
+            return Text(error);
           }
           // print('in StreamBuilder ladder 0');
           if (!snapshot.hasData) return const CircularProgressIndicator();
 
           if (snapshot.data == null) return const CircularProgressIndicator();
 
-          String playOn = '';
-          int startTime = -1;
-          String priorityOfCourts = '';
-          try {
-            playOn = snapshot.data!['PlayOn'];
-            startTime = snapshot.data!['StartTime'];
-            priorityOfCourts = snapshot.data!['PriorityOfCourts'];
-          } catch (e) {
+          // check if the specified ladder exists in our database
+          if (!snapshot.data!.exists) {
+            // misconfiguration, this user has a ladder that is not in the database
             return Scaffold(
-              appBar: AppBar(
-                // title: Text(_ladderName),
-                title: DropdownButton<String>(
-                  value: _ladderName,
-                  items: _allLadders.map((location) {
-                    return DropdownMenuItem(
-                      value: location,
-                      child: Text(location),
-                    );
-                  }).toList(),
-                  onChanged: (newValue) {
-                    setState(() {
-                      _ladderName = newValue.toString();
-                    });
-                  },
+                appBar: AppBar(
+                  // title: Text(_ladderName),
+                  title: DropdownButton<String>(
+                    value: ladderName,
+                    items: _allLadders.map((location) {
+                      return DropdownMenuItem(
+                        value: location,
+                        child: Text(location),
+                      );
+                    }).toList(),
+                    onChanged: (newValue) {
+                      setState(() {
+                        ladderName = newValue.toString();
+                      });
+                    },
+                  ),
+                  actions: [
+                    TextButton(
+                      // style: OutlinedButton.styleFrom(
+                      // foregroundColor: Colors.white, backgroundColor: appBarColor),
+                        onPressed: () {
+                          setState(() {
+                            loggedInUser = '';
+                            if (globalHomePage != null) {
+                              print('SIGN OUT!!!');
+                              globalHomePage!.signOut();
+                            }
+                          });
+                        },
+                        child: const Text('Log\nout')),
+                  ],
                 ),
-              ),
-              body: const Text('Invalid Ladder!!!'),
+                body:  Text('Invalid ladder specified $ladderName'),
             );
-            // return Text('invalid Ladder!!! $_ladderName\nfrom $_allLadders');
           }
 
-          if (kDebugMode) {
-            print(
-                'global ladder data: $playOn $startTime Courts: $priorityOfCourts');
+          Player.buildGlobalData(snapshot);
+          _isAdmin = false;
+          _isHelper = false;
+          if (Player.admins.contains(loggedInUser)) {
+            _isAdmin = true;
           }
-
+          if (UserName.dbEmail[loggedInUser].helper){
+            _isHelper = true;
+          }
+          print('_isAdmin: $_isAdmin  _isHelper: $_isHelper');
           return StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
                   .collection('Ladder')
-                  .doc(_ladderName)
+                  .doc(ladderName)
                   .collection('Players')
                   .snapshots(),
               builder: (BuildContext context,
@@ -254,15 +311,17 @@ class HomePageState extends State<HomePage> {
                 // and first person is marked present by admin
                 //print('StreamBuilder: ${snapshot.hasError}, ${snapshot.connectionState}, ${snapshot.requireData.docs.length}');
                 if (snapshot.requireData.docs.length <= 1) {
-                  print('host builder: not enough players in db');
-                  return const CircularProgressIndicator();
+                  if (kDebugMode) {
+                    print('host builder: not enough players in db');
+                  }
+                  return const Text('host builder: not enough players in db');
                 }
-                Ladder.buildUserDB(snapshot);
+                Player.buildUserDB(snapshot);
                 return Scaffold(
                   appBar: AppBar(
                     // title: Text(_ladderName),
                     title: DropdownButton<String>(
-                      value: _ladderName,
+                      value: ladderName,
                       items: _allLadders.map((location) {
                         return DropdownMenuItem(
                           value: location,
@@ -271,7 +330,7 @@ class HomePageState extends State<HomePage> {
                       }).toList(),
                       onChanged: (newValue) {
                         setState(() {
-                          _ladderName = newValue.toString();
+                          ladderName = newValue.toString();
                         });
                       },
                     ),
@@ -301,10 +360,10 @@ class HomePageState extends State<HomePage> {
                           return Text(_locationData == null
                               ? 'V3: 1:$_serviceEnabledFirst 2:$_serviceEnabledRequested'
                               : 'V3: Lat: ${(_locationData!.latitude - 53.5327).toStringAsFixed(5)}  '
-                              'Long:${(_locationData!.longitude + 113.5145).toStringAsFixed(5)} num:$_numberOfGetLocations');
+                              'Long:${(_locationData!.longitude + 113.5145).toStringAsFixed(5)}'
+                              ' num:$_numberOfGetLocations');
                         }
-                        return Text(
-                            'R:${Ladder.db[row - 1].rank} : ${Ladder.db[row - 1].name}');
+                        return buildPlayerLine(row-1);
                       }),
                 );
               });

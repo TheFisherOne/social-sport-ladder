@@ -8,6 +8,7 @@ class UserName {
   String lastLadder='';
   String email='';
   List<String> ladderArray=[];
+  bool helper=false;
   static void buildUserDB(QuerySnapshot<Map<String, dynamic>> snapshot) {
     dbName={};
     for (var doc in snapshot.docs) {
@@ -16,9 +17,11 @@ class UserName {
       newUser.ladders = doc.get('Ladders');
       newUser.ladderArray = newUser.ladders.split(',');
       newUser.lastLadder = doc.get('LastLadder');
+      newUser.helper = doc.get('Helper');
       newUser.email = doc.id;
       dbName[newUser.name] = newUser;
       dbEmail[newUser.email] = newUser;
+
     }
   }
 }
