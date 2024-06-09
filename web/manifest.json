@@ -6,7 +6,8 @@
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
     "description": "Good for Tennis and Pickleball and other sports. Usually in doubles format.",
-    "orientation": "portrait-primary",
+    "original_orientation": "portrait-primary",
+    "orientation": "any",
     "prefer_related_applications": false,
     "icons": [
         {

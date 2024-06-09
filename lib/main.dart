@@ -257,15 +257,17 @@ class LoginPageState extends State<LoginPage> {
           body: Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                TextField(
+                TextFormField(
                   controller: _emailController,
-                  decoration: const InputDecoration(labelText: 'Email'),
+                  decoration: textFormFieldStandardDecoration.copyWith(labelText: 'Email'),
                   inputFormatters: [LowerCaseTextInputFormatter()],
                 ),
-                TextField(
+                const SizedBox(height:20),
+                TextFormField(
                   controller: _passwordController,
-                  decoration: const InputDecoration(labelText: 'Password'),
+                  decoration: textFormFieldStandardDecoration.copyWith(labelText: 'Password'),
                   obscureText: true,
                 ),
                 const SizedBox(height: 20),

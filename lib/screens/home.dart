@@ -5,9 +5,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:social_sport_ladder/constants/constants.dart';
 import 'package:social_sport_ladder/main.dart';
 import '../Utilities/player_db.dart';
 import '../Utilities/user_db.dart';
+import 'administration.dart';
 
 HomePageState? homeStateInstance;
 String ladderName = '';
@@ -20,7 +22,6 @@ class HomePage extends StatefulWidget {
 }
 
 class HomePageState extends State<HomePage> {
-
   List<String> _allLadders = List<String>.empty();
 
   bool _serviceEnabledFirst = false;
@@ -31,10 +32,8 @@ class HomePageState extends State<HomePage> {
   // num _locationLongitude = 90.0;
   int _numberOfGetLocations = 0;
 
-  bool _isAdmin = false;
-  bool _isHelper = false;
-
   late Timer _timer;
+  int _checkInProgress = -1;  // used for quick feedback that the checkbox was clicked
 
   // StreamSubscription<LocationData>? _locationSubscription;
   // bool waitingForLocation = false;
@@ -55,7 +54,7 @@ class HomePageState extends State<HomePage> {
           // return; //try onLocationChanged even if it says that it is disabled
         }
       }
-    } catch (e){
+    } catch (e) {
       print('EXCEPTION IN isLocationServiceEnabled ${e.toString()}');
     }
     try {
@@ -63,16 +62,15 @@ class HomePageState extends State<HomePage> {
       setState(() {
         _numberOfGetLocations++;
       });
-    } catch(e){
+    } catch (e) {
       print('startLocation: first call got exception ${e.toString()}');
       return;
     }
-    print(
-        'startLocation: location ENABLED $_serviceEnabledFirst $_serviceEnabledRequested');
-    _timer = Timer.periodic(const Duration(seconds:1000), (Timer timer) async {
+    print('startLocation: location ENABLED $_serviceEnabledFirst $_serviceEnabledRequested');
+    _timer = Timer.periodic(const Duration(seconds: 1000), (Timer timer) async {
       try {
         _locationData = await Geolocator.getCurrentPosition();
-      } catch(e){
+      } catch (e) {
         print('startLocation: got exception ${e.toString()}');
         return;
       }
@@ -176,6 +174,26 @@ class HomePageState extends State<HomePage> {
     }
   }
 
+  bool hasCheckboxPermission(Player player) {
+    // print('hasHelperPermission1: ${UserName.dbEmail[loggedInUser].name}== ${player.name}'
+    //     ' ${UserName.dbEmail[loggedInUser].helper} '
+    //     '${Player.admins.contains(loggedInUser)}');
+    // print('hasHelperPermission2: ${DateTime.now().weekday}== ${Player.playOnDayOfWeek}'
+    //     ' ${DateTime.now().hour} '
+    //     '${Player.startTime}');
+    if (Player.freezeCheckIns) return false;
+    if (Player.admins.contains(loggedInUser)) return true;
+
+    if (DateTime.now().weekday != Player.playOnDayOfWeek) return false;
+    if (DateTime.now().hour < (Player.startTime - 3)) return false;
+    if (DateTime.now().hour > (Player.startTime + 1)) return false;
+
+    if (UserName.dbEmail[loggedInUser].name == player.name) return true;
+    if (UserName.dbEmail[loggedInUser].helper) return true;
+
+    return false;
+  }
+
   Widget buildPlayerLine(int row) {
     // column 1:
     // checkbox to show Present or not, but could say -- if not ReadyToPlay
@@ -185,45 +203,128 @@ class HomePageState extends State<HomePage> {
     // consider disabling this field if it is not 3 hours before start time, and make start time configurable
     // only get location if it is within the 3 hours of start time, and he is not present, and not frozen
     if (Player.freezeCheckIns) {
-      return Text(
-          'R:${Player.db[row].rank} : ${Player.db[row].name}');
+      return Text('R:${Player.db[row].rank} : ${Player.db[row].name}');
     }
 
     // waiting for checkbox entry for present
     Player player = Player.db[row];
+
+    if (row == _checkInProgress) {
+      if (player.present) {
+        _checkInProgress = -1;
+      }
+    }
     // print('buildPlayerLine $row  ${player.name}  ${player.updatingPresent}' );
-    return Row(
-      children:[
-        player.readyToPlay?
-        Checkbox(
-          value: player.present,
-          onChanged: player.updatingPresent?null:(bool? value) {
-            if (value == null) return;
-            setState(() {
-              player.updatePresent(value);
-            });
-          },
-        ):const Text('   --   '),
-        Text(' ${player.rank}: ${player.name}'),
-      ]
-    );
+    return Row(children: [
+      player.readyToPlay
+          ? (row == _checkInProgress)
+              ? const Icon(Icons.refresh)
+              : Transform.scale(
+                  scale: 1.5,
+                  child: Checkbox(
+                    value: player.present,
+                    onChanged: (!hasCheckboxPermission(player) || player.updatingPresent)
+                        ? null
+                        : (bool? value) {
+                            if (value == null) return;
+
+                            if (!value) {
+                              showDialog<String>(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                          title: const Text("You are no longer going to Play?"),
+                                          content: Text(
+                                            player.name,
+                                            textScaler: const TextScaler.linear(2),
+                                          ),
+                                          actions: [
+                                            TextButton(
+                                                onPressed: () {
+                                                  Navigator.pop(context);
+                                                },
+                                                child: const Text('Cancel:Yes  I am')),
+                                            TextButton(
+                                                onPressed: () {
+                                                  player.updatePresent(false);
+                                                  Navigator.pop(context);
+                                                },
+                                                child: const Text('Confirm:Not Playing')),
+                                          ]));
+                              return;
+                            }
+                            if (UserName.dbEmail[loggedInUser].name == player.name) {
+                              setState(() {
+                                _checkInProgress = row;
+                                player.updatePresent(value);
+                              });
+                              return;
+                            }
+                            showDialog<String>(
+                                context: context,
+                                builder: (context) => AlertDialog(
+                                      title: const Text("Helper Check In"),
+                                      content: Text(
+                                        player.name,
+                                        textScaler: const TextScaler.linear(2),
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                            onPressed: () {
+                                              Navigator.pop(context);
+                                            },
+                                            child: const Text('cancel check in')),
+                                        TextButton(
+                                            onPressed: () {
+                                              setState(() {
+                                                player.updatePresent(true);
+                                              });
+
+                                              Navigator.pop(context);
+                                            },
+                                            child: const Text('OK')),
+                                      ],
+                                    ));
+                          },
+                  ),
+                )
+          : const Text('   --   '),
+      Text(
+        ' ${player.rank}: ${player.name}',
+        style: (UserName.dbEmail[loggedInUser].name == player.name) ? nameBoldStyle : nameStyle,
+      ),
+    ]);
   }
 
   @override
   Widget build(BuildContext context) {
     homeStateInstance = this;
-    if (kDebugMode) {
-      print('HomePage: building ladder $ladderName');
-    }
+
+
     // getLocation();
 
+    AppBar buildAppBar(List<Widget>? actions){
+      return AppBar(
+          // title: Text(_ladderName),
+          title: DropdownButton<String>(
+            value: ladderName,
+            items: _allLadders.map((location) {
+              return DropdownMenuItem(
+                value: location,
+                child: Text(location),
+              );
+            }).toList(),
+            onChanged: (newValue) {
+              setState(() {
+                ladderName = newValue.toString();
+              });
+            },
+          ),
+          actions: actions,
+        );
+    }
     return StreamBuilder<DocumentSnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('Ladder')
-            .doc(ladderName)
-            .snapshots(),
-        builder:
-            (BuildContext context, AsyncSnapshot<DocumentSnapshot> snapshot) {
+        stream: FirebaseFirestore.instance.collection('Ladder').doc(ladderName).snapshots(),
+        builder: (BuildContext context, AsyncSnapshot<DocumentSnapshot> snapshot) {
           if (snapshot.error != null) {
             String error = 'Snapshot error: ${snapshot.error.toString()} on getting ladder $ladderName';
             if (kDebugMode) {
@@ -240,63 +341,34 @@ class HomePageState extends State<HomePage> {
           if (!snapshot.data!.exists) {
             // misconfiguration, this user has a ladder that is not in the database
             return Scaffold(
-                appBar: AppBar(
-                  // title: Text(_ladderName),
-                  title: DropdownButton<String>(
-                    value: ladderName,
-                    items: _allLadders.map((location) {
-                      return DropdownMenuItem(
-                        value: location,
-                        child: Text(location),
-                      );
-                    }).toList(),
-                    onChanged: (newValue) {
-                      setState(() {
-                        ladderName = newValue.toString();
-                      });
-                    },
-                  ),
-                  actions: [
-                    TextButton(
+              appBar: buildAppBar(
+              [
+                  TextButton(
                       // style: OutlinedButton.styleFrom(
                       // foregroundColor: Colors.white, backgroundColor: appBarColor),
-                        onPressed: () {
-                          setState(() {
-                            loggedInUser = '';
-                            if (globalHomePage != null) {
-                              print('SIGN OUT!!!');
-                              globalHomePage!.signOut();
-                            }
-                          });
-                        },
-                        child: const Text('Log\nout')),
-                  ],
-                ),
-                body:  Text('Invalid ladder specified $ladderName'),
+                      onPressed: () {
+                        setState(() {
+                          loggedInUser = '';
+                          if (globalHomePage != null) {
+                            print('SIGN OUT!!!');
+                            globalHomePage!.signOut();
+                          }
+                        });
+                      },
+                      child: const Text('Log\nOUT')),
+                ]),
+              body: Text('Invalid ladder specified $ladderName'),
             );
           }
 
           Player.buildGlobalData(snapshot);
-          _isAdmin = false;
-          _isHelper = false;
-          if (Player.admins.contains(loggedInUser)) {
-            _isAdmin = true;
-          }
-          if (UserName.dbEmail[loggedInUser].helper){
-            _isHelper = true;
-          }
-          print('_isAdmin: $_isAdmin  _isHelper: $_isHelper');
+
+          // print('_isAdmin: $_isAdmin  _isHelper: $_isHelper');
           return StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('Ladder')
-                  .doc(ladderName)
-                  .collection('Players')
-                  .snapshots(),
-              builder: (BuildContext context,
-                  AsyncSnapshot<QuerySnapshot> snapshot) {
+              stream: FirebaseFirestore.instance.collection('Ladder').doc(ladderName).collection('Players').snapshots(),
+              builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
                 if (snapshot.error != null) {
-                  print(
-                      'SnapShot error on Users H2: ${snapshot.error.toString()}');
+                  print('SnapShot error on Users H2: ${snapshot.error.toString()}');
                 }
                 // print('in StreamBuilder home 0');
                 if (!snapshot.hasData) return const CircularProgressIndicator();
@@ -317,24 +389,26 @@ class HomePageState extends State<HomePage> {
                   return const Text('host builder: not enough players in db');
                 }
                 Player.buildUserDB(snapshot);
+
                 return Scaffold(
-                  appBar: AppBar(
-                    // title: Text(_ladderName),
-                    title: DropdownButton<String>(
-                      value: ladderName,
-                      items: _allLadders.map((location) {
-                        return DropdownMenuItem(
-                          value: location,
-                          child: Text(location),
-                        );
-                      }).toList(),
-                      onChanged: (newValue) {
-                        setState(() {
-                          ladderName = newValue.toString();
-                        });
-                      },
-                    ),
-                    actions: [
+                  appBar: buildAppBar([
+                      Padding(
+                        padding: const EdgeInsets.all(0.0),
+                        child: IconButton(
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          onPressed: () {
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) =>  const Administration()));
+                          },
+                          icon: const Icon(Icons.admin_panel_settings),
+                          enableFeedback: true,
+                          color: Colors.red,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
                       TextButton(
                           // style: OutlinedButton.styleFrom(
                           // foregroundColor: Colors.white, backgroundColor: appBarColor),
@@ -348,11 +422,9 @@ class HomePageState extends State<HomePage> {
                             });
                           },
                           child: const Text('Log\nout')),
-                    ],
-                  ),
+                    ]),
                   body: ListView.separated(
-                      separatorBuilder: (context, index) =>
-                          const Divider(color: Colors.black),
+                      separatorBuilder: (context, index) => const Divider(color: Colors.black),
                       padding: const EdgeInsets.all(8),
                       itemCount: snapshot.data!.size + 1,
                       itemBuilder: (BuildContext context, int row) {
@@ -360,10 +432,10 @@ class HomePageState extends State<HomePage> {
                           return Text(_locationData == null
                               ? 'V3: 1:$_serviceEnabledFirst 2:$_serviceEnabledRequested'
                               : 'V3: Lat: ${(_locationData!.latitude - 53.5327).toStringAsFixed(5)}  '
-                              'Long:${(_locationData!.longitude + 113.5145).toStringAsFixed(5)}'
-                              ' num:$_numberOfGetLocations');
+                                  'Long:${(_locationData!.longitude + 113.5145).toStringAsFixed(5)}'
+                                  ' num:$_numberOfGetLocations');
                         }
-                        return buildPlayerLine(row-1);
+                        return buildPlayerLine(row - 1);
                       }),
                 );
               });
