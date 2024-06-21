@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:social_sport_ladder/main.dart';
 import '../Utilities/player_db.dart';
 import '../Utilities/user_db.dart';
 import '../constants/constants.dart';
-import 'home.dart';
+import 'home_page.dart';
 
 int overrideCourt4to5 = -1;
 
@@ -16,13 +15,7 @@ class Administration extends StatefulWidget {
 }
 
 class AdministrationState extends State<Administration> {
-  List<String> initialValues = [
-    Player.adminsString,
-    Player.playOn,
-    Player.priorityOfCourtsString,
-    Player.randomCourtOf5.toString(),
-    Player.startTime.toString(),
-  ];
+  List<String> initialValues = Player.globalStaticValues();
   List<TextEditingController> editControllers = List.empty(growable: true);
   List<String?> errorText = List.filled(globalHelpText.length,null);
   @override
@@ -59,24 +52,24 @@ class AdministrationState extends State<Administration> {
         ),
         body: ListView(shrinkWrap: true, children: [
           const SizedBox(height: 10),
-          Player.atLeast1ScoreEntered
-              ? (Player.freezeCheckIns
-                  ? const Text('Cannot unfreeze, scores entered!')
-                  : const Text('ERROR, there are scores entered!!'))
-              : const Text(''),
-          CheckboxListTile(
-              title: const Text('Freeze Check Ins'),
-              value: Player.freezeCheckIns,
-              onChanged: (UserName.dbEmail[loggedInUser].helper)
-                  ? (value) {
-                      if (homeStateInstance != null) {
-                        setState(() {
-                          Player.updateFreezeCheckIns(value!);
-                          overrideCourt4to5 = -1;
-                        });
-                      }
-                    }
-                  : null),
+          Row(
+            children: [
+              const SizedBox(width: 10),
+              const Expanded( child:
+               Text('Freeze Check Ins',style: nameStyle,),),
+              Expanded( child:
+              UserName.mayFreezeCheckIns().isNotEmpty
+                  ? Text(UserName.mayFreezeCheckIns()):
+                  Checkbox(value: Player.freezeCheckIns,
+                      onChanged: (value) {
+                        if ((homeStateInstance != null) && (value != null)){
+                          setState(() {
+                            Player.updateFreezeCheckIns(value);
+                          });
+                        }
+                      })),
+            ],
+          ),
 
           const SizedBox(height: 20),
           ListView.builder(

@@ -15,11 +15,11 @@ class LowerCaseTextInputFormatter extends TextInputFormatter {
 
 const double appFontSize = 20;
 const nameStyle = TextStyle(decoration: TextDecoration.none, fontSize: appFontSize, fontWeight: FontWeight.normal);
-const coloredNameStyle = TextStyle(
-    backgroundColor: Colors.lightGreen,
+const errorNameStyle = TextStyle(
+    color: Colors.red,
     decoration: TextDecoration.none,
     fontSize: appFontSize,
-    fontWeight: FontWeight.normal);
+    fontWeight: FontWeight.bold);
 const italicNameStyle = TextStyle(
     decoration: TextDecoration.none, fontStyle: FontStyle.italic, fontSize: appFontSize, fontWeight: FontWeight.normal);
 
@@ -60,3 +60,9 @@ const textFormFieldStandardDecoration = InputDecoration(
         width: 2.0,
       )),
 );
+
+int willPlayInputChoicesAbsent = 0;
+int willPlayInputChoicesPresent = 1;
+int willPlayInputChoicesVacation = 2;
+
+

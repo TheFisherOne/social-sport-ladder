@@ -3,8 +3,9 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
+import 'package:social_sport_ladder/Utilities/user_db.dart';
 
-import '../screens/home.dart';
+import '../screens/home_page.dart';
 
 const List<String> globalAttrNames = [
   'Admins',
@@ -12,21 +13,45 @@ const List<String> globalAttrNames = [
   'PriorityOfCourts',
   'RandomCourtOf5',
   'StartTime',
+  'Latitude',
+  'Longitude',
+  'MetersFromLatLong',
 ];
+// this should be same length and same order as globalAttrNames
 const List<String> globalHelpText = [
   'Emails separated by commas',
   'name of weekday like mon',
   'Court names separated by commas',
   'just an integer',
   'the hour.fraction that the ladder starts',
+  'Latitude of meeting place',
+  'Longitude of meeting place',
+  'how close in (m) to check in'
 ];
 
 
 class Player {
+  // this should be the same length and the same order as globalAttrNames
+  // and they should be converted to a string
+  static List<String> globalStaticValues() {
+    return [
+      adminsString,
+      playOn,
+      priorityOfCourtsString,
+      randomCourtOf5.toString(),
+      startTime.toString(),
+      latitude.toString(),
+      longitude.toString(),
+      metersFromLatLong.toString(),
+    ];
+  }
+
   static List<Player> db = List.empty(growable: true);
 
+  static var dbByEmail = {};
+
   String name = '';
-  bool present = false;
+  int willPlayInput = 0;
 
   int rank = 0;
   int score1 = -1;
@@ -36,9 +61,9 @@ class Player {
   int score5 = -1;
   DateTime timePresent = DateTime(1999, 09, 09);
   bool updatingPresent = false;
-  bool readyToPlay=true;
   String scoreLastUpdatedBy = '';
   int totalScore=0;
+  String email='';
 
   static String adminsString ='';
   static List<String> admins = [];
@@ -51,6 +76,11 @@ class Player {
   static bool freezeCheckIns = false;
   static var onUpdate = StreamController<bool>.broadcast();
   static bool atLeast1ScoreEntered = false;
+  static double latitude = 0;
+  static double longitude = 0;
+  static double metersFromLatLong = 0.01;
+  static double checkInStartHours = 8;
+  static double vacationStopTime = 8;
 
   static bool setGlobalAttribute(String attrName, String value){
     // need special cases for non-string values to convert from string
@@ -61,8 +91,8 @@ class Player {
       admins = adminsString.split(',');
       newValue = value;
     } else if (attrName == 'PlayOn'){
-      playOn = value;
-      int index = ['sun','mon', 'tue', 'wed', 'thu', 'fri', 'sat'].indexOf(
+      playOn = '${value.toLowerCase()}   '.substring(0, 3);
+      int index = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat','sun',].indexOf(
           playOn);
       if (index < 0) {
         if (kDebugMode) {
@@ -72,8 +102,8 @@ class Player {
         index = 0;
         return false;
       }
-      playOnDayOfWeek = index;
-      newValue = index;
+      playOnDayOfWeek = index+1;
+      newValue = playOn;
     } else if (attrName == 'PriorityOfCourts'){
       priorityOfCourtsString = value;
       priorityOfCourts = priorityOfCourtsString.split(',');
@@ -87,19 +117,66 @@ class Player {
         return false;
       }
       newValue = randomCourtOf5;
-    } else if (attrName == 'StartTime'){
+    } else if (attrName == 'StartTime') {
       try {
         startTime = double.parse(value);
       }
-      catch (e){
-        print('invalid float for StartTime "$value"');
+      catch (e) {
+        print('invalid float for $attrName "$value"');
         return false;
       }
       newValue = startTime;
+    } else if (attrName == 'Longitude'){
+      try {
+        longitude = double.parse(value);
+      }
+      catch (e){
+        print('invalid float for $attrName "$value"');
+        return false;
+      }
+      newValue = longitude;
+    } else if (attrName == 'Latitude'){
+      try {
+        latitude = double.parse(value);
+      }
+      catch (e){
+        print('invalid float for $attrName "$value"');
+        return false;
+      }
+      newValue = latitude;
+    } else if (attrName == 'MetersFromLatLong'){
+      try {
+        metersFromLatLong = double.parse(value);
+      }
+      catch (e){
+        print('invalid float for $attrName "$value"');
+        return false;
+      }
+      newValue = metersFromLatLong;
+    }else if (attrName == 'CheckInStartHours') {
+      try {
+        checkInStartHours = double.parse(value);
+      }
+      catch (e) {
+        print('invalid float for $attrName "$value"');
+        return false;
+      }
+      newValue = checkInStartHours;
+    }else if (attrName == 'VacationStopTime') {
+      try {
+        vacationStopTime = double.parse(value);
+      }
+      catch (e) {
+        print('invalid float for $attrName "$value"');
+        return false;
+      }
+      newValue = vacationStopTime;
     }
+
+
     FirebaseFirestore.instance
         .collection('Ladder')
-        .doc(ladderName)
+        .doc(activeLadderName)
         .update({
       attrName: newValue,
     });
@@ -140,7 +217,7 @@ class Player {
 
     playOn = getGlobalAttribute(doc, 'PlayOn', 'mon');
     playOn = '${playOn.toLowerCase()}   '.substring(0, 3);
-    int index = ['sun','mon', 'tue', 'wed', 'thu', 'fri', 'sat'].indexOf(
+    int index = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat','sun'].indexOf(
         playOn);
     if (index < 0) {
       if (kDebugMode) {
@@ -149,17 +226,18 @@ class Player {
       }
       index = 0;
     }
-    playOnDayOfWeek = index;
+    playOnDayOfWeek = index+1;
 
-    priorityOfCourtsString = getGlobalAttribute(
-        doc, 'PriorityOfCourts', '');
-    priorityOfCourts = priorityOfCourtsString.split(',');
-
-    randomCourtOf5 = getGlobalAttribute(doc, 'RandomCourtOf5', 0);
-
-    startTime = getGlobalAttribute(doc, 'StartTime', 0.25);
-
-    freezeCheckIns = getGlobalAttribute(doc, 'FreezeCheckIns', false);
+    priorityOfCourtsString = getGlobalAttribute(doc, 'PriorityOfCourts', '');
+    priorityOfCourts  = priorityOfCourtsString.split(',');
+    randomCourtOf5    = getGlobalAttribute(doc, 'RandomCourtOf5', 0);
+    startTime         = getGlobalAttribute(doc, 'StartTime', 0.25);
+    freezeCheckIns    = getGlobalAttribute(doc, 'FreezeCheckIns', false);
+    longitude         = getGlobalAttribute(doc, 'Longitude', 0.01);
+    latitude          = getGlobalAttribute(doc, 'Latitude', 0.01);
+    metersFromLatLong = getGlobalAttribute(doc, 'MetersFromLatLong', 0.01);
+    checkInStartHours = getGlobalAttribute(doc, 'CheckInStartHours', 0.01);
+    vacationStopTime  = getGlobalAttribute(doc, 'VacationStopTime', 0.01);
 
 
     // print('admins: $admins, dayOfWeek: $playOnDayOfWeek, priority: $priorityOfCourts, random: $randomCourtOf5, startTime: $startTime');
@@ -169,7 +247,7 @@ class Player {
     Player.freezeCheckIns = value;
     FirebaseFirestore.instance
         .collection('Ladder')
-        .doc(ladderName)
+        .doc(activeLadderName)
         .update({
       'FreezeCheckIns': value,
     });
@@ -182,64 +260,57 @@ class Player {
       try {
         newUser.rank = doc.get('Rank');
       } catch (e) {
-        print('ladder DB error: line: ${db.length} ${doc.id} attribute: Rank');
+        print('ladder DB error: line: ${db.length} ${doc.id} attribute: Rank ${e.toString()}');
       }
 
       try {
         newUser.score1 = doc.get('Score1');
       } catch (e) {
         print(
-            'ladder DB error: line: ${db.length} ${doc.id} attribute: Score1');
+            'ladder DB error: line: ${db.length} ${doc.id} attribute: Score1 ${e.toString()}');
       }
       try {
         newUser.score2 = doc.get('Score2');
       } catch (e) {
         print(
-            'ladder DB error: line: ${db.length} ${doc.id} attribute: Score2');
+            'ladder DB error: line: ${db.length} ${doc.id} attribute: Score2 ${e.toString()}');
       }
       try {
         newUser.score3 = doc.get('Score3');
       } catch (e) {
         print(
-            'ladder DB error: line: ${db.length} ${doc.id} attribute: Score3');
+            'ladder DB error: line: ${db.length} ${doc.id} attribute: Score3 ${e.toString()}');
       }
       try {
         newUser.score4 = doc.get('Score4');
       } catch (e) {
         print(
-            'ladder DB error: line: ${db.length} ${doc.id} attribute: Score4');
+            'ladder DB error: line: ${db.length} ${doc.id} attribute: Score4 ${e.toString()}');
       }
       try {
         newUser.score5 = doc.get('Score5');
       } catch (e) {
         print(
-            'ladder DB error: line: ${db.length} ${doc.id} attribute: Score5');
+            'ladder DB error: line: ${db.length} ${doc.id} attribute: Score5 ${e.toString()}');
       }
       try {
-        newUser.present = doc.get('Present');
+        newUser.willPlayInput = doc.get('WillPlayInput');
       } catch (e) {
         print(
-            'ladder DB error: line: ${db.length} ${doc.id} attribute: Present');
+            'ladder DB error: line: ${db.length} ${doc.id} attribute: WillPlayInput ${e.toString()}');
       }
       try {
         newUser.timePresent = doc.get('TimePresent').toDate();
       } catch (e) {
         print('ladder DB error: line: ${db.length} ${doc
-            .id} attribute: TimePresent');
-      }
-
-      try {
-        newUser.readyToPlay = doc.get('ReadyToPlay');
-      } catch (e) {
-        print('ladder DB error: line: ${db.length} ${doc
-            .id} attribute: ReadyToPlay $e');
+            .id} attribute: TimePresent ${e.toString()}');
       }
 
       try {
         newUser.scoreLastUpdatedBy = doc.get('ScoreLastUpdatedBy');
       } catch (e) {
         print('ladder DB error: line: ${db.length} ${doc
-            .id} attribute: ScoreLastUpdatedBy $e');
+            .id} attribute: ScoreLastUpdatedBy ${e.toString()}');
       }
       int totalScore = 0;
       if (newUser.score1 >= 0) totalScore += newUser.score1;
@@ -254,10 +325,12 @@ class Player {
         atLeast1ScoreEntered = true;
       }
 
-
+      newUser.email = UserName.dbName[newUser.name].email;
       newUser.updatingPresent = false;
       // print('finished processing db update ${newUser.name}');
       db.add(newUser);
+      dbByEmail[newUser.email] = newUser;
+
     }
     onUpdate.add(true);
   }
@@ -267,11 +340,11 @@ class Player {
     updatingPresent = true;
     DocumentReference ladderDoc = FirebaseFirestore.instance
         .collection('Ladder')
-        .doc(ladderName);
+        .doc(activeLadderName);
 
     DocumentReference userDoc = FirebaseFirestore.instance
         .collection('Ladder')
-        .doc(ladderName).collection('Players').doc(name);
+        .doc(activeLadderName).collection('Players').doc(name);
 
     FirebaseFirestore.instance.runTransaction((transaction) async {
       bool currentPresent = false;
@@ -304,6 +377,52 @@ class Player {
       transaction.update(userDoc, {
         'Present': value,
         'TimePresent': timePresent,});
+    });
+  }
+  void updateWillPlayInput(int value)  {
+
+    DocumentReference ladderDoc = FirebaseFirestore.instance
+        .collection('Ladder')
+        .doc(activeLadderName);
+
+    DocumentReference userDoc = FirebaseFirestore.instance
+        .collection('Ladder')
+        .doc(activeLadderName).collection('Players').doc(name);
+
+    FirebaseFirestore.instance.runTransaction((transaction) async {
+      int currentReadyToPlay = 0;
+      DocumentSnapshot ladderSnapshot = await transaction.get(ladderDoc);
+      DocumentSnapshot userSnapshot = await transaction.get(userDoc);
+      if (!ladderSnapshot.exists || !userSnapshot.exists) {
+        if (kDebugMode) {
+          print(
+              "updatePresent_ERROR1: aborting Present $value due to snapshot error"
+                  " ${ladderSnapshot.exists} ${userSnapshot.exists} ");
+        }
+        return false;
+      }
+
+      if (ladderSnapshot.get("FreezeCheckIns")) {
+        if (kDebugMode) {
+          print(
+              "updateWillPlay_ERROR2: aborting WillPlay $value since courts are frozen");
+        }
+        return false;
+      }
+
+      currentReadyToPlay = userSnapshot.get('WillPlayInput');
+      // print('updateReadyToPlay: $currentReadyToPlay to $value');
+      if (value == currentReadyToPlay) {
+        if (kDebugMode) {
+          print(
+              "updatePresent_ERROR3: aborting WillPlay $value since it is already that $currentReadyToPlay");
+        }
+        return false;
+      }
+
+      transaction.update(userDoc, {
+        'WillPlayInput': value,
+      });
     });
   }
 }

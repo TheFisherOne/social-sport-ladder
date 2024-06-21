@@ -5,7 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:social_sport_ladder/constants/constants.dart';
-import 'package:social_sport_ladder/screens/home.dart';
+import 'package:social_sport_ladder/screens/home_page.dart';
 import 'constants/firebase_setup2.dart';
 import 'Utilities/user_db.dart';
 
