@@ -11,4 +11,8 @@ extension StringExtensions on String {
   bool isValidDouble() => double.tryParse(this) != null;
 
   bool isValidInt()    =>    int.tryParse(this) != null;
+
+  bool isValidName()  {
+    return RegExp('^[A-Z][a-z]*[A-Z]?[a-z]*\\s[A-Z][a-z]*[A-Z]?[a-z]*\$').hasMatch(this);
+  }
 }

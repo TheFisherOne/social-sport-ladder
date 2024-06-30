@@ -10,6 +10,11 @@ import 'constants/firebase_setup2.dart';
 import 'Utilities/user_db.dart';
 
 String loggedInUser = "";
+DocumentSnapshot<Object?>? loggedInUserDoc;
+
+void asyncGetUserDoc(String newUser) async{
+  loggedInUserDoc = await getUserDoc(newUser);
+}
 
 // this is used to trigger a signOut from another module
 LoginPageState? globalHomePage;
@@ -66,6 +71,7 @@ class LoginPageState extends State<LoginPage> {
   bool _existingUserChecked = false;
 
   void setLoggedInUser(String newUser) {
+    asyncGetUserDoc(newUser);
     setState(() {
       loggedInUser = newUser;
       _passwordController.clear();
@@ -76,20 +82,33 @@ class LoginPageState extends State<LoginPage> {
     _existingUserChecked = false;
     String recoveredEmail =
         FirebaseAuth.instance.currentUser!.email!.toLowerCase();
-    print('_handleStayedSignedIn: $recoveredEmail');
-    QuerySnapshot<Map<String, dynamic>> snapshot =
-        await FirebaseFirestore.instance.collection('Users').get();
-    UserName.buildUserDB(snapshot);
-    if (!UserName.dbEmail.containsKey(recoveredEmail)) {
+    // print('_handleStayedSignedIn: $recoveredEmail');
+
+    DocumentSnapshot<Object?>? userDoc = await getUserDoc(recoveredEmail);
+    if (userDoc == null){
       setState(() {
         _loginErrorString =
-            '_handleStayedSignedIn: not a valid user: $recoveredEmail}';
+        '_handleStayedSignedIn: not a valid user: $recoveredEmail}';
       });
-      print(_loginErrorString);
+      // print(_loginErrorString);
       FirebaseAuth.instance.signOut();
       setLoggedInUser('');
       return;
     }
+    loggedInUserDoc = userDoc;
+    print('_handleStayedSignedIn: $userDoc  ${userDoc.get('Ladders')}');
+
+    // await UserName.buildUserDB();
+    // if (!UserName.dbEmail.containsKey(recoveredEmail)) {
+    //   setState(() {
+    //     _loginErrorString =
+    //         '_handleStayedSignedIn: not a valid user: $recoveredEmail}';
+    //   });
+    //   // print(_loginErrorString);
+    //   FirebaseAuth.instance.signOut();
+    //   setLoggedInUser('');
+    //   return;
+    // }
     setLoggedInUser(recoveredEmail);
     if (kDebugMode) {
       print('logged in with email: $loggedInUser');
@@ -110,37 +129,48 @@ class LoginPageState extends State<LoginPage> {
           _loginErrorString = 'error signInWithEmail no user';
         });
 
-        print(_loginErrorString);
+        // print(_loginErrorString);
         return;
       }
       if (userCredential.user!.email == null) {
         setState(() {
           _loginErrorString = 'error signInWithEmail no user email';
         });
-        print(_loginErrorString);
+        // print(_loginErrorString);
         return;
       }
-      QuerySnapshot<Map<String, dynamic>> snapshot =
-          await FirebaseFirestore.instance.collection('Users').get();
-      UserName.buildUserDB(snapshot);
-      if (!UserName.dbEmail.containsKey(userCredential.user!.email!)) {
+      DocumentSnapshot<Object?>? userDoc = await getUserDoc(userCredential.user!.email!);
+      if (userDoc == null){
         setState(() {
           _loginErrorString =
-              '_signInWithEmailAndPassword: not a valid user: ${userCredential.user!.email!}';
+          '_signInWithEmailAndPassword: not a valid user: ${userCredential.user!.email!}}';
         });
-        print(_loginErrorString);
+        // print(_loginErrorString);
         FirebaseAuth.instance.signOut();
+        setLoggedInUser('');
         return;
       }
-      if (UserName.dbEmail[userCredential.user!.email!].ladderArray.isEmpty){
-        setState(() {
-          _loginErrorString =
-          '_signInWithEmail: user is in no ladders: ${userCredential.user!.email!}';
-        });
-        print(_loginErrorString);
-        FirebaseAuth.instance.signOut();
-        return;
-      }
+      loggedInUserDoc = userDoc;
+      print('_handleStayedSignedIn: $userDoc  ${userDoc.get('Ladders')}');
+      // await UserName.buildUserDB();
+      // if (!UserName.dbEmail.containsKey(userCredential.user!.email!)) {
+      //   setState(() {
+      //     _loginErrorString =
+      //         '_signInWithEmailAndPassword: not a valid user: ${userCredential.user!.email!}';
+      //   });
+      //   // print(_loginErrorString);
+      //   FirebaseAuth.instance.signOut();
+      //   return;
+      // }
+      // if (UserName.dbEmail[userCredential.user!.email!].ladderArray.isEmpty){
+      //   setState(() {
+      //     _loginErrorString =
+      //     '_signInWithEmail: user is in no ladders: ${userCredential.user!.email!}';
+      //   });
+      //   // print(_loginErrorString);
+      //   FirebaseAuth.instance.signOut();
+      //   return;
+      // }
       setLoggedInUser(userCredential.user!.email!.toLowerCase());
       if (kDebugMode) {
         print('logged in with email: $loggedInUser');
@@ -173,37 +203,47 @@ class LoginPageState extends State<LoginPage> {
           _loginErrorString = 'error signInWithGoogle no user';
         });
 
-        print(_loginErrorString);
+        // print(_loginErrorString);
         return;
       }
       if (userCredential.user!.email == null) {
         setState(() {
           _loginErrorString = 'error signInWithGoogle no user email';
         });
-        print(_loginErrorString);
+        // print(_loginErrorString);
         return;
       }
-      QuerySnapshot<Map<String, dynamic>> snapshot =
-          await FirebaseFirestore.instance.collection('Users').get();
-      UserName.buildUserDB(snapshot);
-      if (!UserName.dbEmail.containsKey(userCredential.user!.email!)) {
+      DocumentSnapshot<Object?>? userDoc = await getUserDoc(userCredential.user!.email!);
+      if (userDoc == null){
         setState(() {
           _loginErrorString =
-              '_signInWithGoogle: not a valid user: ${userCredential.user!.email!}';
+          '_signInWithGoogle: not a valid user: ${userCredential.user!.email!}}';
         });
-        print(_loginErrorString);
+        // print(_loginErrorString);
         FirebaseAuth.instance.signOut();
+        setLoggedInUser('');
         return;
       }
-      if (UserName.dbEmail[userCredential.user!.email!].ladderArray.isEmpty){
-        setState(() {
-          _loginErrorString =
-          '_signInWithGoogle: user is in no ladders: ${userCredential.user!.email!}';
-        });
-        print(_loginErrorString);
-        FirebaseAuth.instance.signOut();
-        return;
-      }
+      loggedInUserDoc = userDoc;
+      // await UserName.buildUserDB();
+      // if (!UserName.dbEmail.containsKey(userCredential.user!.email!)) {
+      //   setState(() {
+      //     _loginErrorString =
+      //         '_signInWithGoogle: not a valid user: ${userCredential.user!.email!}';
+      //   });
+      //   // print(_loginErrorString);
+      //   FirebaseAuth.instance.signOut();
+      //   return;
+      // }
+      // if (UserName.dbEmail[userCredential.user!.email!].ladderArray.isEmpty){
+      //   setState(() {
+      //     _loginErrorString =
+      //     '_signInWithGoogle: user is in no ladders: ${userCredential.user!.email!}';
+      //   });
+      //   // print(_loginErrorString);
+      //   FirebaseAuth.instance.signOut();
+      //   return;
+      // }
       setLoggedInUser(userCredential.user!.email!.toLowerCase());
       if (kDebugMode) {
         print('logged in with email: $loggedInUser');

@@ -13,12 +13,18 @@ import 'admin_page.dart';
 
 HomePageState? homeStateInstance;
 String activeLadderName = '';
+Player? selectedPlayer;
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
   @override
   State<HomePage> createState() => HomePageState();
+}
+
+void globalSetClickedOnRow(int row) {
+  if (homeStateInstance == null) return;
+  homeStateInstance!.setClickedOnRow(row);
 }
 
 class HomePageState extends State<HomePage> {
@@ -31,7 +37,7 @@ class HomePageState extends State<HomePage> {
   // num _locationLatitude = 90.0;
   // num _locationLongitude = 90.0;
   int _numberOfGetLocations = 0;
-  int _clickedOnRow = -1;
+  int _clickedOnRank = -1;
   int _checkInProgress = -1; // used for quick feedback that the checkbox was clicked
   int _desiredCheckState = -1;
 
@@ -42,23 +48,29 @@ class HomePageState extends State<HomePage> {
   // bool waitingForLocation = false;
 
   void startLocation() async {
-    print('starting startLocation');
+    // print('starting startLocation');
     try {
       _serviceEnabledFirst = await Geolocator.isLocationServiceEnabled();
       if (!_serviceEnabledFirst) {
-        print('startLocation: not Enabled, requestService');
+        // print('startLocation: not Enabled, requestService');
         _serviceEnabledRequested = await Geolocator.requestPermission();
         if (_serviceEnabledRequested == LocationPermission.denied) {
-          print('startLocation: after request, still not enabled');
+          if (kDebugMode) {
+            print('startLocation: after request, still not enabled');
+          }
           // return; //try onLocationChanged even if it says that it is disabled
         }
         if (_serviceEnabledRequested == LocationPermission.deniedForever) {
-          print('startLocation: after request, denied forever');
+          if (kDebugMode) {
+            print('startLocation: after request, denied forever');
+          }
           // return; //try onLocationChanged even if it says that it is disabled
         }
       }
     } catch (e) {
-      print('EXCEPTION IN isLocationServiceEnabled ${e.toString()}');
+      if (kDebugMode) {
+        print('EXCEPTION IN isLocationServiceEnabled ${e.toString()}');
+      }
     }
     try {
       _locationData = await Geolocator.getCurrentPosition();
@@ -66,21 +78,27 @@ class HomePageState extends State<HomePage> {
         _numberOfGetLocations++;
       });
     } catch (e) {
-      print('startLocation: first call got exception ${e.toString()}');
+      if (kDebugMode) {
+        print('startLocation: first call got exception ${e.toString()}');
+      }
       return;
     }
-    print('startLocation: location ENABLED $_serviceEnabledFirst $_serviceEnabledRequested');
+    // print('startLocation: location ENABLED $_serviceEnabledFirst $_serviceEnabledRequested');
     _timer = Timer.periodic(const Duration(seconds: 1000), (Timer timer) async {
       try {
         _locationData = await Geolocator.getCurrentPosition();
       } catch (e) {
-        print('startLocation: got exception ${e.toString()}');
+        if (kDebugMode) {
+          print('startLocation: got exception ${e.toString()}');
+        }
         return;
       }
       setState(() {
         _numberOfGetLocations++;
       });
-      print('got timed location update: $_locationData');
+      if (kDebugMode) {
+        print('got timed location update: $_locationData');
+      }
     });
 
     // try {
@@ -133,15 +151,17 @@ class HomePageState extends State<HomePage> {
 
   @override
   void initState() {
-    print('in initState for home');
+    if (kDebugMode) {
+      print('in initState for home');
+    }
     super.initState();
     window.addEventListener('focus', onFocus);
-    activeLadderName = UserName.dbEmail[loggedInUser].lastLadder;
-    _allLadders = UserName.dbEmail[loggedInUser].ladderArray;
+    activeLadderName = loggedInUserDoc!.get('LastLadder'); // UserName.dbEmail[loggedInUser].lastLadder;
+    _allLadders = loggedInUserDoc!.get('Ladders').split(','); // UserName.dbEmail[loggedInUser].ladderArray;
     if (activeLadderName.isEmpty) {
       activeLadderName = _allLadders[0];
     }
-    print('initState: startLocation');
+    // print('initState: startLocation');
     startLocation();
   }
 
@@ -178,39 +198,48 @@ class HomePageState extends State<HomePage> {
   }
 
   (Icon, Text) getIconToDisplay(Player player, String checkError, String vacationError) {
+    // print('getIconToDisplay: $_checkInProgress');
     if (player.willPlayInput == willPlayInputChoicesVacation) {
       return (
-        const Icon(Icons.airplanemode_on, color: Colors.red),
+        (_checkInProgress >= 0)
+            ? const Icon(Icons.refresh, color: Colors.red)
+            : const Icon(Icons.airplanemode_on, color: Colors.red),
         const Text('You are away for vacation', style: errorNameStyle)
       );
     }
     if (player.willPlayInput == willPlayInputChoicesPresent) {
-      return (const Icon(Icons.check_box, color: Colors.black), const Text('Ready to Play now', style: nameStyle));
+      return (
+        (_checkInProgress >= 0)
+            ? const Icon(Icons.refresh, color: Colors.black)
+            : const Icon(Icons.check_box, color: Colors.black),
+        const Text('Ready to Play now', style: nameStyle)
+      );
     }
     if (checkError.length < 2) {
       return (
-        const Icon(Icons.check_box_outline_blank_outlined, color: Colors.black),
+        (_checkInProgress >= 0)
+            ? const Icon(Icons.refresh, color: Colors.black)
+            : const Icon(Icons.check_box_outline_blank_outlined, color: Colors.black),
         const Text('Absent', style: nameStyle)
       );
     }
-    if (vacationError.isEmpty){
+    if (vacationError.isEmpty) {
       return (
-      const Icon(Icons.airplanemode_off, color: Colors.black),
-      Text('You are planning on playing on ${Player.playOn}', style: nameStyle)
+        (_checkInProgress >= 0)
+            ? const Icon(Icons.refresh, color: Colors.black)
+            : const Icon(Icons.airplanemode_off, color: Colors.black),
+        Text('You are planning on playing on ${Player.playOn}', style: nameStyle)
       );
     }
-    return (
-      const Icon(Icons.lock_outline, color: Colors.black),
-      Text(checkError, style: nameStyle)
-    );
+    return (const Icon(Icons.lock_outline, color: Colors.black), Text(checkError, style: nameStyle));
   }
 
   Widget unfrozenLine(Player player) {
-    String checkError = UserName.mayCheckIn(player);
+    String checkError = mayCheckIn(player);
     // print('checkError: $checkError');
 
-    String vacationError = UserName.mayReadyToPlay(player);
-    print('vacationError: $vacationError');
+    String vacationError = mayReadyToPlay(player);
+    // print('vacationError: $vacationError');
 
     Icon displayIcon;
     Text displayString;
@@ -234,7 +263,7 @@ class HomePageState extends State<HomePage> {
                             ),
                             onTap: () {
                               int newPlay = -1;
-                              if (checkError.length<2) {
+                              if (checkError.length < 2) {
                                 if (player.willPlayInput == willPlayInputChoicesPresent) {
                                   if (checkError.isEmpty) {
                                     newPlay = willPlayInputChoicesAbsent;
@@ -242,7 +271,7 @@ class HomePageState extends State<HomePage> {
                                     _playerCheckinsList.removeWhere((item) => item == player.email);
                                     setState(() {
                                       _desiredCheckState = newPlay;
-                                      _checkInProgress = _clickedOnRow;
+                                      _checkInProgress = _clickedOnRank;
                                     });
                                   } else {
                                     //admin entry
@@ -251,7 +280,7 @@ class HomePageState extends State<HomePage> {
                                     _playerCheckinsList.removeWhere((item) => item == player.email);
                                     setState(() {
                                       _desiredCheckState = newPlay;
-                                      _checkInProgress = _clickedOnRow;
+                                      _checkInProgress = _clickedOnRank;
                                     });
                                   }
                                 } else if (player.willPlayInput == willPlayInputChoicesVacation) {
@@ -260,15 +289,15 @@ class HomePageState extends State<HomePage> {
                                   _playerCheckinsList.removeWhere((item) => item == player.email);
                                   setState(() {
                                     _desiredCheckState = newPlay;
-                                    _checkInProgress = _clickedOnRow;
+                                    _checkInProgress = _clickedOnRank;
                                   });
-                                }else {
+                                } else {
                                   newPlay = willPlayInputChoicesPresent;
                                   player.updateWillPlayInput(newPlay);
                                   _playerCheckinsList.add(player.email);
                                   setState(() {
                                     _desiredCheckState = newPlay;
-                                    _checkInProgress = _clickedOnRow;
+                                    _checkInProgress = _clickedOnRank;
                                   });
                                 }
                               } else if (vacationError.isEmpty) {
@@ -277,14 +306,14 @@ class HomePageState extends State<HomePage> {
                                   player.updateWillPlayInput(newPlay);
                                   setState(() {
                                     _desiredCheckState = newPlay;
-                                    _checkInProgress = _clickedOnRow;
+                                    _checkInProgress = _clickedOnRank;
                                   });
                                 } else {
                                   newPlay = willPlayInputChoicesVacation;
                                   player.updateWillPlayInput(newPlay);
                                   setState(() {
                                     _desiredCheckState = newPlay;
-                                    _checkInProgress = _clickedOnRow;
+                                    _checkInProgress = _clickedOnRank;
                                   });
                                 }
                               }
@@ -300,6 +329,12 @@ class HomePageState extends State<HomePage> {
     );
   }
 
+  void setClickedOnRow(int row) {
+    setState(() {
+      _clickedOnRank = row;
+    });
+  }
+
   Widget buildPlayerLine(int row) {
     // column 1:
     // checkbox to show Present or not, but could say -- if not ReadyToPlay
@@ -312,6 +347,8 @@ class HomePageState extends State<HomePage> {
       return Text('R:${Player.db[row].rank} : ${Player.db[row].name}');
     }
 
+    if (row >= Player.db.length) return const Text('database not updated yet');
+
     // waiting for checkbox entry for present
     Player player = Player.db[row];
 
@@ -321,15 +358,16 @@ class HomePageState extends State<HomePage> {
         _desiredCheckState = -1;
       }
     }
+
     return Column(
       children: [
         InkWell(
           onTap: () {
             setState(() {
-              if (_clickedOnRow != row) {
-                _clickedOnRow = row;
+              if (_clickedOnRank != row) {
+                setClickedOnRow(row);
               } else {
-                _clickedOnRow = -1;
+                setClickedOnRow(-1);
               }
             });
           },
@@ -344,11 +382,13 @@ class HomePageState extends State<HomePage> {
                         : const Icon(Icons.horizontal_rule))),
             Text(
               ' ${player.rank}: ${player.name}',
-              style: (UserName.dbEmail[loggedInUser].name == player.name) ? nameBoldStyle : nameStyle,
+              style: (loggedInUser == player.email)
+                  ? nameBoldStyle
+                  : (isLoggedInUserAHelper() ? italicNameStyle : nameStyle),
             ),
           ]),
         ),
-        if ((_clickedOnRow == row) && ((player.email == loggedInUser) || UserName.dbEmail[loggedInUser].helper))
+        if ((_clickedOnRank == row) && ((player.email == loggedInUser) || isLoggedInUserAHelper()))
           unfrozenLine(player),
       ],
     );
@@ -438,16 +478,19 @@ class HomePageState extends State<HomePage> {
 
           Player.buildGlobalData(snapshot);
 
-          // print('_isAdmin: $_isAdmin  _isHelper: $_isHelper');
+
           return StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
                   .collection('Ladder')
                   .doc(activeLadderName)
                   .collection('Players')
+                  .orderBy('Rank')
                   .snapshots(),
               builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
                 if (snapshot.error != null) {
-                  print('SnapShot error on Users H2: ${snapshot.error.toString()}');
+                  if (kDebugMode) {
+                    print('SnapShot error on Users H2: ${snapshot.error.toString()}');
+                  }
                 }
                 // print('in StreamBuilder home 0');
                 if (!snapshot.hasData) return const CircularProgressIndicator();
@@ -461,14 +504,18 @@ class HomePageState extends State<HomePage> {
                 // seems to occur after refresh, admin mode is selected
                 // and first person is marked present by admin
                 //print('StreamBuilder: ${snapshot.hasError}, ${snapshot.connectionState}, ${snapshot.requireData.docs.length}');
-                if (snapshot.requireData.docs.length <= 1) {
-                  if (kDebugMode) {
-                    print('host builder: not enough players in db');
-                  }
-                  return const CircularProgressIndicator(); // Text('host builder: not enough players in db');
+                // if (snapshot.requireData.docs.length <= 1) {
+                //   if (kDebugMode) {
+                //     print('host builder: not enough players in db');
+                //   }
+                //   return const CircularProgressIndicator(); // Text('host builder: not enough players in db');
+                // }
+                Player.buildPlayerDB(snapshot);
+                if (_clickedOnRank >=0) {
+                  selectedPlayer = Player.db[_clickedOnRank];
+                } else{
+                  selectedPlayer = null;
                 }
-                Player.buildUserDB(snapshot);
-
                 return Scaffold(
                   appBar: buildAppBar([
                     Padding(
@@ -492,7 +539,7 @@ class HomePageState extends State<HomePage> {
                           setState(() {
                             loggedInUser = '';
                             if (globalHomePage != null) {
-                              print('SIGN OUT!!!');
+                              // print('SIGN OUT!!!');
                               globalHomePage!.signOut();
                             }
                           });
@@ -502,7 +549,7 @@ class HomePageState extends State<HomePage> {
                   body: ListView.separated(
                       separatorBuilder: (context, index) => const Divider(color: Colors.black),
                       padding: const EdgeInsets.all(8),
-                      itemCount: snapshot.data!.size + 1,
+                      itemCount: snapshot.data!.size + 2,
                       itemBuilder: (BuildContext context, int row) {
                         if (row == 0) {
                           return Text(_locationData == null
@@ -510,6 +557,9 @@ class HomePageState extends State<HomePage> {
                               : 'V3: Lat: ${(_locationData!.latitude - 53.5327).toStringAsFixed(5)}  '
                                   'Long:${(_locationData!.longitude + 113.5145).toStringAsFixed(5)}'
                                   ' num:$_numberOfGetLocations');
+                        }
+                        if (row == (snapshot.data!.size + 1)) {
+                          return const SizedBox(height: 1);
                         }
                         return buildPlayerLine(row - 1);
                       }),
