@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:sign_in_button/sign_in_button.dart';
 import 'package:social_sport_ladder/constants/constants.dart';
 import 'package:social_sport_ladder/screens/home_page.dart';
 import 'constants/firebase_setup2.dart';
@@ -13,7 +14,7 @@ String loggedInUser = "";
 DocumentSnapshot<Object?>? loggedInUserDoc;
 
 void asyncGetUserDoc(String newUser) async{
-  loggedInUserDoc = await getUserDoc(newUser);
+  loggedInUserDoc = await getGlobalUserDoc(newUser);
 }
 
 // this is used to trigger a signOut from another module
@@ -84,7 +85,7 @@ class LoginPageState extends State<LoginPage> {
         FirebaseAuth.instance.currentUser!.email!.toLowerCase();
     // print('_handleStayedSignedIn: $recoveredEmail');
 
-    DocumentSnapshot<Object?>? userDoc = await getUserDoc(recoveredEmail);
+    DocumentSnapshot<Object?>? userDoc = await getGlobalUserDoc(recoveredEmail);
     if (userDoc == null){
       setState(() {
         _loginErrorString =
@@ -98,7 +99,7 @@ class LoginPageState extends State<LoginPage> {
     loggedInUserDoc = userDoc;
     print('_handleStayedSignedIn: $userDoc  ${userDoc.get('Ladders')}');
 
-    // await UserName.buildUserDB();
+    await GlobalUser.buildUserDB();
     // if (!UserName.dbEmail.containsKey(recoveredEmail)) {
     //   setState(() {
     //     _loginErrorString =
@@ -139,7 +140,7 @@ class LoginPageState extends State<LoginPage> {
         // print(_loginErrorString);
         return;
       }
-      DocumentSnapshot<Object?>? userDoc = await getUserDoc(userCredential.user!.email!);
+      DocumentSnapshot<Object?>? userDoc = await getGlobalUserDoc(userCredential.user!.email!);
       if (userDoc == null){
         setState(() {
           _loginErrorString =
@@ -152,7 +153,7 @@ class LoginPageState extends State<LoginPage> {
       }
       loggedInUserDoc = userDoc;
       print('_handleStayedSignedIn: $userDoc  ${userDoc.get('Ladders')}');
-      // await UserName.buildUserDB();
+      await GlobalUser.buildUserDB();
       // if (!UserName.dbEmail.containsKey(userCredential.user!.email!)) {
       //   setState(() {
       //     _loginErrorString =
@@ -186,6 +187,21 @@ class LoginPageState extends State<LoginPage> {
       return;
     }
   }
+  UserCredential? facebookCredential;
+
+  void  _signInWithFacebook() async {
+    FacebookAuthProvider facebookProvider = FacebookAuthProvider();
+    facebookProvider.addScope('email');
+    facebookProvider.setCustomParameters({
+      'display': 'popup'
+    });
+    facebookCredential = await FirebaseAuth.instance.signInWithPopup(facebookProvider);
+    print('_signInWithFacebook: logged in with ${facebookCredential!.user!.email!}');
+    setLoggedInUser(facebookCredential!.user!.email!.toLowerCase());
+    setState(() {
+
+    });
+  }
 
   void _signInWithGoogle() async {
     try {
@@ -213,7 +229,7 @@ class LoginPageState extends State<LoginPage> {
         // print(_loginErrorString);
         return;
       }
-      DocumentSnapshot<Object?>? userDoc = await getUserDoc(userCredential.user!.email!);
+      DocumentSnapshot<Object?>? userDoc = await getGlobalUserDoc(userCredential.user!.email!);
       if (userDoc == null){
         setState(() {
           _loginErrorString =
@@ -225,7 +241,7 @@ class LoginPageState extends State<LoginPage> {
         return;
       }
       loggedInUserDoc = userDoc;
-      // await UserName.buildUserDB();
+      await GlobalUser.buildUserDB();
       // if (!UserName.dbEmail.containsKey(userCredential.user!.email!)) {
       //   setState(() {
       //     _loginErrorString =
@@ -269,6 +285,17 @@ class LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     globalHomePage ??= this;
+
+
+    // Map _uriParameters = Uri.base.queryParameters;
+    // // this will always be lowercase
+    // if (_uriParameters.containsKey('ladder')){
+    //   print('initial Ladder name is: ${_uriParameters['ladder']}');
+    // } else {
+    //   print('BUILD: no ladder specified $_uriParameters');
+    //   return const Text('You must specify the ladder name with:\n https://social-sport-ladder.web.app/?ladder=ladder_name', style: nameStyle);
+    // }
+
     // This method is rerun every time setState is called,
     if ((FirebaseAuth.instance.currentUser == null) ||
         (FirebaseAuth.instance.currentUser!.email == null)) {
@@ -316,10 +343,11 @@ class LoginPageState extends State<LoginPage> {
                   child: const Text('Sign in with Email'),
                 ),
                 const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: _signInWithGoogle,
-                  child: const Text('Sign in with Google'),
-                ),
+                SignInButton(Buttons.google,
+                onPressed: _signInWithGoogle,),
+                const SizedBox(height: 20),
+                SignInButton(Buttons.facebook,
+                  onPressed: _signInWithFacebook,),
                 const SizedBox(height: 20),
                 Text(_loginErrorString),
               ],

@@ -161,6 +161,18 @@ class HomePageState extends State<HomePage> {
     if (activeLadderName.isEmpty) {
       activeLadderName = _allLadders[0];
     }
+    bool notFound = true;
+    String lastFoundLadder = '';
+    for (String ladder in _allLadders){
+      if (ladder == activeLadderName){
+        notFound = false;
+      } else {
+        lastFoundLadder = ladder;
+      }
+    }
+    if (notFound){
+      activeLadderName = lastFoundLadder;
+    }
     // print('initState: startLocation');
     startLocation();
   }
@@ -187,11 +199,12 @@ class HomePageState extends State<HomePage> {
   // this is used to cause a refresh, if we went away from this screen and came back
   // I think this fires both in and out of focus, but not sure how to read the hasFocus parameter it is not bool
   void onFocus(hasFocus) {
+    // print('onFocus: $homeStateInstance');
     if (homeStateInstance != null) {
       // without this check it would error out on init
       homeStateInstance!.setState(() {
         if (kDebugMode) {
-          print('onFocus: setState');
+          // print('onFocus: setState');
         }
       });
     }
@@ -227,7 +240,7 @@ class HomePageState extends State<HomePage> {
       return (
         (_checkInProgress >= 0)
             ? const Icon(Icons.refresh, color: Colors.black)
-            : const Icon(Icons.airplanemode_off, color: Colors.black),
+            : const Icon(Icons.house, color: Colors.black),
         Text('You are planning on playing on ${Player.playOn}', style: nameStyle)
       );
     }
@@ -384,7 +397,7 @@ class HomePageState extends State<HomePage> {
               ' ${player.rank}: ${player.name}',
               style: (loggedInUser == player.email)
                   ? nameBoldStyle
-                  : (isLoggedInUserAHelper() ? italicNameStyle : nameStyle),
+                  : (player.helper ? italicNameStyle : nameStyle),
             ),
           ]),
         ),
@@ -431,7 +444,11 @@ class HomePageState extends State<HomePage> {
           onChanged: (newValue) {
             setState(() {
               activeLadderName = newValue.toString();
+              FirebaseFirestore.instance.collection('Users').doc(loggedInUser).update({
+                'LastLadder': activeLadderName,
+              });
               _playerCheckinsList = List.empty(growable: true);
+              _clickedOnRank = -1;
             });
           },
         ),
@@ -511,7 +528,8 @@ class HomePageState extends State<HomePage> {
                 //   return const CircularProgressIndicator(); // Text('host builder: not enough players in db');
                 // }
                 Player.buildPlayerDB(snapshot);
-                if (_clickedOnRank >=0) {
+                // print('builtPlayerDB $_clickedOnRank / ${Player.db.length}');
+                if ((_clickedOnRank >=0) && (_clickedOnRank < Player.db.length)) {
                   selectedPlayer = Player.db[_clickedOnRank];
                 } else{
                   selectedPlayer = null;

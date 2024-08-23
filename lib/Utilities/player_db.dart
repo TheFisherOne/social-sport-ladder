@@ -99,7 +99,7 @@ class Player {
       return;
     }
     for (int i = 0; i < newArray.length; i++) {
-      DocumentSnapshot? snapshot = await getUserDoc(newArray[i]);
+      DocumentSnapshot? snapshot = await getGlobalUserDoc(newArray[i]);
 
       if (snapshot == null) {
         globalAdministration!.setErrorState(row, '${newArray[i]} is not a valid user');
@@ -491,8 +491,22 @@ class Player {
     // print('deletePlayer: deleting $name $email at Rank $rankToDelete');
     DocumentReference userDoc =
         FirebaseFirestore.instance.collection('Ladder').doc(activeLadderName).collection('Players').doc(email);
+    DocumentReference globalUserDoc =
+        FirebaseFirestore.instance.collection('Users').doc(email);
 
     FirebaseFirestore.instance.runTransaction((transaction) async {
+
+      var snap2 = await transaction.get(globalUserDoc);
+      String ladders = snap2.get('Ladders');
+      int start = ladders.indexOf(activeLadderName);
+      int end = start + activeLadderName.length;
+      print('BEFORE DELETE $ladders, $start, $end');
+      ladders = ladders.substring(0,start) + ladders.substring(end);
+      if (ladders.startsWith(',')) ladders = ladders.substring(1);
+      if (ladders.endsWith(',')) ladders = ladders.substring(0,ladders.length-1);
+      int doubleComma = ladders.indexOf(',,');
+      if (doubleComma > 0 ) ladders = ladders.substring(0,doubleComma) + ladders.substring(doubleComma+1);
+      print('AFTER $ladders');
       // need to do ALL of the reads before any write/update/delete
       List<int> ranks = List<int>.empty(growable: true);
       for (int row = 0; row < pl.length; row++) {
@@ -500,6 +514,7 @@ class Player {
         // print('deletePlayer found ${pl[row].id} at rank ${ranks[row]}');
       }
 
+      transaction.update(globalUserDoc, {'Ladders': ladders},);
       for (int num = 0; num < pl.length; num++) {
         if (ranks[num] > rankToDelete) {
           String id = pl[num].id;
@@ -657,14 +672,14 @@ class Player {
 
       }
     );
-    String adminsString = loggedInUserDoc!.get('Ladders');
-    if (adminsString.isEmpty){
+    String laddersListString = loggedInUserDoc!.get('Ladders');
+    if (laddersListString.isEmpty){
       await FirebaseFirestore.instance.collection('Users').doc(loggedInUser).update({
         'Ladders': newLadder,
       });
     } else {
       await FirebaseFirestore.instance.collection('Users').doc(loggedInUser).update({
-        'Ladders': '$adminsString,$newLadder',
+        'Ladders': '$laddersListString,$newLadder',
       });
     }
 

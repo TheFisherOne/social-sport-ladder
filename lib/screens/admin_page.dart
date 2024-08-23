@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:social_sport_ladder/Utilities/string_validators.dart';
@@ -42,6 +41,7 @@ class AdministrationState extends State<Administration> {
   String? errorEmail;
   String? errorName;
   String? errorNewLadder;
+  String? errorTestField;
   @override
   void initState() {
     super.initState();
@@ -87,7 +87,7 @@ class AdministrationState extends State<Administration> {
     try {
       await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: newEmail,
-        password: getRandomString(10),
+        password: '123456', //getRandomString(10),
       );
     } on FirebaseAuthException catch (e) {
       if (e.code == 'email-already-in-use') {
@@ -155,7 +155,7 @@ class AdministrationState extends State<Administration> {
       });
     }));
 
-    // await UserName.buildUserDB();
+    await GlobalUser.buildUserDB();
     setState(() {
       _newUserErrorMessage = 'Player added';
     });
@@ -274,6 +274,7 @@ class AdministrationState extends State<Administration> {
     } catch (e) {
       // empty
     }
+    // print('loggedInUser $loggedInUser is a superUser? $isSuperUser');
 
 
     return Scaffold(
@@ -394,6 +395,7 @@ class AdministrationState extends State<Administration> {
                 child: TextFormField(
                   keyboardType: TextInputType.text,
                   controller: emailController,
+                  inputFormatters: [LowerCaseTextInputFormatter()],
                   validator: (value) {
                     if (value == null) return null;
                     String newValue = value.trim().replaceAll(RegExp(r' \s+'), ' ');
@@ -513,6 +515,39 @@ class AdministrationState extends State<Administration> {
                 ),
               ),
             ),
+          if (isSuperUser)
+            OutlinedButton(onPressed: (){
+              if (kDebugMode) {
+                print("REBUILD button pressed");
+                rebuildGlobalUserDocs();
+              }
+            }, child: const Text('Rebuild Global User DB', style: nameStyle,))
+    //       if (isSuperUser)
+    // Padding(
+    // padding: const EdgeInsets.all(10.0),
+    // child:TextFormField(
+    //   initialValue: '',
+    //   decoration: textFormFieldStandardDecoration.copyWith(
+    //     labelText: 'Test field',
+    //     helperText: 'The Name of the test',
+    //     errorText: errorTestField,
+    //     suffixIcon: IconButton(
+    //         onPressed: () {
+    //           print('creating ladder ${ladderNameController.text}');
+    //           // Player.createNewLadder(ladderNameController.text);
+    //           setState(() {
+    //             errorTestField = null;
+    //           });
+    //         },
+    //         icon: const Icon(Icons.send)),
+    //   ),
+    //     onChanged: (value){
+    //       setState(() {
+    //         errorTestField='not saved';
+    //       });
+    //     }
+    // )
+    // ),
         ]));
   }
 }

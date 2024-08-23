@@ -4,14 +4,85 @@ import 'package:social_sport_ladder/Utilities/player_db.dart';
 import 'package:social_sport_ladder/constants/constants.dart';
 import 'package:social_sport_ladder/main.dart';
 
-Future<DocumentSnapshot?> getUserDoc(String testUser) async {
+Future<DocumentSnapshot?> getGlobalUserDoc(String testUser) async {
   if (testUser.trim().isEmpty) return null;
+
 
   var userDocRef = FirebaseFirestore.instance.collection('Users').doc(testUser);
   DocumentSnapshot doc = await userDocRef.get();
-  print('getUserDoc: $testUser ${doc.exists}  ${doc.get("Ladders")}');
-  if (doc.exists) return doc;
-  return null;
+  print('getUserDoc1: $testUser ${doc.exists}');
+  if (! doc.exists) return null;
+  String ladders = doc.get('Ladders');
+  if (ladders.trim().isEmpty) {
+    print('ERROR: attempt to login to a user that is not in any ladders');
+    return null;
+  }
+  return doc;
+
+}
+void rebuildGlobalUserDocs() async {
+  Map<String, String> userDict = {};
+
+  var querySnapshot = await FirebaseFirestore.instance.collection('Ladder').get();
+  for (var docSnapshot in querySnapshot.docs) {
+    // admins have to be users too
+    List<String> admins = docSnapshot.get('Admins').split(',');
+    // print('Ladder ${docSnapshot.id} has admins: $admins');
+    // print('${docSnapshot.id} => ${docSnapshot.data()}');
+    var playerSnapshots = await FirebaseFirestore.instance.collection('Ladder').doc(docSnapshot.id).collection(
+        'Players').get();
+    for (var playerDoc in playerSnapshots.docs) {
+      // print('${docSnapshot.id} ==> ${playerDoc.id}');
+      if (userDict.containsKey(playerDoc.id)) {
+        userDict[playerDoc.id ] = '${userDict[playerDoc.id]},${docSnapshot.id}';
+      } else {
+        userDict[playerDoc.id ] = docSnapshot.id;
+      }
+      if (admins.contains(playerDoc.id)){
+        admins.remove(playerDoc.id);
+      }
+    }
+    // print('EXTRA users that are only admins: $admins');
+    for (String adminUser in admins){
+      if (userDict.containsKey(adminUser)) {
+        userDict[adminUser ] = '${userDict[adminUser]},${docSnapshot.id}';
+      } else {
+        userDict[adminUser ] = docSnapshot.id;
+      }
+    }
+  }
+  // print(userDict);
+  var userSnapshots = await FirebaseFirestore.instance.collection('Users').get();
+  for (var userSnapshot in userSnapshots.docs) {
+    String ladders = userSnapshot.get('Ladders');
+    if ( ladders == userDict[userSnapshot.id]) {
+      // print('GOOD: ${userSnapshot.id}');
+    } else if (userDict[userSnapshot.id] == null) {
+      if (ladders.isEmpty) {
+        print('GlobalUser is not used can be deleted: ${userSnapshot.id}');
+      } else {
+        print('FIXING: GlobalUser is not used but has entries: ${userSnapshot.id} : $ladders');
+        await FirebaseFirestore.instance.collection('Users').doc(userSnapshot.id).update({
+          'Ladders':'',
+        });
+      }
+    } else{
+      print('FIXING: MISMATCH for ${userSnapshot.id}: $ladders / ${userDict[userSnapshot.id]} ');
+      await FirebaseFirestore.instance.collection('Users').doc(userSnapshot.id).update({
+        'Ladders': userDict[userSnapshot.id],
+      });
+    }
+    userDict.remove(userSnapshot.id);
+  }
+  userDict.keys.forEach((user) async {
+    print('FIXED: Users that need to be added to Global user: $user : ${userDict[user]}');
+    await FirebaseFirestore.instance.collection('Users').doc(user).set({
+      'Ladders': userDict[user],
+      'LastLadder': '',
+    });
+  });
+  // print('Users that should be in Globaluser: $userDict');
+
 }
 
 bool isLoggedInUserAHelper(){
@@ -61,10 +132,9 @@ String mayCheckIn(Player player) {
   }
   if (DateTime.now().hour > (Player.startTime + 1)) return 'you have to wait until next ${Player.playOn}';
 
-  if (UserName.dbEmail[loggedInUser].name == player.name) return '';
-
   if (Player.dbByEmail[loggedInUser].helper) return '';
-
+  // print('mayCheckIn: $loggedInUser == ${player.email}');
+  if (loggedInUser == player.email) return '';
   return "this isn't you, and you are not a helper";
 }
 
@@ -83,23 +153,24 @@ String mayReadyToPlay(Player player) {
       (DateTime.now().hour < (Player.startTime + 1))) {
     return 'not between ${Player.vacationStopTime} o' 'clock and start of ladder on ${Player.playOn}';
   }
-
+  print('mayReadyToPlay: $loggedInUser == ${player.email}');
   if (loggedInUser == player.email) return '';
   if (Player.dbByEmail[loggedInUser].helper) return '';
   return "this isn't you, and you are not a helper";
 }
 
-class UserName {
+class GlobalUser {
   static var dbEmail = {};
   String ladders = '';
   String lastLadder = '';
   List<String> ladderArray = [];
 
   static buildUserDB() async {
+    print('buildUserDB');
     String attrName = '';
     QuerySnapshot<Map<String, dynamic>> snapshot = await FirebaseFirestore.instance.collection('Users').get();
     for (var doc in snapshot.docs) {
-      UserName newUser = UserName();
+      GlobalUser newUser = GlobalUser();
       try {
         attrName = 'Ladders';
         newUser.ladders = doc.get(attrName);
