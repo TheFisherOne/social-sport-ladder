@@ -1,7 +1,8 @@
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 
-String fireStoreCollectionName = "social-sport-ladder";
+const String fireStoreCollectionName = "social-sport-ladder";
+const int softwareVersion = 2;
 
 class LowerCaseTextInputFormatter extends TextInputFormatter {
   @override
@@ -15,6 +16,8 @@ class LowerCaseTextInputFormatter extends TextInputFormatter {
 
 const double appFontSize = 20;
 const nameStyle = TextStyle(decoration: TextDecoration.none, fontSize: appFontSize, fontWeight: FontWeight.normal);
+const nameBigStyle = TextStyle(decoration: TextDecoration.none, fontSize: appFontSize+6, fontWeight: FontWeight.normal);
+const nameStrikeThruStyle = TextStyle(decoration: TextDecoration.lineThrough, fontSize: appFontSize, fontWeight: FontWeight.normal);
 const errorNameStyle = TextStyle(
     color: Colors.red,
     decoration: TextDecoration.none,

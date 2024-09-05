@@ -10,7 +10,10 @@ import 'package:social_sport_ladder/screens/admin_page.dart';
 
 import '../screens/home_page.dart';
 
+
+
 const List<String> globalAttrNames = [
+  'DisplayName',
   'Admins',
   'PlayOn',
   'PriorityOfCourts',
@@ -24,6 +27,7 @@ const List<String> globalAttrNames = [
 ];
 // this should be same length and same order as globalAttrNames
 const List<String> globalHelpText = [
+  'Name to show your Players',
   'Emails separated by commas',
   'name of weekday like mon',
   'Court names separated by commas',
@@ -41,6 +45,7 @@ class Player {
   // and they should be converted to a string
   static List<String> globalStaticValues() {
     return [
+      displayName,
       admins,
       playOn,
       priorityOfCourtsString,
@@ -90,6 +95,7 @@ class Player {
   static double metersFromLatLong = 0.01;
   static double checkInStartHours = 8;
   static double vacationStopTime = 8;
+  static String displayName='';
 
   static void setAdmins(String value, int row) async {
     String newValue;
@@ -256,6 +262,10 @@ class Player {
         return false;
       }
       newValue = vacationStopTime;
+    }else if (attrName == 'DisplayName') {
+      displayName = value;
+
+      newValue = displayName;
     }
 
     // print('update ladder $activeLadderName $attrName : $newValue');
@@ -320,6 +330,7 @@ class Player {
     metersFromLatLong = getGlobalAttribute(doc, 'MetersFromLatLong', 0.01);
     checkInStartHours = getGlobalAttribute(doc, 'CheckInStartHours', 0.01);
     vacationStopTime = getGlobalAttribute(doc, 'VacationStopTime', 0.01);
+    displayName = getGlobalAttribute(doc, 'DisplayName', activeLadderName);
 
     // print('admins: $admins, dayOfWeek: $playOnDayOfWeek, priority: $priorityOfCourts, random: $randomCourtOf5, startTime: $startTime');
   }
@@ -669,7 +680,7 @@ class Player {
         'RandomCourtOf5': 0,
         'StartTime': Player.startTime,
         'VacationStopTime': Player.vacationStopTime,
-
+        'DisplayName': Player.displayName,
       }
     );
     String laddersListString = loggedInUserDoc!.get('Ladders');

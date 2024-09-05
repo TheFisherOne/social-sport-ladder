@@ -5,17 +5,13 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_button/sign_in_button.dart';
+import 'package:social_sport_ladder/Utilities/string_validators.dart';
 import 'package:social_sport_ladder/constants/constants.dart';
-import 'package:social_sport_ladder/screens/home_page.dart';
+import 'package:social_sport_ladder/screens/ladder_selection_page.dart';
 import 'constants/firebase_setup2.dart';
-import 'Utilities/user_db.dart';
 
 String loggedInUser = "";
 DocumentSnapshot<Object?>? loggedInUserDoc;
-
-void asyncGetUserDoc(String newUser) async{
-  loggedInUserDoc = await getGlobalUserDoc(newUser);
-}
 
 // this is used to trigger a signOut from another module
 LoginPageState? globalHomePage;
@@ -32,30 +28,34 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
+    loggedInUser = '';
+    if (FirebaseAuth.instance.currentUser != null){
+      if (FirebaseAuth.instance.currentUser!.email != null ){
+        loggedInUser = FirebaseAuth.instance.currentUser!.email!.toLowerCase();
+      }
+    }
+    // print('MyApp build: with email: $loggedInUser');
+
     return MaterialApp(
       title: 'Social Sport Ladder',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const LoginPage(title: 'Social Sport Ladder Login'),
+      // initialRoute: loggedInUser.isEmpty?'Login':'Ladder',
+      // routes: {
+      //   'Login': (context)=> const LoginPage(),
+      //   'Ladder': (context)=> const LadderSelectionPage(),
+      //
+      // },
+      home: loggedInUser.isEmpty?const LoginPage():const LadderSelectionPage(),
     );
   }
 }
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key, required this.title});
+  const LoginPage({super.key});
 
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
 
   @override
   State<LoginPage> createState() => LoginPageState();
@@ -69,58 +69,39 @@ class LoginPageState extends State<LoginPage> {
     clientId: googleClientId,
   );
   String _loginErrorString = '';
-  bool _existingUserChecked = false;
+  String _passwordResetError='';
 
-  void setLoggedInUser(String newUser) {
-    asyncGetUserDoc(newUser);
-    setState(() {
-      loggedInUser = newUser;
-      _passwordController.clear();
+
+  void _sendPasswordReset() {
+
+    String email = _emailController.text;
+    print('_sendPasswordReset: $email');
+    FirebaseAuth.instance
+        .sendPasswordResetEmail(
+        email: email)
+        .then((value){
+      if (kDebugMode) {
+        print('RESET Password for $email');
+      }
+      setState(() {
+        _passwordResetError = 'Email sent to $email';
+      });
+    })
+        .catchError((e){
+      setState(() {
+        _passwordResetError = e.toString();
+      });
+
+      if (kDebugMode) {
+        print('got error on password reset for $email : $e.');
+      }
     });
   }
-
-  _handleStayedSignedIn() async {
-    _existingUserChecked = false;
-    String recoveredEmail =
-        FirebaseAuth.instance.currentUser!.email!.toLowerCase();
-    // print('_handleStayedSignedIn: $recoveredEmail');
-
-    DocumentSnapshot<Object?>? userDoc = await getGlobalUserDoc(recoveredEmail);
-    if (userDoc == null){
-      setState(() {
-        _loginErrorString =
-        '_handleStayedSignedIn: not a valid user: $recoveredEmail}';
-      });
-      // print(_loginErrorString);
-      FirebaseAuth.instance.signOut();
-      setLoggedInUser('');
-      return;
-    }
-    loggedInUserDoc = userDoc;
-    print('_handleStayedSignedIn: $userDoc  ${userDoc.get('Ladders')}');
-
-    await GlobalUser.buildUserDB();
-    // if (!UserName.dbEmail.containsKey(recoveredEmail)) {
-    //   setState(() {
-    //     _loginErrorString =
-    //         '_handleStayedSignedIn: not a valid user: $recoveredEmail}';
-    //   });
-    //   // print(_loginErrorString);
-    //   FirebaseAuth.instance.signOut();
-    //   setLoggedInUser('');
-    //   return;
-    // }
-    setLoggedInUser(recoveredEmail);
-    if (kDebugMode) {
-      print('logged in with email: $loggedInUser');
-    }
-    _existingUserChecked = true;
-  }
-
   void _signInWithEmailAndPassword() async {
     _loginErrorString = '';
     try {
-      UserCredential userCredential = await _auth.signInWithEmailAndPassword(
+      // print('_signInWithEmailAndPassword: attempting login of: _emailController.text.toLowerCase()');
+      UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text.toLowerCase(),
         password: _passwordController.text,
       );
@@ -130,52 +111,27 @@ class LoginPageState extends State<LoginPage> {
           _loginErrorString = 'error signInWithEmail no user';
         });
 
-        // print(_loginErrorString);
+        if (kDebugMode) {
+          print(_loginErrorString);
+        }
         return;
       }
       if (userCredential.user!.email == null) {
         setState(() {
           _loginErrorString = 'error signInWithEmail no user email';
         });
-        // print(_loginErrorString);
+        if (kDebugMode) {
+          print(_loginErrorString);
+        }
         return;
       }
-      DocumentSnapshot<Object?>? userDoc = await getGlobalUserDoc(userCredential.user!.email!);
-      if (userDoc == null){
-        setState(() {
-          _loginErrorString =
-          '_signInWithEmailAndPassword: not a valid user: ${userCredential.user!.email!}}';
-        });
-        // print(_loginErrorString);
-        FirebaseAuth.instance.signOut();
-        setLoggedInUser('');
-        return;
-      }
-      loggedInUserDoc = userDoc;
-      print('_handleStayedSignedIn: $userDoc  ${userDoc.get('Ladders')}');
-      await GlobalUser.buildUserDB();
-      // if (!UserName.dbEmail.containsKey(userCredential.user!.email!)) {
-      //   setState(() {
-      //     _loginErrorString =
-      //         '_signInWithEmailAndPassword: not a valid user: ${userCredential.user!.email!}';
-      //   });
-      //   // print(_loginErrorString);
-      //   FirebaseAuth.instance.signOut();
-      //   return;
-      // }
-      // if (UserName.dbEmail[userCredential.user!.email!].ladderArray.isEmpty){
-      //   setState(() {
-      //     _loginErrorString =
-      //     '_signInWithEmail: user is in no ladders: ${userCredential.user!.email!}';
-      //   });
-      //   // print(_loginErrorString);
-      //   FirebaseAuth.instance.signOut();
-      //   return;
-      // }
-      setLoggedInUser(userCredential.user!.email!.toLowerCase());
-      if (kDebugMode) {
-        print('logged in with email: $loggedInUser');
-      }
+      // print('_signInWithEmailAndPassword: email: ${userCredential.user!.email!.toLowerCase()} ');
+      loggedInUser = userCredential.user!.email!.toLowerCase();
+
+      _emailController.text = '';
+      _passwordController.text='';
+
+      Navigator.push(context, MaterialPageRoute(builder: (context) => const LadderSelectionPage()));
       return;
     } catch (e) {
       setState(() {
@@ -196,10 +152,9 @@ class LoginPageState extends State<LoginPage> {
       'display': 'popup'
     });
     facebookCredential = await FirebaseAuth.instance.signInWithPopup(facebookProvider);
-    print('_signInWithFacebook: logged in with ${facebookCredential!.user!.email!}');
-    setLoggedInUser(facebookCredential!.user!.email!.toLowerCase());
+    // print('_signInWithFacebook: logged in with ${facebookCredential!.user!.email!}');
     setState(() {
-
+      loggedInUser = facebookCredential!.user!.email!.toLowerCase();
     });
   }
 
@@ -219,51 +174,25 @@ class LoginPageState extends State<LoginPage> {
           _loginErrorString = 'error signInWithGoogle no user';
         });
 
-        // print(_loginErrorString);
+        if (kDebugMode) {
+          print(_loginErrorString);
+        }
         return;
       }
       if (userCredential.user!.email == null) {
         setState(() {
           _loginErrorString = 'error signInWithGoogle no user email';
         });
-        // print(_loginErrorString);
+        if (kDebugMode) {
+          print(_loginErrorString);
+        }
         return;
       }
-      DocumentSnapshot<Object?>? userDoc = await getGlobalUserDoc(userCredential.user!.email!);
-      if (userDoc == null){
-        setState(() {
-          _loginErrorString =
-          '_signInWithGoogle: not a valid user: ${userCredential.user!.email!}}';
-        });
-        // print(_loginErrorString);
-        FirebaseAuth.instance.signOut();
-        setLoggedInUser('');
-        return;
-      }
-      loggedInUserDoc = userDoc;
-      await GlobalUser.buildUserDB();
-      // if (!UserName.dbEmail.containsKey(userCredential.user!.email!)) {
-      //   setState(() {
-      //     _loginErrorString =
-      //         '_signInWithGoogle: not a valid user: ${userCredential.user!.email!}';
-      //   });
-      //   // print(_loginErrorString);
-      //   FirebaseAuth.instance.signOut();
-      //   return;
-      // }
-      // if (UserName.dbEmail[userCredential.user!.email!].ladderArray.isEmpty){
-      //   setState(() {
-      //     _loginErrorString =
-      //     '_signInWithGoogle: user is in no ladders: ${userCredential.user!.email!}';
-      //   });
-      //   // print(_loginErrorString);
-      //   FirebaseAuth.instance.signOut();
-      //   return;
-      // }
-      setLoggedInUser(userCredential.user!.email!.toLowerCase());
-      if (kDebugMode) {
-        print('logged in with email: $loggedInUser');
-      }
+
+      // print('_signInWithGoogle: got email ${userCredential.user!.email!}');
+      loggedInUser = userCredential.user!.email!.toLowerCase();
+      Navigator.push(context, MaterialPageRoute(builder: (context) => const LadderSelectionPage()));
+
       return;
     } catch (e) {
       setState(() {
@@ -282,44 +211,25 @@ class LoginPageState extends State<LoginPage> {
     });
   }
 
+  String? emailValidator(String? value) {
+    print('emailValidator: $value');
+      if (! value!.isValidEmail()) {
+        return 'not a valid email address';
+      }
+    return null;
+  }
+
+  String? emailErrorText;
   @override
   Widget build(BuildContext context) {
     globalHomePage ??= this;
 
-
-    // Map _uriParameters = Uri.base.queryParameters;
-    // // this will always be lowercase
-    // if (_uriParameters.containsKey('ladder')){
-    //   print('initial Ladder name is: ${_uriParameters['ladder']}');
-    // } else {
-    //   print('BUILD: no ladder specified $_uriParameters');
-    //   return const Text('You must specify the ladder name with:\n https://social-sport-ladder.web.app/?ladder=ladder_name', style: nameStyle);
-    // }
-
-    // This method is rerun every time setState is called,
-    if ((FirebaseAuth.instance.currentUser == null) ||
-        (FirebaseAuth.instance.currentUser!.email == null)) {
-      loggedInUser = "";
-      // print('No User Logged In');
-    } else {
-      if (!_existingUserChecked) {
-        _handleStayedSignedIn();
-        return const CircularProgressIndicator();
-      }
-    }
-
-    if (loggedInUser.isNotEmpty) {
-      return const HomePage();
-    } else {
-      return Scaffold(
+    // print('LoginPage: email "$loggedInUser" ');
+    return Scaffold(
           appBar: AppBar(
-            // TRY THIS: Try changing the color here to a specific color (to
-            // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-            // change color while the other colors stay the same.
             backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-            // Here we take the value from the MyHomePage object that was created by
-            // the App.build method, and use it to set our appbar title.
-            title: Text(widget.title),
+            title: const Text('Login:'),
+            automaticallyImplyLeading: false,
           ),
           body: Padding(
             padding: const EdgeInsets.all(16.0),
@@ -328,8 +238,25 @@ class LoginPageState extends State<LoginPage> {
               children: [
                 TextFormField(
                   controller: _emailController,
-                  decoration: textFormFieldStandardDecoration.copyWith(labelText: 'Email'),
+                  decoration: textFormFieldStandardDecoration.copyWith(labelText: 'Email', errorText: emailErrorText),
                   inputFormatters: [LowerCaseTextInputFormatter()],
+                  onChanged: (String? val){
+                    // print('email changed to $val');
+                    String? oldError = emailErrorText;
+                    if (val!.isValidEmail()) {
+                      if (oldError != null){
+                        setState(() {
+                          emailErrorText=null;
+                        });
+                      }
+                    } else {
+                      if (oldError != 'Invalid email format'){
+                        setState(() {
+                          emailErrorText='Invalid email format';
+                        });
+                      }
+                    }
+                  },
                 ),
                 const SizedBox(height:20),
                 TextFormField(
@@ -340,8 +267,15 @@ class LoginPageState extends State<LoginPage> {
                 const SizedBox(height: 20),
                 ElevatedButton(
                   onPressed: _signInWithEmailAndPassword,
-                  child: const Text('Sign in with Email'),
+                  child: const Text('Sign in with Email', style: nameStyle,),
                 ),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: (emailErrorText != null)||(_emailController.text.isEmpty)?null:_sendPasswordReset,
+                  child: const Text('Send Password Reset Email', style: nameStyle,),
+                ),
+                const SizedBox(height: 20),
+                Text(_passwordResetError, style: nameStyle,),
                 const SizedBox(height: 20),
                 SignInButton(Buttons.google,
                 onPressed: _signInWithGoogle,),
@@ -353,6 +287,6 @@ class LoginPageState extends State<LoginPage> {
               ],
             ),
           ));
-    }
+
   }
 }

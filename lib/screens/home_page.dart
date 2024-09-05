@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:social_sport_ladder/constants/constants.dart';
 import 'package:social_sport_ladder/main.dart';
+import '../Utilities/global_db.dart';
 import '../Utilities/player_db.dart';
 import '../Utilities/user_db.dart';
 import 'admin_page.dart';
@@ -163,14 +164,14 @@ class HomePageState extends State<HomePage> {
     }
     bool notFound = true;
     String lastFoundLadder = '';
-    for (String ladder in _allLadders){
-      if (ladder == activeLadderName){
+    for (String ladder in _allLadders) {
+      if (ladder == activeLadderName) {
         notFound = false;
       } else {
         lastFoundLadder = ladder;
       }
     }
-    if (notFound){
+    if (notFound) {
       activeLadderName = lastFoundLadder;
     }
     // print('initState: startLocation');
@@ -395,9 +396,7 @@ class HomePageState extends State<HomePage> {
                         : const Icon(Icons.horizontal_rule))),
             Text(
               ' ${player.rank}: ${player.name}',
-              style: (loggedInUser == player.email)
-                  ? nameBoldStyle
-                  : (player.helper ? italicNameStyle : nameStyle),
+              style: (loggedInUser == player.email) ? nameBoldStyle : (player.helper ? italicNameStyle : nameStyle),
             ),
           ]),
         ),
@@ -429,38 +428,188 @@ class HomePageState extends State<HomePage> {
     homeStateInstance = this;
 
     // getLocation();
-
-    AppBar buildAppBar(List<Widget>? actions) {
-      return AppBar(
-        // title: Text(_ladderName),
-        title: DropdownButton<String>(
-          value: activeLadderName,
-          items: _allLadders.map((location) {
-            return DropdownMenuItem(
-              value: location,
-              child: Text(location),
-            );
-          }).toList(),
-          onChanged: (newValue) {
-            setState(() {
-              activeLadderName = newValue.toString();
-              FirebaseFirestore.instance.collection('Users').doc(loggedInUser).update({
-                'LastLadder': activeLadderName,
+    Widget buildLadderPage() {
+      AppBar buildAppBar(List<Widget>? actions) {
+        return AppBar(
+          // title: Text(_ladderName),
+          title: DropdownButton<String>(
+            value: activeLadderName,
+            items: _allLadders.map((location) {
+              return DropdownMenuItem(
+                value: location,
+                child: Text(location),
+              );
+            }).toList(),
+            onChanged: (newValue) {
+              setState(() {
+                activeLadderName = newValue.toString();
+                FirebaseFirestore.instance.collection('Users').doc(loggedInUser).update({
+                  'LastLadder': activeLadderName,
+                });
+                _playerCheckinsList = List.empty(growable: true);
+                _clickedOnRank = -1;
               });
-              _playerCheckinsList = List.empty(growable: true);
-              _clickedOnRank = -1;
-            });
-          },
-        ),
-        actions: actions,
-      );
+            },
+          ),
+          actions: actions,
+        );
+      }
+
+      return StreamBuilder<DocumentSnapshot>(
+          stream: FirebaseFirestore.instance.collection('Ladder').doc(activeLadderName).snapshots(),
+          builder: (BuildContext context, AsyncSnapshot<DocumentSnapshot> snapshot) {
+            if (snapshot.error != null) {
+              String error = 'Snapshot error: ${snapshot.error.toString()} on getting ladder $activeLadderName';
+              if (kDebugMode) {
+                print(error);
+              }
+              return Text(error);
+            }
+            // print('in StreamBuilder ladder 0');
+            if (!snapshot.hasData) return const CircularProgressIndicator();
+
+            if (snapshot.data == null) return const CircularProgressIndicator();
+
+            // check if the specified ladder exists in our database
+            if (!snapshot.data!.exists) {
+              // misconfiguration, this user has a ladder that is not in the database
+              return Scaffold(
+                appBar: buildAppBar([
+                  TextButton(
+                      // style: OutlinedButton.styleFrom(
+                      // foregroundColor: Colors.white, backgroundColor: appBarColor),
+                      onPressed: () {
+                        setState(() {
+                          loggedInUser = '';
+                          if (globalHomePage != null) {
+                            globalHomePage!.signOut();
+                          }
+                        });
+                      },
+                      child: const Text('Log\nOUT')),
+                ]),
+                body: Text('Invalid ladder specified $activeLadderName'),
+              );
+            }
+            Player.buildGlobalData(snapshot);
+
+            return StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('Ladder')
+                    .doc(activeLadderName)
+                    .collection('Players')
+                    .orderBy('Rank')
+                    .snapshots(),
+                builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                  if (snapshot.error != null) {
+                    if (kDebugMode) {
+                      print('SnapShot error on Users H2: ${snapshot.error.toString()}');
+                    }
+                  }
+                  // print('in StreamBuilder home 0');
+                  if (!snapshot.hasData) return const CircularProgressIndicator();
+
+                  if (snapshot.data == null) {
+                    return const CircularProgressIndicator();
+                  }
+
+                  // not sure why this is needed but sometimes only a single record is returned.
+                  // this causes major problems in buildPlayerDB
+                  // seems to occur after refresh, admin mode is selected
+                  // and first person is marked present by admin
+                  //print('StreamBuilder: ${snapshot.hasError}, ${snapshot.connectionState}, ${snapshot.requireData.docs.length}');
+                  // if (snapshot.requireData.docs.length <= 1) {
+                  //   if (kDebugMode) {
+                  //     print('host builder: not enough players in db');
+                  //   }
+                  //   return const CircularProgressIndicator(); // Text('host builder: not enough players in db');
+                  // }
+                  Player.buildPlayerDB(snapshot);
+                  // print('builtPlayerDB $_clickedOnRank / ${Player.db.length}');
+                  if ((_clickedOnRank >= 0) && (_clickedOnRank < Player.db.length)) {
+                    selectedPlayer = Player.db[_clickedOnRank];
+                  } else {
+                    selectedPlayer = null;
+                  }
+                  return Scaffold(
+                    appBar: buildAppBar([
+                      Padding(
+                        padding: const EdgeInsets.all(0.0),
+                        child: IconButton(
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          onPressed: () {
+                            Navigator.push(context, MaterialPageRoute(builder: (context) => const Administration()));
+                          },
+                          icon: const Icon(Icons.admin_panel_settings),
+                          enableFeedback: true,
+                          color: Colors.red,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      TextButton(
+                          // style: OutlinedButton.styleFrom(
+                          // foregroundColor: Colors.white, backgroundColor: appBarColor),
+                          onPressed: () {
+                            setState(() {
+                              loggedInUser = '';
+                              if (globalHomePage != null) {
+                                // print('SIGN OUT!!!');
+                                globalHomePage!.signOut();
+                              }
+                            });
+                          },
+                          child: const Text('Log\nout')),
+                    ]),
+                    body: ListView.separated(
+                        separatorBuilder: (context, index) => const Divider(color: Colors.black),
+                        padding: const EdgeInsets.all(8),
+                        itemCount: snapshot.data!.size + 2,
+                        itemBuilder: (BuildContext context, int row) {
+                          if (row == 0) {
+                            return Text(_locationData == null
+                                ? 'V3: 1:$_serviceEnabledFirst 2:$_serviceEnabledRequested'
+                                : 'V3: Lat: ${(_locationData!.latitude - 53.5327).toStringAsFixed(5)}  '
+                                    'Long:${(_locationData!.longitude + 113.5145).toStringAsFixed(5)}'
+                                    ' num:$_numberOfGetLocations');
+                          }
+                          if (row == (snapshot.data!.size + 1)) {
+                            return const SizedBox(height: 1);
+                          }
+                          return buildPlayerLine(row - 1);
+                        }),
+                  );
+                });
+            // return const Placeholder();
+          });
     }
 
-    return StreamBuilder<DocumentSnapshot>(
-        stream: FirebaseFirestore.instance.collection('Ladder').doc(activeLadderName).snapshots(),
-        builder: (BuildContext context, AsyncSnapshot<DocumentSnapshot> snapshot) {
+    Widget buildGlobalUsersPage(){
+      return StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance.collection('Users').snapshots(),
+          builder: (BuildContext context, AsyncSnapshot<QuerySnapshot<Object?>> snapshot) {
+            if (snapshot.error != null) {
+              String error = 'Snapshot error: ${snapshot.error.toString()} on getting global Ladder $activeLadderName';
+              if (kDebugMode) {
+                print(error);
+              }
+              return Text(error);
+            }
+            // print('in StreamBuilder ladder 0');
+            if (!snapshot.hasData) return const CircularProgressIndicator();
+
+            if (snapshot.data == null) return const CircularProgressIndicator();
+
+            // misconfiguration, this user has a ladder that is not in the database
+            GlobalUsers.buildGlobalUsersDB(snapshot);
+            return buildLadderPage();
+          });
+    }
+    return StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance.collection('Ladder').snapshots(),
+        builder: (BuildContext context, AsyncSnapshot<QuerySnapshot<Object?>> snapshot) {
           if (snapshot.error != null) {
-            String error = 'Snapshot error: ${snapshot.error.toString()} on getting ladder $activeLadderName';
+            String error = 'Snapshot error: ${snapshot.error.toString()} on getting global Ladder $activeLadderName';
             if (kDebugMode) {
               print(error);
             }
@@ -471,119 +620,9 @@ class HomePageState extends State<HomePage> {
 
           if (snapshot.data == null) return const CircularProgressIndicator();
 
-          // check if the specified ladder exists in our database
-          if (!snapshot.data!.exists) {
-            // misconfiguration, this user has a ladder that is not in the database
-            return Scaffold(
-              appBar: buildAppBar([
-                TextButton(
-                    // style: OutlinedButton.styleFrom(
-                    // foregroundColor: Colors.white, backgroundColor: appBarColor),
-                    onPressed: () {
-                      setState(() {
-                        loggedInUser = '';
-                        if (globalHomePage != null) {
-                          globalHomePage!.signOut();
-                        }
-                      });
-                    },
-                    child: const Text('Log\nOUT')),
-              ]),
-              body: Text('Invalid ladder specified $activeLadderName'),
-            );
-          }
-
-          Player.buildGlobalData(snapshot);
-
-
-          return StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('Ladder')
-                  .doc(activeLadderName)
-                  .collection('Players')
-                  .orderBy('Rank')
-                  .snapshots(),
-              builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
-                if (snapshot.error != null) {
-                  if (kDebugMode) {
-                    print('SnapShot error on Users H2: ${snapshot.error.toString()}');
-                  }
-                }
-                // print('in StreamBuilder home 0');
-                if (!snapshot.hasData) return const CircularProgressIndicator();
-
-                if (snapshot.data == null) {
-                  return const CircularProgressIndicator();
-                }
-
-                // not sure why this is needed but sometimes only a single record is returned.
-                // this causes major problems in buildPlayerDB
-                // seems to occur after refresh, admin mode is selected
-                // and first person is marked present by admin
-                //print('StreamBuilder: ${snapshot.hasError}, ${snapshot.connectionState}, ${snapshot.requireData.docs.length}');
-                // if (snapshot.requireData.docs.length <= 1) {
-                //   if (kDebugMode) {
-                //     print('host builder: not enough players in db');
-                //   }
-                //   return const CircularProgressIndicator(); // Text('host builder: not enough players in db');
-                // }
-                Player.buildPlayerDB(snapshot);
-                // print('builtPlayerDB $_clickedOnRank / ${Player.db.length}');
-                if ((_clickedOnRank >=0) && (_clickedOnRank < Player.db.length)) {
-                  selectedPlayer = Player.db[_clickedOnRank];
-                } else{
-                  selectedPlayer = null;
-                }
-                return Scaffold(
-                  appBar: buildAppBar([
-                    Padding(
-                      padding: const EdgeInsets.all(0.0),
-                      child: IconButton(
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                        onPressed: () {
-                          Navigator.push(context, MaterialPageRoute(builder: (context) => const Administration()));
-                        },
-                        icon: const Icon(Icons.admin_panel_settings),
-                        enableFeedback: true,
-                        color: Colors.red,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    TextButton(
-                        // style: OutlinedButton.styleFrom(
-                        // foregroundColor: Colors.white, backgroundColor: appBarColor),
-                        onPressed: () {
-                          setState(() {
-                            loggedInUser = '';
-                            if (globalHomePage != null) {
-                              // print('SIGN OUT!!!');
-                              globalHomePage!.signOut();
-                            }
-                          });
-                        },
-                        child: const Text('Log\nout')),
-                  ]),
-                  body: ListView.separated(
-                      separatorBuilder: (context, index) => const Divider(color: Colors.black),
-                      padding: const EdgeInsets.all(8),
-                      itemCount: snapshot.data!.size + 2,
-                      itemBuilder: (BuildContext context, int row) {
-                        if (row == 0) {
-                          return Text(_locationData == null
-                              ? 'V3: 1:$_serviceEnabledFirst 2:$_serviceEnabledRequested'
-                              : 'V3: Lat: ${(_locationData!.latitude - 53.5327).toStringAsFixed(5)}  '
-                                  'Long:${(_locationData!.longitude + 113.5145).toStringAsFixed(5)}'
-                                  ' num:$_numberOfGetLocations');
-                        }
-                        if (row == (snapshot.data!.size + 1)) {
-                          return const SizedBox(height: 1);
-                        }
-                        return buildPlayerLine(row - 1);
-                      }),
-                );
-              });
-          // return const Placeholder();
+          // misconfiguration, this user has a ladder that is not in the database
+          Ladder.buildLadderDB(snapshot);
+          return buildGlobalUsersPage();
         });
   }
 }
