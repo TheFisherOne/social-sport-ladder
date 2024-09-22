@@ -12,6 +12,7 @@ import 'constants/firebase_setup2.dart';
 
 String loggedInUser = "";
 DocumentSnapshot<Object?>? loggedInUserDoc;
+bool loggedInUserIsSuper=false;
 
 // this is used to trigger a signOut from another module
 LoginPageState? globalHomePage;
@@ -75,7 +76,7 @@ class LoginPageState extends State<LoginPage> {
   void _sendPasswordReset() {
 
     String email = _emailController.text;
-    print('_sendPasswordReset: $email');
+    // print('_sendPasswordReset: $email');
     FirebaseAuth.instance
         .sendPasswordResetEmail(
         email: email)
@@ -97,51 +98,56 @@ class LoginPageState extends State<LoginPage> {
       }
     });
   }
-  void _signInWithEmailAndPassword() async {
-    _loginErrorString = '';
-    try {
-      // print('_signInWithEmailAndPassword: attempting login of: _emailController.text.toLowerCase()');
-      UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: _emailController.text.toLowerCase(),
-        password: _passwordController.text,
-      );
+  void _signInWithEmailAndPassword()  {
+    NavigatorState nav = Navigator.of(context);
+    runLater() async{
+      _loginErrorString = '';
+      try {
+        // print('_signInWithEmailAndPassword: attempting login of: _emailController.text.toLowerCase()');
+        UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+          email: _emailController.text.toLowerCase(),
+          password: _passwordController.text,
+        );
 
-      if (userCredential.user == null) {
+        if (userCredential.user == null) {
+          setState(() {
+            _loginErrorString = 'error signInWithEmail no user';
+          });
+
+          if (kDebugMode) {
+            print(_loginErrorString);
+          }
+          return;
+        }
+        if (userCredential.user!.email == null) {
+          setState(() {
+            _loginErrorString = 'error signInWithEmail no user email';
+          });
+          if (kDebugMode) {
+            print(_loginErrorString);
+          }
+          return;
+        }
+        // print('_signInWithEmailAndPassword: email: ${userCredential.user!.email!.toLowerCase()} ');
+        loggedInUser = userCredential.user!.email!.toLowerCase();
+
+        _emailController.text = '';
+        _passwordController.text='';
+
+        nav.push(MaterialPageRoute(builder: (context) => const LadderSelectionPage()));
+        return;
+      } catch (e) {
         setState(() {
-          _loginErrorString = 'error signInWithEmail no user';
+          _loginErrorString = 'Error: $e';
         });
-
         if (kDebugMode) {
           print(_loginErrorString);
         }
         return;
       }
-      if (userCredential.user!.email == null) {
-        setState(() {
-          _loginErrorString = 'error signInWithEmail no user email';
-        });
-        if (kDebugMode) {
-          print(_loginErrorString);
-        }
-        return;
-      }
-      // print('_signInWithEmailAndPassword: email: ${userCredential.user!.email!.toLowerCase()} ');
-      loggedInUser = userCredential.user!.email!.toLowerCase();
-
-      _emailController.text = '';
-      _passwordController.text='';
-
-      Navigator.push(context, MaterialPageRoute(builder: (context) => const LadderSelectionPage()));
-      return;
-    } catch (e) {
-      setState(() {
-        _loginErrorString = 'Error: $e';
-      });
-      if (kDebugMode) {
-        print(_loginErrorString);
-      }
-      return;
     }
+    runLater();
+
   }
   UserCredential? facebookCredential;
 
@@ -158,51 +164,56 @@ class LoginPageState extends State<LoginPage> {
     });
   }
 
-  void _signInWithGoogle() async {
-    try {
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser!.authentication;
-      final AuthCredential credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
-      UserCredential userCredential =
-          await _auth.signInWithCredential(credential);
-      if (userCredential.user == null) {
-        setState(() {
-          _loginErrorString = 'error signInWithGoogle no user';
-        });
+  void _signInWithGoogle()  {
+    NavigatorState nav = Navigator.of(context);
+    runLater() async{
+      try {
+        final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+        final GoogleSignInAuthentication googleAuth =
+        await googleUser!.authentication;
+        final AuthCredential credential = GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken,
+          idToken: googleAuth.idToken,
+        );
+        UserCredential userCredential =
+        await _auth.signInWithCredential(credential);
+        if (userCredential.user == null) {
+          setState(() {
+            _loginErrorString = 'error signInWithGoogle no user';
+          });
 
+          if (kDebugMode) {
+            print(_loginErrorString);
+          }
+          return;
+        }
+        if (userCredential.user!.email == null) {
+          setState(() {
+            _loginErrorString = 'error signInWithGoogle no user email';
+          });
+          if (kDebugMode) {
+            print(_loginErrorString);
+          }
+          return;
+        }
+
+        // print('_signInWithGoogle: got email ${userCredential.user!.email!}');
+        loggedInUser = userCredential.user!.email!.toLowerCase();
+        nav.push(MaterialPageRoute(builder: (context) => const LadderSelectionPage()));
+
+        return;
+      } catch (e) {
+        setState(() {
+          _loginErrorString = 'Error: $e';
+        });
         if (kDebugMode) {
           print(_loginErrorString);
         }
         return;
       }
-      if (userCredential.user!.email == null) {
-        setState(() {
-          _loginErrorString = 'error signInWithGoogle no user email';
-        });
-        if (kDebugMode) {
-          print(_loginErrorString);
-        }
-        return;
-      }
-
-      // print('_signInWithGoogle: got email ${userCredential.user!.email!}');
-      loggedInUser = userCredential.user!.email!.toLowerCase();
-      Navigator.push(context, MaterialPageRoute(builder: (context) => const LadderSelectionPage()));
-
-      return;
-    } catch (e) {
-      setState(() {
-        _loginErrorString = 'Error: $e';
-      });
-      if (kDebugMode) {
-        print(_loginErrorString);
-      }
-      return;
     }
+    runLater();
+
   }
 
   void signOut() {
@@ -212,7 +223,7 @@ class LoginPageState extends State<LoginPage> {
   }
 
   String? emailValidator(String? value) {
-    print('emailValidator: $value');
+    // print('emailValidator: $value');
       if (! value!.isValidEmail()) {
         return 'not a valid email address';
       }
@@ -222,7 +233,7 @@ class LoginPageState extends State<LoginPage> {
   String? emailErrorText;
   @override
   Widget build(BuildContext context) {
-    globalHomePage ??= this;
+    // globalHomePage ??= this;
 
     // print('LoginPage: email "$loggedInUser" ');
     return Scaffold(

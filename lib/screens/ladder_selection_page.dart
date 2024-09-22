@@ -4,8 +4,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:social_sport_ladder/constants/constants.dart';
 import 'package:social_sport_ladder/main.dart';
-
-import 'config_page.dart';
+import 'package:social_sport_ladder/screens/player_home.dart';
+import 'package:social_sport_ladder/screens/super_admin.dart';
+import 'ladder_config_page.dart';
 
 String activeLadderId='';
 
@@ -72,14 +73,22 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
             return const CircularProgressIndicator();
           }
           if (snapshot.data == null) {
-            print('ladder_selection_page getting user $loggedInUser but data is null');
+            if (kDebugMode) {
+              print('ladder_selection_page getting user $loggedInUser but data is null');
+            }
             return const CircularProgressIndicator();
           }
+
+          loggedInUserIsSuper = false;
+          try {
+            loggedInUserIsSuper = snapshot.data!.get('SuperUser');
+          } catch(_){}
+
           bool userOk = false;
           try {
             _userLadders = snapshot.data!.get('Ladders');
             userOk = true;
-          } catch (e) {}
+          } catch (_) {}
           String errorText = 'Not a supported user "$loggedInUser"';
           if (_userLadders.isEmpty) {
             errorText = '"$loggedInUser" is not on any ladder';
@@ -134,20 +143,30 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                 return const CircularProgressIndicator();
               }
               if (snapshot.data == null) {
-                print('ladder_selection_page getting user global ladder but data is null');
+                // print('ladder_selection_page getting user global ladder but data is null');
                 return const CircularProgressIndicator();
               }
 
               List<String> availableLadders = _userLadders.split(",");
               List<String> displayNames = List.empty(growable: true);
               List<QueryDocumentSnapshot<Object?>> availableDocs = List.empty(growable: true);
-              for (String ladder in availableLadders){
-                for(QueryDocumentSnapshot<Object?>  doc in snapshot.data!.docs) {
-                  if (doc.id == ladder) {
-                    String displayName = doc.get('DisplayName');
-                    displayNames.add(displayName);
-                    availableDocs.add(doc);
-                    // print('Found ladders: $ladder => $displayName');
+
+              if (loggedInUserIsSuper){
+                // print('number of ladders: ${snapshot.data!.docs.length}');
+                for (QueryDocumentSnapshot<Object?> doc in snapshot.data!.docs) {
+                  String displayName = doc.get('DisplayName');
+                  displayNames.add(displayName);
+                  availableDocs.add(doc);
+                }
+              } else {
+                for (String ladder in availableLadders) {
+                  for (QueryDocumentSnapshot<Object?> doc in snapshot.data!.docs) {
+                    if (doc.id == ladder) {
+                      String displayName = doc.get('DisplayName');
+                      displayNames.add(displayName);
+                      availableDocs.add(doc);
+                      // print('Found ladders: $ladder => $displayName');
+                    }
                   }
                 }
               }
@@ -159,6 +178,19 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                   elevation: 0.0,
                   automaticallyImplyLeading: false,
                   actions: [
+                    if ( loggedInUserIsSuper ) Padding(
+                      padding: const EdgeInsets.all(0.0),
+                      child: IconButton(
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          icon: const Icon(Icons.supervisor_account),
+                        onPressed: (){
+                          Navigator.push(context, MaterialPageRoute(builder: (context) => const SuperAdmin()));
+                        },
+                          enableFeedback: true,
+                          color: Colors.redAccent,
+                      ),
+                    ),
                     Padding(
                       padding: const EdgeInsets.all(0.0),
                       child: makeDoubleConfirmationButton(
@@ -166,10 +198,14 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                           dialogTitle: 'You will have to enter your password again',
                           dialogQuestion: 'Are you sure you want to logout?',
                           disabled: false,
-                          onOk: () async {
-                            await FirebaseAuth.instance.signOut();
-                            loggedInUser = '';
-                            Navigator.push(context, MaterialPageRoute(builder: (context) => const LoginPage()));
+                          onOk: () {
+                            NavigatorState nav = Navigator.of(context);
+                            runLater() async{
+                              await FirebaseAuth.instance.signOut();
+                              loggedInUser = '';
+                              nav.push(MaterialPageRoute(builder: (context) => const LoginPage()));
+                            }
+                            runLater();
                           }),
                     ),
                   ],
@@ -177,13 +213,15 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                 body: ListView.separated(
                     separatorBuilder: (context, index) => const Divider(color: Colors.black),
                     padding: const EdgeInsets.all(8),
-                    itemCount: availableLadders.length+1, //for last divider line
+                    itemCount: availableDocs.length+1, //for last divider line
                     itemBuilder: (BuildContext context, int row) {
-                      if (row == availableLadders.length) return const SizedBox(height: 1,);
+                      if (row == availableDocs.length) return const SizedBox(height: 1,);
 
                       int startHour = availableDocs[row].get('StartTime').floor();
                       int startMin = ((availableDocs[row].get('StartTime')-startHour)*100.0).round().toInt();
                       bool disabled = availableDocs[row].get('Disabled');
+                      bool superDisabled = availableDocs[row].get('SuperDisabled');
+                      if (superDisabled) disabled = true;
                       Timestamp nextDate = availableDocs[row].get('NextDate');
                       int inDays = nextDate.toDate().difference(DateTime.now()).inDays;
                       String inDaysString = inDays==0?' Today':" in $inDays days";
@@ -197,15 +235,16 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                       // the pad is to make sure you can click on the target (it is not too small)
                       message = message.padRight(40);
 
-                      bool isAdmin = availableDocs[row].get('Admins').split(',').contains(loggedInUser);
+                      bool isAdmin = availableDocs[row].get('Admins').split(',').contains(loggedInUser) || loggedInUserIsSuper;
 
                       return Column(
                         children: [
                           InkWell(
                             onTap: disabled?null:(){
+                              activeLadderDoc = availableDocs[row];
                               activeLadderId = availableDocs[row].id;
-                              print('go to players page $activeLadderId');
-
+                              // print('go to players page $activeLadderId');
+                              Navigator.push(context, MaterialPageRoute(builder: (context) => const PlayerHome()));
                             },
                             child: Row(
                               children: [
@@ -218,13 +257,10 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                               ],
                             ),
                           ),
-                        InkWell(
+                        if (!superDisabled || loggedInUserIsSuper) InkWell(
                           onTap: !isAdmin?null:(){
                             activeLadderId = availableDocs[row].id;
                             // navigate to global ladder configuration
-                            if (kDebugMode) {
-                              print('Edit Global Ladder info ${availableDocs[row].id}');
-                            }
                             Navigator.push(context, MaterialPageRoute(builder: (context) => const ConfigPage()));
                       },
                             child: Text(message, style: nameStyle,)),

@@ -2,7 +2,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 
 const String fireStoreCollectionName = "social-sport-ladder";
-const int softwareVersion = 2;
+const int softwareVersion = 3;
 
 class LowerCaseTextInputFormatter extends TextInputFormatter {
   @override
