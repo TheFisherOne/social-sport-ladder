@@ -8,7 +8,8 @@ import 'package:social_sport_ladder/screens/player_home.dart';
 import 'package:social_sport_ladder/screens/super_admin.dart';
 import 'ladder_config_page.dart';
 
-String activeLadderId='';
+String activeLadderId = '';
+Color activeLadderBackgroundColor=Colors.brown;
 
 class LadderSelectionPage extends StatefulWidget {
   const LadderSelectionPage({super.key});
@@ -21,10 +22,19 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
   String _userLadders = '';
   String _lastLoggedInUser = '';
 
+  Color colorFromString(String colorString){
+      if (colorString == 'red')    return Colors.red;
+      if (colorString == 'blue')   return Colors.blue;
+      if (colorString == 'green')  return Colors.green;
+      if (colorString == 'brown')  return Colors.brown;
+      if (colorString == 'purple') return Colors.purple;
+      if (colorString == 'yellow') return Colors.yellow;
+      return Colors.brown;
+  }
+
   @override
   Widget build(BuildContext context) {
-    TextButton makeDoubleConfirmationButton(
-        {buttonText, buttonColor = Colors.blue, dialogTitle, dialogQuestion, disabled, onOk}) {
+    TextButton makeDoubleConfirmationButton({buttonText, buttonColor = Colors.blue, dialogTitle, dialogQuestion, disabled, onOk}) {
       // print('home.dart build ${FirebaseAuth.instance.currentUser?.email}');
       return TextButton(
           style: OutlinedButton.styleFrom(foregroundColor: Colors.white, backgroundColor: Colors.brown.shade400),
@@ -82,7 +92,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
           loggedInUserIsSuper = false;
           try {
             loggedInUserIsSuper = snapshot.data!.get('SuperUser');
-          } catch(_){}
+          } catch (_) {}
 
           bool userOk = false;
           try {
@@ -120,12 +130,13 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
               body: Text(errorText, style: nameStyle),
             );
           }
-          if (_lastLoggedInUser != loggedInUser ){
+          if (_lastLoggedInUser != loggedInUser) {
             FirebaseFirestore.instance.collection('Users').doc(loggedInUser).update({
               'LastLogin': DateTime.now(),
             });
             _lastLoggedInUser = loggedInUser;
           }
+
           return StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance.collection('Ladder').snapshots(),
             builder: (BuildContext context, AsyncSnapshot<QuerySnapshot<Object?>> snapshot) {
@@ -151,7 +162,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
               List<String> displayNames = List.empty(growable: true);
               List<QueryDocumentSnapshot<Object?>> availableDocs = List.empty(growable: true);
 
-              if (loggedInUserIsSuper){
+              if (loggedInUserIsSuper) {
                 // print('number of ladders: ${snapshot.data!.docs.length}');
                 for (QueryDocumentSnapshot<Object?> doc in snapshot.data!.docs) {
                   String displayName = doc.get('DisplayName');
@@ -178,19 +189,20 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                   elevation: 0.0,
                   automaticallyImplyLeading: false,
                   actions: [
-                    if ( loggedInUserIsSuper ) Padding(
-                      padding: const EdgeInsets.all(0.0),
-                      child: IconButton(
+                    if (loggedInUserIsSuper)
+                      Padding(
+                        padding: const EdgeInsets.all(0.0),
+                        child: IconButton(
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
                           icon: const Icon(Icons.supervisor_account),
-                        onPressed: (){
-                          Navigator.push(context, MaterialPageRoute(builder: (context) => const SuperAdmin()));
-                        },
+                          onPressed: () {
+                            Navigator.push(context, MaterialPageRoute(builder: (context) => const SuperAdmin()));
+                          },
                           enableFeedback: true,
                           color: Colors.redAccent,
+                        ),
                       ),
-                    ),
                     Padding(
                       padding: const EdgeInsets.all(0.0),
                       child: makeDoubleConfirmationButton(
@@ -200,36 +212,49 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                           disabled: false,
                           onOk: () {
                             NavigatorState nav = Navigator.of(context);
-                            runLater() async{
+                            runLater() async {
                               await FirebaseAuth.instance.signOut();
                               loggedInUser = '';
                               nav.push(MaterialPageRoute(builder: (context) => const LoginPage()));
                             }
+
                             runLater();
                           }),
                     ),
                   ],
                 ),
                 body: ListView.separated(
-                    separatorBuilder: (context, index) => const Divider(color: Colors.black),
+                    separatorBuilder: (context, index) => const SizedBox(
+                          height: 12,
+                        ), //Divider(color: Colors.black),
                     padding: const EdgeInsets.all(8),
-                    itemCount: availableDocs.length+1, //for last divider line
+                    itemCount: availableDocs.length + 1, //for last divider line
                     itemBuilder: (BuildContext context, int row) {
-                      if (row == availableDocs.length) return const SizedBox(height: 1,);
+                      if (row == availableDocs.length) {
+                        return const SizedBox(
+                          height: 1,
+                        );
+                      }
 
                       int startHour = availableDocs[row].get('StartTime').floor();
-                      int startMin = ((availableDocs[row].get('StartTime')-startHour)*100.0).round().toInt();
+                      int startMin = ((availableDocs[row].get('StartTime') - startHour) * 100.0).round().toInt();
                       bool disabled = availableDocs[row].get('Disabled');
                       bool superDisabled = availableDocs[row].get('SuperDisabled');
                       if (superDisabled) disabled = true;
                       Timestamp nextDate = availableDocs[row].get('NextDate');
                       int inDays = nextDate.toDate().difference(DateTime.now()).inDays;
-                      String inDaysString = inDays==0?' Today':" in $inDays days";
-                      if (inDays<0) inDaysString='';
-                      if (disabled){
-                        inDaysString=' No Play';
+                      String inDaysString = inDays == 0 ? ' Today' : " in $inDays days";
+                      if (inDays < 0) inDaysString = '';
+                      if (disabled) {
+                        inDaysString = ' No Play';
                       }
                       // print('startTime: $startHour:$startMin');
+
+                      String colorString = '';
+                      try {
+                        colorString = availableDocs[row].get('Color').toLowerCase();
+                      } catch(_){}
+                      activeLadderBackgroundColor = colorFromString(colorString);
 
                       String message = availableDocs[row].get('Message');
                       // the pad is to make sure you can click on the target (it is not too small)
@@ -237,36 +262,76 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
 
                       bool isAdmin = availableDocs[row].get('Admins').split(',').contains(loggedInUser) || loggedInUserIsSuper;
 
-                      return Column(
-                        children: [
-                          InkWell(
-                            onTap: disabled?null:(){
-                              activeLadderDoc = availableDocs[row];
-                              activeLadderId = availableDocs[row].id;
-                              // print('go to players page $activeLadderId');
-                              Navigator.push(context, MaterialPageRoute(builder: (context) => const PlayerHome()));
-                            },
-                            child: Row(
-                              children: [
-                                Expanded(child: Text(displayNames[row], style: disabled?nameStrikeThruStyle:nameStyle)),
-                                Expanded(
-                                  child: Text('${availableDocs[row].get('PlayOn')}@$startHour:${startMin.toString().padLeft(2,'0')}'
-                                      '$inDaysString',
-                                      style: disabled?nameStrikeThruStyle:nameStyle),
-                                ),
-                              ],
-                            ),
+                      return Container(
+                          height: 150,
+                          decoration: BoxDecoration(
+                            border: Border.all(color: activeLadderBackgroundColor, width: 5),
+                            borderRadius: BorderRadius.circular(15.0),
+                            color: activeLadderBackgroundColor.withOpacity(0.1),
                           ),
-                        if (!superDisabled || loggedInUserIsSuper) InkWell(
-                          onTap: !isAdmin?null:(){
-                            activeLadderId = availableDocs[row].id;
-                            // navigate to global ladder configuration
-                            Navigator.push(context, MaterialPageRoute(builder: (context) => const ConfigPage()));
-                      },
-                            child: Text(message, style: nameStyle,)),
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: InkWell(
+                              onTap: (disabled && !isAdmin)
+                                  ? null
+                                  : () {
+                                      activeLadderDoc = availableDocs[row];
+                                      activeLadderId = availableDocs[row].id;
+                                      String colorString = '';
+                                      try {
+                                        colorString = availableDocs[row].get('Color').toLowerCase();
+                                      } catch(_){}
+                                      activeLadderBackgroundColor = colorFromString(colorString);
+                                      // print('go to players page $activeLadderId');
+                                      Navigator.push(context, MaterialPageRoute(builder: (context) => const PlayerHome()));
+                                    },
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      SizedBox(
+                                          width: 150,
+                                          child: DecoratedBox(
+                                              decoration: BoxDecoration(
+                                                color: activeLadderBackgroundColor,
+                                              ),
+                                              child: Text('Ladder Name: ',
+                                                  textAlign: TextAlign.end,
+                                                  style: nameStyle.copyWith(
+                                                    color: Colors.white,
+                                                  )))),
+                                      Text(' ${displayNames[row]}', textAlign: TextAlign.start, style: disabled ? nameStrikeThruStyle : nameStyle),
+                                    ],
+                                  ),
 
-                        ],
-                      );
+                                  Row(
+                                    children: [
+                                      SizedBox(
+                                          width: 150,
+                                          child: DecoratedBox(
+                                              decoration: BoxDecoration(
+                                                color: activeLadderBackgroundColor,
+                                              ),
+                                              child: Text('Plays On: ',
+                                                  textAlign: TextAlign.end,
+                                                  style: nameStyle.copyWith(
+                                                    color: Colors.white,
+                                                  )))),
+                                      Text(
+                                          ' ${availableDocs[row].get('PlayOn')}@$startHour:${startMin.toString().padLeft(2, '0')}'
+                                          '$inDaysString',
+                                          style: disabled ? nameStrikeThruStyle : nameStyle),
+                                    ],
+                                  ),
+                                  Text(
+                                    message,
+                                    style: nameStyle,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ));
                     }),
               );
             },

@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:social_sport_ladder/Utilities/string_validators.dart';
@@ -27,6 +28,7 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
     super.initState();
     RoundedTextForm.startFresh(this);
   }
+
   refresh() => setState(() {});
   void addPlayer(String newPlayerName) {
     DocumentReference globalUserRef = FirebaseFirestore.instance.collection('Users').doc(newPlayerName);
@@ -85,6 +87,17 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
         action: 'CreateUser',
         newValue: 'Create',
       );
+    });
+    FirebaseAuth.instance.createUserWithEmailAndPassword(email: newPlayerName, password: '123456').then((userCredential) {
+      // print('addPlayer, create user with email and password, $newPlayerName');
+      RoundedTextForm.setErrorText(0, 'you are now logged in as new user:$newPlayerName');
+    }).catchError((e) {
+      if (e.code == 'email-already-in-use') {
+        // print('addPlayer, create user ALREADY IN USE, $newPlayerName');
+      } else {
+        // print('addPlayer, error during registration of $newPlayerName $e');
+        RoundedTextForm.setErrorText(0, 'error during registration of $newPlayerName $e');
+      }
     });
   }
 
@@ -294,11 +307,11 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
                 helperText: "The Name to display for this player",
                 helperStyle: nameStyle,
                 onChanged: (value) {
-                  const row=1;
+                  const row = 1;
                   // print('Create new Player onChanged:new value=$value');
                   String newValue = value.trim().replaceAll(RegExp(r' \s+'), ' ');
 
-                  if ((newValue.length <3) ||(newValue.length>20)){
+                  if ((newValue.length < 3) || (newValue.length > 20)) {
                     RoundedTextForm.setErrorText(row, 'must be between 3 and 20 characters');
                     return;
                   }
@@ -312,18 +325,16 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
                   return;
                 },
                 onIconPressed: () async {
-                  const row=1;
+                  const row = 1;
                   // print('onIconPressed: createLadder Text:"${RoundedTextForm.getText(row)}" in ${playerDoc.id}');
                   String newValue = RoundedTextForm.getText(row).trim().replaceAll(RegExp(r' \s+'), ' ');
-                  writeAudit(user: loggedInUser, documentName: playerDoc.id, action: 'Set Name', newValue: newValue,
-                      oldValue: playerDoc.get('Name'));
+                  writeAudit(user: loggedInUser, documentName: playerDoc.id, action: 'Set Name', newValue: newValue, oldValue: playerDoc.get('Name'));
                   // print('ready to update');
                   FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Players').doc(playerDoc.id).update({
                     'Name': newValue,
                   });
                 },
               ),
-
               const SizedBox(height: 5),
               Row(children: [
                 const Text(
@@ -491,71 +502,6 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
                           },
                         );
                       }
-                      //   return Row(
-                      //     children: [
-                      //       TextButton(
-                      //         style: ButtonStyle(backgroundColor: WidgetStateProperty.all<Color>(addNewEnabled?Colors.green.shade200:Colors.grey)),
-                      //         onPressed: addNewEnabled? () {
-                      //                 addPlayer(_newPlayer);
-                      //               }
-                      //             : null,
-                      //         child: const Text('Add New', style: nameStyle),
-                      //       ),
-                      //       RoundedTextForm.build(0,
-                      //         // labelText: 'Create New Ladder',
-                      //         labelStyle: nameBigStyle,
-                      //         helperText: "Enter a unique id of the ladder",
-                      //         helperStyle: nameStyle,
-                      //         // errorText: createLadderErrorText,
-                      //         // textEditingController: createLadderEditingController,
-                      //
-                      //         onChanged: (value) {
-                      //           // print('Create new Ladder onChanged:new value=$value');
-                      //           String newValue = value.trim().replaceAll(RegExp(r' \s+'), ' ');
-                      //           // check for a duplicate name
-                      //           for (QueryDocumentSnapshot<Object?> doc in ladderSnapshots.data!.docs) {
-                      //             if (newValue == doc.id) {
-                      //               RoundedTextForm.setErrorText(0, 'that ladder ID is in use');
-                      //               return;
-                      //             }
-                      //           }
-                      //
-                      //           // print('newValue:"$newValue" of length ${newValue.length}');
-                      //           if (newValue.length < 3) {
-                      //             RoundedTextForm.setErrorText(0,  'name too short "$newValue"');
-                      //             return;
-                      //           }
-                      //           if (newValue.length > 20) {
-                      //             RoundedTextForm.setErrorText(0,  'name too long "$newValue"');
-                      //             return;
-                      //           }
-                      //           return;
-                      //         },
-                      //         onIconPressed: () async {
-                      //           // print('onIconPressed: createLadder Text:"${createLadderEditingController.text}"');
-                      //           String newValue = RoundedTextForm.getText(0).trim().replaceAll(RegExp(r' \s+'), ' ');
-                      //           createLadder(newValue);
-                      //
-                      //         },
-                      //       ),
-                      //       Expanded(
-                      //         child: TextFormField(
-                      //             initialValue: '',
-                      //             style: _duplicateNewPlayer ? errorNameStyle : nameStyle,
-                      //             onChanged: (val) {
-                      //               _newPlayer = val;
-                      //               _duplicateNewPlayer = false;
-                      //               for (var doc in _players) {
-                      //                 if (doc.id == _newPlayer) {
-                      //                   _duplicateNewPlayer = true;
-                      //                 }
-                      //               }
-                      //               setState(() {});
-                      //             }),
-                      //       )
-                      //     ],
-                      //   );
-                      // }
                       return playerLine(row);
                     },
                   ),

@@ -121,6 +121,7 @@ class _SuperAdminState extends State<SuperAdmin> {
       'StartTime': 6.30,
       'VacationStopTime': 18.30,
       'SuperDisabled': false,
+      'Color':'brown',
     });
   }
 

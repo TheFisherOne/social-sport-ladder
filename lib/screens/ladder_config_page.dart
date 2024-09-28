@@ -77,7 +77,8 @@ class _ConfigPageState extends State<ConfigPage> {
   Widget build(BuildContext context) {
     var daysOfWeek = ['Mon', 'Tues', 'Wed', 'Thurs', 'Fri', 'Sat', 'Sun'];
     var trueFalse = ['True', 'False'];
-    return StreamBuilder<DocumentSnapshot>(
+    var colorChoices = ['red','blue','green','brown','purple','yellow'];
+      return StreamBuilder<DocumentSnapshot>(
         stream: FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).snapshots(),
         builder: (BuildContext context, AsyncSnapshot<DocumentSnapshot<Object?>> snapshot) {
           // print('Ladder snapshot');
@@ -489,6 +490,50 @@ class _ConfigPageState extends State<ConfigPage> {
                         _attrName[row]: number,
                       });
                     },
+                  ),
+                  SizedBox(
+                      width: double.infinity,
+                      child: Padding(
+                          padding: const EdgeInsets.all(12.0),
+                          child: DropdownButtonFormField<String>(
+                            // onTap: RoundedTextForm.clearEditing(-1),
+                            decoration: const InputDecoration(
+                                labelText: 'DisplayColor',
+                                labelStyle: nameBigStyle,
+                                helperText: 'The color used to display this ladder',
+                                helperStyle: nameStyle,
+                                contentPadding: EdgeInsets.all(16),
+                                floatingLabelBehavior: FloatingLabelBehavior.auto,
+                                // constraints:  BoxConstraints(maxWidth: 150),
+                                enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.all(Radius.circular(20)),
+                                    borderSide: BorderSide(
+                                      color: Colors.grey,
+                                      width: 2.0,
+                                    ))),
+                            value: colorChoices.contains(activeLadderDoc!.get('Color')) ? activeLadderDoc!.get('Color') : colorChoices[0],
+                            items: colorChoices.map((String value) {
+                              return DropdownMenuItem<String>(
+                                value: value,
+                                child: Text(
+                                  value,
+                                  style: nameStyle,
+                                ),
+                              );
+                            }).toList(),
+                            icon: const Icon(Icons.menu),
+                            iconSize: 30,
+                            dropdownColor: Colors.brown.shade200,
+                            onChanged: (value) {
+                              // print('ladder_config_page set PlayOn to $value');
+                              if (value == null) return;
+                              writeAudit(user: loggedInUser, documentName: 'LadderConfig', action: 'Set Color', newValue: value, oldValue: activeLadderDoc!.get('PlayOn'));
+                              FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
+                                'Color': value,
+                              });
+                            },
+                          )
+                      )
                   ),
                   RoundedTextForm.build(
                     8,
