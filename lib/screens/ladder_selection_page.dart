@@ -1,5 +1,9 @@
+import 'dart:io';
+
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:social_sport_ladder/constants/constants.dart';
@@ -10,6 +14,38 @@ import 'ladder_config_page.dart';
 
 String activeLadderId = '';
 Color activeLadderBackgroundColor=Colors.brown;
+
+getLadderImage(String ladderId) async {
+  if ( urlCache.containsKey(ladderId)){
+    // print('Ladder image for $ladderId found in cache ${urlCache[ladderId]}');
+    return;
+  }
+  // due to async we will come in here multiple times while we are waiting.
+  urlCache[ladderId] = null;
+  String filename = 'LadderImage/$ladderId.jpg';
+
+  final storage = FirebaseStorage.instance;
+  final ref = storage.ref(filename);
+  print('getLadderImage: for $filename');
+  try {
+    final url = await ref.getDownloadURL();
+    // print('URL: $url');
+    urlCache[ladderId] = url;
+    print('Image $filename downloaded successfully!');
+  } catch (e) {
+    if (e is FirebaseException) {
+      // print('FirebaseException: ${e.code} - ${e.message}');
+    } else if (e is SocketException) {
+      print('SocketException: ${e.message}');
+    } else {
+      print('downloadLadderImage: getData exception: ${e.runtimeType} || ${e.toString()}');
+    }
+
+    return;
+  }
+  // print('SUCCESS');
+  return;
+}
 
 class LadderSelectionPage extends StatefulWidget {
   const LadderSelectionPage({super.key});
@@ -31,7 +67,12 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
       if (colorString == 'yellow') return Colors.yellow;
       return Colors.brown;
   }
+  _getLadderImage(String ladderId) async {
+    await getLadderImage(ladderId);
+    setState(() {
 
+    });
+  }
   @override
   Widget build(BuildContext context) {
     TextButton makeDoubleConfirmationButton({buttonText, buttonColor = Colors.blue, dialogTitle, dialogQuestion, disabled, onOk}) {
@@ -177,10 +218,15 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                       displayNames.add(displayName);
                       availableDocs.add(doc);
                       // print('Found ladders: $ladder => $displayName');
+
                     }
                   }
                 }
               }
+              for (var doc in availableDocs){
+                _getLadderImage(doc.id);
+              }
+              // print('urlCache: $urlCache');
               return Scaffold(
                 backgroundColor: Colors.brown[50],
                 appBar: AppBar(
@@ -246,7 +292,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                       String inDaysString = inDays == 0 ? ' Today' : " in $inDays days";
                       if (inDays < 0) inDaysString = '';
                       if (disabled) {
-                        inDaysString = ' No Play';
+                        inDaysString = ' DISABLED No Play';
                       }
                       // print('startTime: $startHour:$startMin');
 
@@ -263,7 +309,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                       bool isAdmin = availableDocs[row].get('Admins').split(',').contains(loggedInUser) || loggedInUserIsSuper;
 
                       return Container(
-                          height: 150,
+                          height: 250,
                           decoration: BoxDecoration(
                             border: Border.all(color: activeLadderBackgroundColor, width: 5),
                             borderRadius: BorderRadius.circular(15.0),
@@ -286,47 +332,54 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                                       Navigator.push(context, MaterialPageRoute(builder: (context) => const PlayerHome()));
                                     },
                               child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Row(
+                                  (urlCache.containsKey(availableDocs[row].id) && (urlCache[availableDocs[row].id]!=null))?
+                                  CachedNetworkImage(imageUrl: urlCache[availableDocs[row].id] ,
+                                    height: 100,): const SizedBox(height:100),
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      SizedBox(
-                                          width: 150,
-                                          child: DecoratedBox(
-                                              decoration: BoxDecoration(
-                                                color: activeLadderBackgroundColor,
-                                              ),
-                                              child: Text('Ladder Name: ',
-                                                  textAlign: TextAlign.end,
-                                                  style: nameStyle.copyWith(
-                                                    color: Colors.white,
-                                                  )))),
-                                      Text(' ${displayNames[row]}', textAlign: TextAlign.start, style: disabled ? nameStrikeThruStyle : nameStyle),
-                                    ],
-                                  ),
+                                      Row(
+                                        children: [
+                                          SizedBox(
+                                              width: 150,
+                                              child: DecoratedBox(
+                                                  decoration: BoxDecoration(
+                                                    color: activeLadderBackgroundColor,
+                                                  ),
+                                                  child: Text('Ladder Name: ',
+                                                      textAlign: TextAlign.end,
+                                                      style: nameStyle.copyWith(
+                                                        color: Colors.white,
+                                                      )))),
+                                          Text(' ${displayNames[row]}', textAlign: TextAlign.start, style: disabled ? nameStrikeThruStyle : nameStyle),
+                                        ],
+                                      ),
 
-                                  Row(
-                                    children: [
-                                      SizedBox(
-                                          width: 150,
-                                          child: DecoratedBox(
-                                              decoration: BoxDecoration(
-                                                color: activeLadderBackgroundColor,
-                                              ),
-                                              child: Text('Plays On: ',
-                                                  textAlign: TextAlign.end,
-                                                  style: nameStyle.copyWith(
-                                                    color: Colors.white,
-                                                  )))),
+                                      Row(
+                                        children: [
+                                          SizedBox(
+                                              width: 150,
+                                              child: DecoratedBox(
+                                                  decoration: BoxDecoration(
+                                                    color: activeLadderBackgroundColor,
+                                                  ),
+                                                  child: Text('Plays On: ',
+                                                      textAlign: TextAlign.end,
+                                                      style: nameStyle.copyWith(
+                                                        color: Colors.white,
+                                                      )))),
+                                          Text(
+                                              ' ${availableDocs[row].get('PlayOn')}@$startHour:${startMin.toString().padLeft(2, '0')}'
+                                              '$inDaysString',
+                                              style: disabled ? nameStrikeThruStyle : nameStyle),
+                                        ],
+                                      ),
                                       Text(
-                                          ' ${availableDocs[row].get('PlayOn')}@$startHour:${startMin.toString().padLeft(2, '0')}'
-                                          '$inDaysString',
-                                          style: disabled ? nameStrikeThruStyle : nameStyle),
+                                        message,
+                                        style: nameStyle,
+                                      ),
                                     ],
-                                  ),
-                                  Text(
-                                    message,
-                                    style: nameStyle,
                                   ),
                                 ],
                               ),

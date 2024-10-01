@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -6,6 +7,8 @@ import 'package:social_sport_ladder/screens/ladder_config_page.dart';
 
 import '../constants/constants.dart';
 import 'ladder_selection_page.dart';
+
+var playerHomeInstance;
 
 class PlayerHome extends StatefulWidget {
   const PlayerHome({super.key});
@@ -67,12 +70,12 @@ class _PlayerHomeState extends State<PlayerHome> {
       );
     }
     if (player.get('WillPlayInput') == willPlayInputChoicesPresent) {
-      return ((_checkInProgress >= 0) ? const Icon(Icons.refresh, color: Colors.black) : const Icon(Icons.check_box, color: Colors.black), const Text('Ready to Play now', style: nameStyle));
+      return ((_checkInProgress >= 0) ? const Icon(Icons.refresh, color: Colors.black) : const Icon(Icons.check_box, color: Colors.black), const Text('You are Ready to Play now', style: nameStyle));
     }
     if (checkError.length < 2) {
       return (
         (_checkInProgress >= 0) ? const Icon(Icons.refresh, color: Colors.black) : const Icon(Icons.check_box_outline_blank_outlined, color: Colors.black),
-        const Text('Absent', style: nameStyle)
+        const Text('You Are Absent', style: nameStyle)
       );
     }
     if (vacationError.isEmpty) {
@@ -83,6 +86,7 @@ class _PlayerHomeState extends State<PlayerHome> {
     }
     return (const Icon(Icons.lock_outline, color: Colors.black), Text(checkError, style: nameStyle));
   }
+  refresh() => setState(() {});
 
   Widget unfrozenLine(QueryDocumentSnapshot player) {
     String checkError = mayCheckIn(player);
@@ -244,6 +248,7 @@ class _PlayerHomeState extends State<PlayerHome> {
 
   @override
   Widget build(BuildContext context) {
+    playerHomeInstance = this;
     return StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Players').orderBy('Rank').snapshots(),
         builder: (BuildContext context, AsyncSnapshot<QuerySnapshot<Object?>> playerSnapshots) {
@@ -286,6 +291,7 @@ class _PlayerHomeState extends State<PlayerHome> {
                       icon: const Icon(Icons.supervisor_account),
                       onPressed: () {
                         Navigator.push(context, MaterialPageRoute(builder: (context) => const ConfigPage()));
+                        print('Back from onPressed ConfigPage');
                       },
                       enableFeedback: true,
                       color: Colors.redAccent,
@@ -297,6 +303,9 @@ class _PlayerHomeState extends State<PlayerHome> {
               scrollDirection: Axis.vertical,
               child: Column(
                 children: [
+                  (urlCache.containsKey(activeLadderId) && (urlCache[activeLadderId]!=null))?
+                  CachedNetworkImage(imageUrl: urlCache[activeLadderId] ,
+                    height: 100,): const SizedBox(height:100),
                   ListView.separated(
                     scrollDirection: Axis.vertical,
                     shrinkWrap: true,

@@ -1,16 +1,66 @@
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:image/image.dart' as img;
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:social_sport_ladder/Utilities/string_validators.dart';
 import 'package:intl/intl.dart';
 import 'package:social_sport_ladder/screens/player_config_page.dart';
+import 'package:social_sport_ladder/screens/player_home.dart';
 import '../Utilities/rounded_text_form.dart';
 import '../constants/constants.dart';
 import '../main.dart';
 import 'audit_page.dart';
 import 'ladder_selection_page.dart';
 
+var ladderConfigInstance;
+
 DocumentSnapshot<Object?>? activeLadderDoc;
+dynamic activeLadderImage;
+String activeLadderImageId = '';
+var urlCache={};
+
+uploadPicture(XFile file) async {
+  String filename = 'LadderImage/$activeLadderId.jpg';
+  Uint8List fileData;
+  img.Image? image;
+  try {
+    fileData = await file.readAsBytes();
+  } catch (e) {
+    if (kDebugMode) {
+      print('error on readAsBytes $e');
+    }
+    return;
+  }
+  print('now doing decodeImage');
+  try {
+    image = img.decodeImage(fileData);
+  } catch (e) {
+    if (kDebugMode) {
+      print('error on decode $e');
+    }
+    return;
+  }
+  if (image == null) return;
+
+  print('now doing copyResize');
+  img.Image resized = img.copyResize(image, width: 100);
+  try {
+    print('now doing putData to: $filename');
+    await FirebaseStorage.instance.ref(filename).putData(img.encodePng(resized));
+  } catch (e) {
+    if (kDebugMode) {
+      print('Error on write to storage $e');
+    }
+  }
+  print('Done saving file');
+  urlCache.remove(activeLadderId);
+  await getLadderImage(activeLadderId);
+  playerHomeInstance.refresh();
+  ladderConfigInstance.refresh();
+}
 
 void updateNextDate(int incr) {
   DateTime start = activeLadderDoc!.get('NextDate').toDate();
@@ -30,15 +80,63 @@ class ConfigPage extends StatefulWidget {
 }
 
 class _ConfigPageState extends State<ConfigPage> {
-
-  static final List<String> _attrName = ['DisplayName', 'Message', 'StartTime', 'VacationStopTime', 'CheckInStartHours',
-    'Latitude', 'Longitude', 'MetersFromLatLong', 'RandomCourtOf5', 'Admins', 'PriorityOfCourts', ];
+  static final List<String> _attrName = [
+    'DisplayName',
+    'Message',
+    'StartTime',
+    'VacationStopTime',
+    'CheckInStartHours',
+    'Latitude',
+    'Longitude',
+    'MetersFromLatLong',
+    'RandomCourtOf5',
+    'Admins',
+    'PriorityOfCourts',
+  ];
 
   @override
   void initState() {
     super.initState();
     RoundedTextForm.startFresh(this);
+    ladderConfigInstance = this;
+    // print('initState: getLadderImage');
+    // getLadderImage();
   }
+
+  // getLadderImage() async {
+  //   // print('start of getLadderImage $activeLadderId');
+  //
+  //   if ( urlCache.containsKey(activeLadderId)){
+  //     print('Ladder image for $activeLadderId found in cache');
+  //     return;
+  //   }
+  //
+  //   String filename = 'LadderImage/$activeLadderId.jpg';
+  //
+  //   final storage = FirebaseStorage.instance;
+  //   final ref = storage.ref(filename);
+  //
+  //   try {
+  //     final url = await ref.getDownloadURL();
+  //     print('URL: $url');
+  //     setState(() {
+  //       urlCache[activeLadderId] = url;
+  //     });
+  //
+  //     print('Image $filename downloaded successfully!');
+  //   } catch (e) {
+  //     if (e is FirebaseException) {
+  //       print('FirebaseException: ${e.code} - ${e.message}');
+  //     } else if (e is SocketException) {
+  //       print('SocketException: ${e.message}');
+  //     } else {
+  //       print('downloadLadderImage: getData exception: ${e.runtimeType} || ${e.toString()}');
+  //     }
+  //     return;
+  //   }
+  //   print('SUCCESS');
+  //   return;
+  // }
 
   Widget dateAdjustButton(int incr) {
     String display = '$incr';
@@ -71,14 +169,15 @@ class _ConfigPageState extends State<ConfigPage> {
       ],
     );
   }
+
   refresh() => setState(() {});
 
-    @override
+  @override
   Widget build(BuildContext context) {
     var daysOfWeek = ['Mon', 'Tues', 'Wed', 'Thurs', 'Fri', 'Sat', 'Sun'];
     var trueFalse = ['True', 'False'];
-    var colorChoices = ['red','blue','green','brown','purple','yellow'];
-      return StreamBuilder<DocumentSnapshot>(
+    var colorChoices = ['red', 'blue', 'green', 'brown', 'purple', 'yellow'];
+    return StreamBuilder<DocumentSnapshot>(
         stream: FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).snapshots(),
         builder: (BuildContext context, AsyncSnapshot<DocumentSnapshot<Object?>> snapshot) {
           // print('Ladder snapshot');
@@ -140,6 +239,36 @@ class _ConfigPageState extends State<ConfigPage> {
               scrollDirection: Axis.vertical,
               child: Column(
                 children: [
+                  OutlinedButton(
+                      style: OutlinedButton.styleFrom(foregroundColor: Colors.black, backgroundColor: Colors.green),
+                      onPressed: () async {
+                        // print('Select Picture');
+                        XFile? pickedFile;
+                        try {
+                          pickedFile = await ImagePicker().pickImage(
+                            source: ImageSource.gallery,
+                            imageQuality: 100,
+                          );
+                        } catch (e) {
+                          if (kDebugMode) {
+                            print('Exception while picking image $e');
+                          }
+                        }
+                        if (pickedFile == null) {
+                          print('No file picked');
+                          return;
+                        } else {
+                          print(pickedFile.path);
+                          await uploadPicture(pickedFile);
+                          // setState(() {
+                          //
+                          // });
+                        }
+                      },
+                      child: const Text('Select new picture')),
+                  (urlCache.containsKey(activeLadderId) && (urlCache[activeLadderId]!=null))?
+                  CachedNetworkImage(imageUrl: urlCache[activeLadderId] ,
+                    height: 100,): const SizedBox(height:100),
                   const SizedBox(height: 8),
                   Text(
                     "DisplayName: ${activeLadderDoc!.get('DisplayName')}",
@@ -249,9 +378,7 @@ class _ConfigPageState extends State<ConfigPage> {
                                 'PlayOn': value,
                               });
                             },
-                          )
-                      )
-                  ),
+                          ))),
                   RoundedTextForm.build(
                     2,
                     helperText: 'The hour ladder starts: 19.45 is 7:45pm',
@@ -287,7 +414,8 @@ class _ConfigPageState extends State<ConfigPage> {
                         return;
                       }
 
-                      writeAudit(user: loggedInUser, documentName: 'LadderConfig', action: 'Set ${_attrName[row]}', newValue: number.toString(), oldValue: activeLadderDoc!.get(_attrName[row]).toString());
+                      writeAudit(
+                          user: loggedInUser, documentName: 'LadderConfig', action: 'Set ${_attrName[row]}', newValue: number.toString(), oldValue: activeLadderDoc!.get(_attrName[row]).toString());
                       FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
                         _attrName[row]: number,
                       });
@@ -328,8 +456,8 @@ class _ConfigPageState extends State<ConfigPage> {
                         return;
                       }
 
-                      writeAudit(user: loggedInUser, documentName: 'LadderConfig', action: 'Set ${_attrName[row]}', newValue: number.toString(),
-                          oldValue: activeLadderDoc!.get(_attrName[row]).toString());
+                      writeAudit(
+                          user: loggedInUser, documentName: 'LadderConfig', action: 'Set ${_attrName[row]}', newValue: number.toString(), oldValue: activeLadderDoc!.get(_attrName[row]).toString());
                       FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
                         _attrName[row]: number,
                       });
@@ -370,8 +498,8 @@ class _ConfigPageState extends State<ConfigPage> {
                         return;
                       }
 
-                      writeAudit(user: loggedInUser, documentName: 'LadderConfig', action: 'Set ${_attrName[row]}', newValue: number.toString(),
-                          oldValue: activeLadderDoc!.get(_attrName[row]).toString());
+                      writeAudit(
+                          user: loggedInUser, documentName: 'LadderConfig', action: 'Set ${_attrName[row]}', newValue: number.toString(), oldValue: activeLadderDoc!.get(_attrName[row]).toString());
                       FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
                         _attrName[row]: number,
                       });
@@ -408,8 +536,8 @@ class _ConfigPageState extends State<ConfigPage> {
                         return;
                       }
 
-                      writeAudit(user: loggedInUser, documentName: 'LadderConfig', action: 'Set ${_attrName[row]}', newValue: number.toString(),
-                          oldValue: activeLadderDoc!.get(_attrName[row]).toString());
+                      writeAudit(
+                          user: loggedInUser, documentName: 'LadderConfig', action: 'Set ${_attrName[row]}', newValue: number.toString(), oldValue: activeLadderDoc!.get(_attrName[row]).toString());
                       FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
                         _attrName[row]: number,
                       });
@@ -446,8 +574,8 @@ class _ConfigPageState extends State<ConfigPage> {
                         return;
                       }
 
-                      writeAudit(user: loggedInUser, documentName: 'LadderConfig', action: 'Set ${_attrName[row]}', newValue: number.toString(),
-                          oldValue: activeLadderDoc!.get(_attrName[row]).toString());
+                      writeAudit(
+                          user: loggedInUser, documentName: 'LadderConfig', action: 'Set ${_attrName[row]}', newValue: number.toString(), oldValue: activeLadderDoc!.get(_attrName[row]).toString());
                       FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
                         _attrName[row]: number,
                       });
@@ -484,8 +612,8 @@ class _ConfigPageState extends State<ConfigPage> {
                         return;
                       }
 
-                      writeAudit(user: loggedInUser, documentName: 'LadderConfig', action: 'Set ${_attrName[row]}', newValue: number.toString(),
-                          oldValue: activeLadderDoc!.get(_attrName[row]).toString());
+                      writeAudit(
+                          user: loggedInUser, documentName: 'LadderConfig', action: 'Set ${_attrName[row]}', newValue: number.toString(), oldValue: activeLadderDoc!.get(_attrName[row]).toString());
                       FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
                         _attrName[row]: number,
                       });
@@ -532,9 +660,7 @@ class _ConfigPageState extends State<ConfigPage> {
                                 'Color': value,
                               });
                             },
-                          )
-                      )
-                  ),
+                          ))),
                   RoundedTextForm.build(
                     8,
                     helperText: 'Random integer to pick first court of 5',
@@ -566,8 +692,8 @@ class _ConfigPageState extends State<ConfigPage> {
                         return;
                       }
 
-                      writeAudit(user: loggedInUser, documentName: 'LadderConfig', action: 'Set ${_attrName[row]}', newValue: number.toString(),
-                          oldValue: activeLadderDoc!.get(_attrName[row]).toString());
+                      writeAudit(
+                          user: loggedInUser, documentName: 'LadderConfig', action: 'Set ${_attrName[row]}', newValue: number.toString(), oldValue: activeLadderDoc!.get(_attrName[row]).toString());
                       FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
                         _attrName[row]: number,
                       });
@@ -585,11 +711,11 @@ class _ConfigPageState extends State<ConfigPage> {
                         RoundedTextForm.setErrorText(row, 'you need at least 1 admin');
                         return;
                       }
-                      int cnt=0;
+                      int cnt = 0;
                       for (String email in adminList) {
                         cnt++;
                         if (!email.isValidEmail()) {
-                          RoundedTextForm.setErrorText(row,  'Entry:$cnt="$email" is not a valid email address');
+                          RoundedTextForm.setErrorText(row, 'Entry:$cnt="$email" is not a valid email address');
                           return;
                         }
                       }
@@ -691,14 +817,18 @@ class _ConfigPageState extends State<ConfigPage> {
                             transaction.update(globalUserRefMap[email], {
                               'Ladders': newLadders,
                             });
-                            transactionAudit(transaction: transaction, user: loggedInUser, documentName: 'LadderConfig', action: 'Change Admins', newValue: newAdmins,
+                            transactionAudit(
+                                transaction: transaction,
+                                user: loggedInUser,
+                                documentName: 'LadderConfig',
+                                action: 'Change Admins',
+                                newValue: newAdmins,
                                 oldValue: activeLadderDoc!.get(_attrName[row]));
-                          } catch (_){}
+                          } catch (_) {}
                         }
                       });
 
-                      writeAudit(user: loggedInUser, documentName: 'LadderConfig', action: 'Set ${_attrName[row]}', newValue: newAdmins,
-                          oldValue: activeLadderDoc!.get(_attrName[row]).toString());
+                      writeAudit(user: loggedInUser, documentName: 'LadderConfig', action: 'Set ${_attrName[row]}', newValue: newAdmins, oldValue: activeLadderDoc!.get(_attrName[row]).toString());
                       FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
                         _attrName[row]: newAdmins,
                       });
@@ -729,8 +859,7 @@ class _ConfigPageState extends State<ConfigPage> {
                       const int row = 10;
                       String value = RoundedTextForm.getText(row);
                       String newValue = value.trim().replaceAll(RegExp(r' \s+'), ' ');
-                      writeAudit(user: loggedInUser, documentName: 'LadderConfig', action: 'Set ${_attrName[row]}', newValue: newValue,
-                          oldValue: activeLadderDoc!.get(_attrName[row]));
+                      writeAudit(user: loggedInUser, documentName: 'LadderConfig', action: 'Set ${_attrName[row]}', newValue: newValue, oldValue: activeLadderDoc!.get(_attrName[row]));
                       FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
                         _attrName[row]: newValue,
                       });
@@ -756,7 +885,7 @@ class _ConfigPageState extends State<ConfigPage> {
                                       color: Colors.grey,
                                       width: 2.0,
                                     ))),
-                            value: activeLadderDoc!.get('Disabled')?'True':'False',
+                            value: activeLadderDoc!.get('Disabled') ? 'True' : 'False',
                             items: trueFalse.map((String value) {
                               return DropdownMenuItem<String>(
                                 value: value,
@@ -773,61 +902,56 @@ class _ConfigPageState extends State<ConfigPage> {
                               // print('ladder_config_page set Disabled to $value');
                               if (value == null) return;
                               bool disabled = (value == trueFalse[0]);
-                              writeAudit(user: loggedInUser, documentName: 'LadderConfig', action: 'Set Disabled', newValue: value,
-                                  oldValue: activeLadderDoc!.get('Disabled').toString());
+                              writeAudit(user: loggedInUser, documentName: 'LadderConfig', action: 'Set Disabled', newValue: value, oldValue: activeLadderDoc!.get('Disabled').toString());
                               FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
                                 'Disabled': disabled,
                               });
                             },
-                          )
-                      )
-                  ),
-                  if(loggedInUserIsSuper) SizedBox(
-                      width: double.infinity,
-                      child: Padding(
-                          padding: const EdgeInsets.all(12.0),
-                          child: DropdownButtonFormField<String>(
-                            // onTap: RoundedTextForm.clearEditing(-1),
-                            decoration: const InputDecoration(
-                                labelText: 'SuperDisabled',
-                                labelStyle: nameBigStyle,
-                                helperText: 'Is the ladder closed for admins',
-                                helperStyle: nameStyle,
-                                contentPadding: EdgeInsets.all(16),
-                                floatingLabelBehavior: FloatingLabelBehavior.auto,
-                                // constraints:  BoxConstraints(maxWidth: 150),
-                                enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.all(Radius.circular(20)),
-                                    borderSide: BorderSide(
-                                      color: Colors.grey,
-                                      width: 2.0,
-                                    ))),
-                            value: activeLadderDoc!.get('SuperDisabled')?'True':'False',
-                            items: trueFalse.map((String value) {
-                              return DropdownMenuItem<String>(
-                                value: value,
-                                child: Text(
-                                  value,
-                                  style: nameStyle,
-                                ),
-                              );
-                            }).toList(),
-                            icon: const Icon(Icons.menu),
-                            iconSize: 30,
-                            dropdownColor: Colors.brown.shade200,
-                            onChanged: (value) {
-                              // print('ladder_config_page set Disabled to $value');
-                              if (value == null) return;
-                              bool disabled = (value == trueFalse[0]);
-                              writeAudit(user: loggedInUser, documentName: 'LadderConfig', action: 'Set SuperDisabled', newValue: value,
-                                  oldValue: activeLadderDoc!.get('SuperDisabled').toString());
-                              FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
-                                'SuperDisabled': disabled,
-                              });
-                            },
-                          )
-                      )
-                  ),
+                          ))),
+                  if (loggedInUserIsSuper)
+                    SizedBox(
+                        width: double.infinity,
+                        child: Padding(
+                            padding: const EdgeInsets.all(12.0),
+                            child: DropdownButtonFormField<String>(
+                              // onTap: RoundedTextForm.clearEditing(-1),
+                              decoration: const InputDecoration(
+                                  labelText: 'SuperDisabled',
+                                  labelStyle: nameBigStyle,
+                                  helperText: 'Is the ladder closed for admins',
+                                  helperStyle: nameStyle,
+                                  contentPadding: EdgeInsets.all(16),
+                                  floatingLabelBehavior: FloatingLabelBehavior.auto,
+                                  // constraints:  BoxConstraints(maxWidth: 150),
+                                  enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.all(Radius.circular(20)),
+                                      borderSide: BorderSide(
+                                        color: Colors.grey,
+                                        width: 2.0,
+                                      ))),
+                              value: activeLadderDoc!.get('SuperDisabled') ? 'True' : 'False',
+                              items: trueFalse.map((String value) {
+                                return DropdownMenuItem<String>(
+                                  value: value,
+                                  child: Text(
+                                    value,
+                                    style: nameStyle,
+                                  ),
+                                );
+                              }).toList(),
+                              icon: const Icon(Icons.menu),
+                              iconSize: 30,
+                              dropdownColor: Colors.brown.shade200,
+                              onChanged: (value) {
+                                // print('ladder_config_page set Disabled to $value');
+                                if (value == null) return;
+                                bool disabled = (value == trueFalse[0]);
+                                writeAudit(user: loggedInUser, documentName: 'LadderConfig', action: 'Set SuperDisabled', newValue: value, oldValue: activeLadderDoc!.get('SuperDisabled').toString());
+                                FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
+                                  'SuperDisabled': disabled,
+                                });
+                              },
+                            ))),
                 ],
               ),
             ),
