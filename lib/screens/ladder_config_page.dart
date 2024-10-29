@@ -1,5 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
-import 'package:image/image.dart' as img;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
@@ -14,14 +12,15 @@ import '../constants/constants.dart';
 import '../main.dart';
 import 'audit_page.dart';
 import 'ladder_selection_page.dart';
+import 'package:image/image.dart' as img;
 
-var ladderConfigInstance;
+dynamic ladderConfigInstance;
 
 DocumentSnapshot<Object?>? activeLadderDoc;
-dynamic activeLadderImage;
-String activeLadderImageId = '';
-var urlCache={};
-
+// dynamic activeLadderImage;
+// String activeLadderImageId = '';
+// var urlCache={};
+//
 uploadPicture(XFile file) async {
   String filename = 'LadderImage/$activeLadderId.jpg';
   Uint8List fileData;
@@ -46,7 +45,7 @@ uploadPicture(XFile file) async {
   if (image == null) return;
 
   print('now doing copyResize');
-  img.Image resized = img.copyResize(image, width: 100);
+  img.Image resized = img.copyResize(image, height: 100);
   try {
     print('now doing putData to: $filename');
     await FirebaseStorage.instance.ref(filename).putData(img.encodePng(resized));
@@ -56,10 +55,13 @@ uploadPicture(XFile file) async {
     }
   }
   print('Done saving file');
-  urlCache.remove(activeLadderId);
-  await getLadderImage(activeLadderId);
-  playerHomeInstance.refresh();
-  ladderConfigInstance.refresh();
+  // urlCache.remove(activeLadderId);
+  if (await getLadderImage(activeLadderId,overrideCache: true)) {
+    print('loaded new image for $activeLadderId');
+    playerHomeInstance.refresh();
+    ladderConfigInstance.refresh();
+    ladderSelectionPageInstance.refresh();
+  }
 }
 
 void updateNextDate(int incr) {
@@ -174,9 +176,7 @@ class _ConfigPageState extends State<ConfigPage> {
 
   @override
   Widget build(BuildContext context) {
-    var daysOfWeek = ['Mon', 'Tues', 'Wed', 'Thurs', 'Fri', 'Sat', 'Sun'];
-    var trueFalse = ['True', 'False'];
-    var colorChoices = ['red', 'blue', 'green', 'brown', 'purple', 'yellow'];
+
     return StreamBuilder<DocumentSnapshot>(
         stream: FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).snapshots(),
         builder: (BuildContext context, AsyncSnapshot<DocumentSnapshot<Object?>> snapshot) {
@@ -260,15 +260,16 @@ class _ConfigPageState extends State<ConfigPage> {
                         } else {
                           print(pickedFile.path);
                           await uploadPicture(pickedFile);
-                          // setState(() {
-                          //
-                          // });
+
                         }
                       },
                       child: const Text('Select new picture')),
-                  (urlCache.containsKey(activeLadderId) && (urlCache[activeLadderId]!=null))?
-                  CachedNetworkImage(imageUrl: urlCache[activeLadderId] ,
-                    height: 100,): const SizedBox(height:100),
+                  (urlCache.containsKey(activeLadderId) &&(urlCache[activeLadderId]!=null) &&enableImages) ?
+                  Image.network(urlCache[activeLadderId],
+                    height:100,):const SizedBox(height: 100,),
+                  // (urlCache.containsKey(activeLadderId) && (urlCache[activeLadderId]!=null))?
+                  // CachedNetworkImage(imageUrl: urlCache[activeLadderId] ,
+                  //   height: 100,): const SizedBox(height:100),
                   const SizedBox(height: 8),
                   Text(
                     "DisplayName: ${activeLadderDoc!.get('DisplayName')}",

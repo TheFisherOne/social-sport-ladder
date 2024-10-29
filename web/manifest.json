@@ -1,7 +1,7 @@
 {
     "name": "social_sport_ladder",
     "short_name": "social_sport_ladder",
-    "start_url": ".",
+    "id": "/",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
@@ -31,6 +31,24 @@
             "sizes": "512x512",
             "type": "image/png",
             "purpose": "maskable"
+        }
+    ],
+    "screenshots": [
+        {
+
+            "src": "assets/images/notwidescreenshot.png",
+            "sizes": "501x692",
+            "type": "image/png",
+            "form_factor": "narrow",
+            "label": "Application"
+        },
+        {
+
+            "src": "assets/images/widescreenshot.png",
+            "sizes": "673x431",
+            "type": "image/png",
+            "form_factor": "wide",
+            "label": "Application"
         }
     ]
 }

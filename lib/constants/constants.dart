@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 
+const bool enableImages = false;
 const String fireStoreCollectionName = "social-sport-ladder";
 const int softwareVersion = 3;
 
@@ -68,4 +69,7 @@ int willPlayInputChoicesAbsent = 0;
 int willPlayInputChoicesPresent = 1;
 int willPlayInputChoicesVacation = 2;
 
+const List<String> daysOfWeek = ['Mon', 'Tues', 'Wed', 'Thurs', 'Fri', 'Sat', 'Sun'];
+const List<String> trueFalse = ['True', 'False'];
+const List<String> colorChoices = ['red', 'blue', 'green', 'brown', 'purple', 'yellow'];
 

@@ -19,6 +19,10 @@ LoginPageState? globalHomePage;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Register the service worker for PWA functionality
+  // if (html.window.navigator.serviceWorker != null) {
+  //   html.window.navigator.serviceWorker!.register('/flutter_service_worker.js');
+  // }
   await Firebase.initializeApp(options: myFirebaseOptions);
   runApp(const MyApp());
 }

@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -10,17 +9,21 @@ import 'package:social_sport_ladder/constants/constants.dart';
 import 'package:social_sport_ladder/main.dart';
 import 'package:social_sport_ladder/screens/player_home.dart';
 import 'package:social_sport_ladder/screens/super_admin.dart';
+import '../Utilities/calendar_service.dart';
 import 'ladder_config_page.dart';
 
 String activeLadderId = '';
 Color activeLadderBackgroundColor=Colors.brown;
+dynamic ladderSelectionPageInstance;
+dynamic urlCache = {};
 
-getLadderImage(String ladderId) async {
-  if ( urlCache.containsKey(ladderId)){
+Future<bool> getLadderImage(String ladderId, {bool overrideCache = false}) async {
+  if (!overrideCache && ( urlCache.containsKey(ladderId)) || !enableImages){
     // print('Ladder image for $ladderId found in cache ${urlCache[ladderId]}');
-    return;
+    return false;
   }
   // due to async we will come in here multiple times while we are waiting.
+  // by putting an entry in the cache even though it is null, we should only ask once
   urlCache[ladderId] = null;
   String filename = 'LadderImage/$ladderId.jpg';
 
@@ -31,7 +34,7 @@ getLadderImage(String ladderId) async {
     final url = await ref.getDownloadURL();
     // print('URL: $url');
     urlCache[ladderId] = url;
-    print('Image $filename downloaded successfully!');
+    print('Image $filename downloaded successfully! $url');
   } catch (e) {
     if (e is FirebaseException) {
       // print('FirebaseException: ${e.code} - ${e.message}');
@@ -41,10 +44,10 @@ getLadderImage(String ladderId) async {
       print('downloadLadderImage: getData exception: ${e.runtimeType} || ${e.toString()}');
     }
 
-    return;
+    return false;
   }
   // print('SUCCESS');
-  return;
+  return true;
 }
 
 class LadderSelectionPage extends StatefulWidget {
@@ -57,7 +60,22 @@ class LadderSelectionPage extends StatefulWidget {
 class _LadderSelectionPageState extends State<LadderSelectionPage> {
   String _userLadders = '';
   String _lastLoggedInUser = '';
+  // final _calendarService = CalendarService();
+  // List<calendar.Event> _events = [];
+  final CalendarService _mainCalendar = CalendarService();
 
+  @override
+  void initState()  {
+    super.initState();
+
+  }
+
+  // Future<void> _fetchEvents() async {
+  //   final events = await _calendarService.getEvents();
+  //   setState(() {
+  //     _events = events;
+  //   });
+  // }
   Color colorFromString(String colorString){
       if (colorString == 'red')    return Colors.red;
       if (colorString == 'blue')   return Colors.blue;
@@ -68,11 +86,36 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
       return Colors.brown;
   }
   _getLadderImage(String ladderId) async {
-    await getLadderImage(ladderId);
-    setState(() {
-
-    });
+    if (await getLadderImage(ladderId)) {
+      print('_getLadderImage: doing setState for $ladderId' );
+      setState(() {
+      });
+    }
   }
+  refresh() => setState(() {});
+  int _buildCount = 0;
+
+  testCalendar() async {
+    // _fetchEvents();
+    // await _mainCalendar.listCalendars();
+    var events =  await _mainCalendar.listEvents();
+    // _mainCalendar.listCalendars();
+    if (events.length > 1){
+      print('updating Event ${events.length} / ${events[1].id!}, ${events[1].summary!}, ${events[1].description!}');
+      await _mainCalendar.updateEvent(events[1].id!, '${events[1].summary!}X', '${events[1].description!}Y');
+    } else {
+      print('creating new event');
+      await _mainCalendar.addEvent('Initialize2 event', DateTime.now().add(const Duration(hours: 1)), DateTime.now().add(const Duration(hours: 2)),
+          'This is a test event created by the app'
+      );
+    }
+
+    await _mainCalendar.addNewCalendar('SSL-test05@gmail.com', 'America/Edmonton');
+    // print('list calendars a second time');
+    await _mainCalendar.listCalendars();
+    print('done testcalendar');
+  }
+
   @override
   Widget build(BuildContext context) {
     TextButton makeDoubleConfirmationButton({buttonText, buttonColor = Colors.blue, dialogTitle, dialogQuestion, disabled, onOk}) {
@@ -104,9 +147,18 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
           child: Text(buttonText));
     }
 
+    // print('ladder_selection_page.build _events: ${_events.length}');
+
+    ladderSelectionPageInstance = this;
     if (loggedInUser.isEmpty) {
       return const Text('LadderPage: but loggedInUser empty');
     }
+    _buildCount++;
+    print('ladder_selection_page: doing build #$_buildCount');
+    if (_buildCount>1000) return const Text('Build Count exceeded');
+
+    // testCalendar();
+
     return StreamBuilder<DocumentSnapshot>(
         stream: FirebaseFirestore.instance.collection('Users').doc(loggedInUser).snapshots(),
         builder: (BuildContext context, AsyncSnapshot<DocumentSnapshot<Object?>> snapshot) {
@@ -130,6 +182,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
             return const CircularProgressIndicator();
           }
 
+          loggedInUserDoc = snapshot.data;
           loggedInUserIsSuper = false;
           try {
             loggedInUserIsSuper = snapshot.data!.get('SuperUser');
@@ -230,7 +283,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
               return Scaffold(
                 backgroundColor: Colors.brown[50],
                 appBar: AppBar(
-                  title: Text('Pick Ladder $softwareVersion\n$loggedInUser'),
+                  title: Text('Pick Ladder sw V$softwareVersion\n$loggedInUser'),
                   backgroundColor: Colors.brown[400],
                   elevation: 0.0,
                   automaticallyImplyLeading: false,
@@ -316,7 +369,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                             color: activeLadderBackgroundColor.withOpacity(0.1),
                           ),
                           child: Padding(
-                            padding: const EdgeInsets.all(8.0),
+                            padding: const EdgeInsets.only(left:8.0, right:8, top:2, bottom:2),
                             child: InkWell(
                               onTap: (disabled && !isAdmin)
                                   ? null
@@ -333,9 +386,12 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                                     },
                               child: Column(
                                 children: [
-                                  (urlCache.containsKey(availableDocs[row].id) && (urlCache[availableDocs[row].id]!=null))?
-                                  CachedNetworkImage(imageUrl: urlCache[availableDocs[row].id] ,
-                                    height: 100,): const SizedBox(height:100),
+                                  (urlCache.containsKey(availableDocs[row].id) &&(urlCache[availableDocs[row].id]!=null) &&enableImages) ?
+                                  Image.network(urlCache[availableDocs[row].id],
+                                  height:100,):const SizedBox(height: 100,),
+                                  // (urlCache.containsKey(availableDocs[row].id) && (urlCache[availableDocs[row].id]!=null))?
+                                  // CachedNetworkImage(imageUrl: urlCache[availableDocs[row].id] ,
+                                  //   height: 100,): const SizedBox(height:100),
                                   Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [

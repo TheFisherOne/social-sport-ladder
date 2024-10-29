@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:file_saver/file_saver.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -111,8 +114,8 @@ class _AuditPageState extends State<AuditPage> {
           
           List<String> auditDisplayStrings = List.empty(growable: true);
           for (var index=0; index<auditDocs.length; index++){
-            String line = '${auditDocs[index].id} ${auditDocs[index].get('Document')}\n${auditDocs[index].get('Action')}:'
-                '${auditDocs[index].get('OldValue')}=>${auditDocs[index].get('NewValue')}\n  by:${auditDocs[index].get('User')}';
+            String line = '${auditDocs[index].id},${auditDocs[index].get('Document')}\n"${auditDocs[index].get('Action')}:'
+                '${auditDocs[index].get('OldValue')}=>${auditDocs[index].get('NewValue')}"\n  by:${auditDocs[index].get('User')}';
             if (filterText.isEmpty){
               auditDisplayStrings.add(line);
             } else if (RegExp(r'[A-Z]').hasMatch(filterText)) {
@@ -156,6 +159,33 @@ class _AuditPageState extends State<AuditPage> {
                           },
                           child: Text(_waitingForRebuild ? 'PENDING' : 'Shorten Audit Log from ${auditDocs.length}=>$_maxAuditLogEntries',
                               style: (_maxAuditLogEntries <= 200)?nameStyle:errorNameStyle),
+                        ),
+                        if (isAdmin)TextButton(
+                          style: ButtonStyle(
+                            backgroundColor: WidgetStatePropertyAll(_waitingForRebuild ? Colors.redAccent : Colors.green.shade600),
+                            foregroundColor: const WidgetStatePropertyAll(Colors.white),
+                          ),
+
+                          onPressed: (auditDisplayStrings.isEmpty)?null:() {
+                            if (kDebugMode) {
+                              print('Doing file download from ${auditDocs.length} entries');
+                            }
+                            String result='';
+                            for (int row=0; row< auditDisplayStrings.length; row++) {
+                              String line = auditDisplayStrings[row];
+                              line = line.replaceAll('\n',',');
+                              result += '$line\n';
+                            }
+
+                            FileSaver.instance.saveFile(
+                              name: 'auditLog_${activeLadderId}_${DateTime.now().toString().replaceAll('.','_').replaceAll(' ','_')}.csv',
+                              bytes: utf8.encode(result),
+
+
+                            );
+                          },
+                          child: const Text('Download audit log',
+                              style: nameStyle),
                         ),
                         Row(
                           children: [

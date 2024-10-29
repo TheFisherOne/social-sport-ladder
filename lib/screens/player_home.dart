@@ -1,14 +1,17 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:social_sport_ladder/main.dart';
 import 'package:social_sport_ladder/screens/ladder_config_page.dart';
 
+import '../Utilities/player_image.dart';
 import '../constants/constants.dart';
+import 'calendar_page.dart';
 import 'ladder_selection_page.dart';
 
-var playerHomeInstance;
+dynamic playerHomeInstance;
+QueryDocumentSnapshot? clickedOnPlayerDoc;
 
 class PlayerHome extends StatefulWidget {
   const PlayerHome({super.key});
@@ -16,8 +19,6 @@ class PlayerHome extends StatefulWidget {
   @override
   State<PlayerHome> createState() => _PlayerHomeState();
 }
-
-const List<String> daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 class _PlayerHomeState extends State<PlayerHome> {
   List<QueryDocumentSnapshot>? _players;
@@ -50,7 +51,9 @@ class _PlayerHomeState extends State<PlayerHome> {
     if (activeLadderDoc!.get('FreezeCheckIns')) return 'not while the ladder is frozen';
     if (activeLadderDoc!.get('Admins').split(",").contains(loggedInUser)) return '';
 
-    if ((DateTime.now().weekday == activeLadderDoc!.get('PlayOn')) &&
+    // print('mayReadyToPlay: weekday is: ${daysOfWeek[DateTime.now().weekday-1]} vs ${activeLadderDoc!.get('PlayOn')}');
+    // print('mayReadyToPlay: hour is: ${DateTime.now().hour} between ${activeLadderDoc!.get('VacationStopTime')} && ${activeLadderDoc!.get('StartTime') + 1}');
+    if ((daysOfWeek[DateTime.now().weekday - 1] == activeLadderDoc!.get('PlayOn')) &&
         (DateTime.now().hour > activeLadderDoc!.get('VacationStopTime')) &&
         (DateTime.now().hour < (activeLadderDoc!.get('StartTime') + 1))) {
       return 'not between ${activeLadderDoc!.get('VacationStopTime')} o' 'clock and start of ladder on ${activeLadderDoc!.get('PlayOn')}';
@@ -86,9 +89,211 @@ class _PlayerHomeState extends State<PlayerHome> {
     }
     return (const Icon(Icons.lock_outline, color: Colors.black), Text(checkError, style: nameStyle));
   }
+
   refresh() => setState(() {});
 
-  Widget unfrozenLine(QueryDocumentSnapshot player) {
+  String presentBoxError(QueryDocumentSnapshot player) {
+    if (_loggedInUserIsAdmin) return '';
+    if (activeLadderDoc!.get('FreezeCheckIns')) return 'not while the ladder is frozen';
+    if (player.get('WillPlayInput') == willPlayInputChoicesVacation) return 'You are marked as on Vacation so will not play';
+
+    int firstAllowed = activeLadderDoc!.get('StartTime') - activeLadderDoc!.get('CheckInStartHours');
+    int lastAllowed = activeLadderDoc!.get('StartTime') + 1;
+    if (daysOfWeek[DateTime.now().weekday - 1] != activeLadderDoc!.get('PlayOn')) {
+      return 'today is ${daysOfWeek[DateTime.now().weekday - 1]} and this ladder is played on ${activeLadderDoc!.get('PlayOn')}';
+    }
+    if ((DateTime.now().hour > lastAllowed) || (DateTime.now().hour < firstAllowed)) {
+      return 'the hour is ${DateTime.now().hour} checkin is only allowed between $firstAllowed and start of ladder';
+    }
+    if (_loggedInPlayerDoc!.get('Helper')) return '';
+    if (loggedInUser == player.id) return '';
+
+    return 'You are logged in as "${_loggedInPlayerDoc!.get('Name')}"" you can not change the player "${player.get('Name')}"';
+  }
+
+  String awayBoxError(QueryDocumentSnapshot player) {
+    if (_loggedInUserIsAdmin) return '';
+    if (activeLadderDoc!.get('FreezeCheckIns')) return 'not while the ladder is frozen (in score entry mode)';
+    if (player.get('WillPlayInput') == willPlayInputChoicesPresent) return 'You are marked as Present it is too late to be away';
+
+    int firstNotAllowed = activeLadderDoc!.get('StartTime') - activeLadderDoc!.get('VacationStopTime');
+    int lastNotAllowed = activeLadderDoc!.get('StartTime') + 1;
+    if ((daysOfWeek[DateTime.now().weekday - 1] == activeLadderDoc!.get('PlayOn')) && (DateTime.now().hour < lastNotAllowed) && (DateTime.now().hour > firstNotAllowed)) {
+      return 'the hour is ${DateTime.now().hour} Changing Vacation is only allowed before $firstNotAllowed or after score entry is complete';
+    }
+    if (_loggedInPlayerDoc!.get('Helper')) return '';
+    if (loggedInUser == player.id) return '';
+
+    return 'You are logged in as "${_loggedInPlayerDoc!.get('Name')}" you can not change the player "${player.get('Name')}"';
+  }
+
+  Widget unfrozenSubLine2(QueryDocumentSnapshot player) {
+    var willPlayInputString = [
+      'You expect to play next time',
+      'You are at the court ready to play now',
+      'You have marked yourself as not able to play next time',
+    ];
+
+    _getPlayerImage(player.id);
+    clickedOnPlayerDoc = player;
+    String box1Error = presentBoxError(player);
+    String box2Error = awayBoxError(player);
+    return Container(
+      color: (player.id == loggedInUser) ? Colors.green.shade100 : Colors.blue.shade100,
+      child: Padding(
+        padding: const EdgeInsets.all(15.0),
+        child: Row(
+          children: [
+            Container(
+              height: 50,
+              width: 50,
+              color: (player.id == loggedInUser) ? Colors.green.shade100 : Colors.blue.shade100,
+              child: Padding(
+                padding: const EdgeInsets.all(0.0),
+                child: InkWell(
+                  onTap: box1Error.isNotEmpty
+                      ? () => showDialog<String>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                                title: const Text('Whether you are at the court and ready to play'),
+                                content: Text('ERROR: $box1Error'),
+                                actions: [
+                                  TextButton(
+                                      onPressed: () {
+                                        setState(() {});
+                                        Navigator.pop(context);
+                                      },
+                                      child: const Text('OK')),
+                                ],
+                              ))
+                      : (_checkInProgress >= 0)
+                          ? null
+                          : () {
+                              int newPlay = -1;
+                              if (player.get('WillPlayInput') == willPlayInputChoicesPresent) {
+                                newPlay = willPlayInputChoicesAbsent;
+                                _playerCheckinsList.removeWhere((item) => item == player.id);
+                                setState(() {
+                                  _desiredCheckState = newPlay;
+                                  _checkInProgress = _clickedOnRank;
+                                });
+                              } else {
+                                newPlay = willPlayInputChoicesPresent;
+                                _playerCheckinsList.removeWhere((item) => item == player.id);
+                                setState(() {
+                                  _desiredCheckState = newPlay;
+                                  _checkInProgress = _clickedOnRank;
+                                });
+                              }
+                              FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Players').doc(player.id).update({
+                                'WillPlayInput': _desiredCheckState,
+                              });
+                            },
+                  child: Transform.scale(
+                    scale: 2.5,
+                    child: (_checkInProgress >= 0)
+                        ? const Icon(Icons.refresh, color: Colors.black)
+                        : ((player.get('WillPlayInput') == willPlayInputChoicesPresent)
+                            ? const Icon(Icons.check_box, color: Colors.black)
+                            : const Icon(Icons.check_box_outline_blank, color: Colors.black)),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Container(
+              height: 50,
+              width: 50,
+              color: (player.id == loggedInUser) ? Colors.green.shade100 : Colors.blue.shade100,
+              child: Padding(
+                padding: const EdgeInsets.all(0.0),
+                child: InkWell(
+                  onTap: box2Error.isNotEmpty
+                      ? () => showDialog<String>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                                title: const Text('Giving advance notice that you will not be able to play'),
+                                content: Text('ERROR: $box2Error'),
+                                actions: [
+                                  TextButton(
+                                      onPressed: () {
+                                        setState(() {});
+                                        Navigator.pop(context);
+                                      },
+                                      child: const Text('OK')),
+                                ],
+                              ))
+                      : (_checkInProgress >= 0)
+                          ? null
+                          : () {
+                              int newPlay = -1;
+                              if (player.get('WillPlayInput') == willPlayInputChoicesAbsent) {
+                                newPlay = willPlayInputChoicesVacation;
+                                _playerCheckinsList.removeWhere((item) => item == player.id);
+                                setState(() {
+                                  _desiredCheckState = newPlay;
+                                  _checkInProgress = _clickedOnRank;
+                                });
+                              } else if (player.get('WillPlayInput') == willPlayInputChoicesVacation) {
+                                newPlay = willPlayInputChoicesAbsent;
+                                _playerCheckinsList.removeWhere((item) => item == player.id);
+                                setState(() {
+                                  _desiredCheckState = newPlay;
+                                  _checkInProgress = _clickedOnRank;
+                                });
+                              } else {
+                                return;
+                              }
+                              FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Players').doc(player.id).update({
+                                'WillPlayInput': _desiredCheckState,
+                              });
+                            },
+                  child: Transform.scale(
+                    scale: 2.5,
+                    child: (_checkInProgress >= 0)
+                        ? const Icon(Icons.refresh, color: Colors.black)
+                        : ((player.get('WillPlayInput') == willPlayInputChoicesVacation) ? const Icon(Icons.airplanemode_active, color: Colors.red) : const Icon(Icons.house, color: Colors.green)),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+                child: InkWell(
+                onTap: null,
+                child: Text(
+                  willPlayInputString[player.get('WillPlayInput')],
+                  style: nameStyle,
+                ),
+              ),
+            ),
+            const Spacer(),
+            Container(
+              height: 50,
+              width: 50,
+              color: (player.id == loggedInUser) ? Colors.green.shade100 : Colors.blue.shade100,
+              child: Padding(
+                padding: const EdgeInsets.all(0.0),
+                child: InkWell(
+                  onTap: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => const CalendarPage()));
+                  },
+                  child: Transform.scale(
+                    scale: 2.5,
+                    child: const Icon(Icons.edit_calendar, color: Colors.green),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget unfrozenSubLine(QueryDocumentSnapshot player) {
+    _getPlayerImage(player.id);
+
     String checkError = mayCheckIn(player);
     // print('checkError: $checkError');
 
@@ -107,87 +312,135 @@ class _PlayerHomeState extends State<PlayerHome> {
             children: [
               Row(
                 children: [
+                  Expanded(
+                    child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Row(
+                          children: [
+                            (_loggedInUserIsAdmin || (player.id == loggedInUser))
+                                ? InkWell(
+                                    onTap: () {
+                                      int newPlay = -1;
+                                      // print('onTap: with checkError="$checkError" WillPlay:${player.get('WillPlayInput')}');
+                                      if (checkError.length < 2) {
+                                        if (player.get('WillPlayInput') == willPlayInputChoicesPresent) {
+                                          if (checkError.isEmpty) {
+                                            newPlay = willPlayInputChoicesAbsent;
+                                            // print('set will play input to $newPlay for ${player.id}');
+                                            // player.updateWillPlayInput(newPlay);
+                                            _playerCheckinsList.removeWhere((item) => item == player.id);
+                                            setState(() {
+                                              _desiredCheckState = newPlay;
+                                              _checkInProgress = _clickedOnRank;
+                                            });
+                                          } else {
+                                            //admin entry
+                                            newPlay = willPlayInputChoicesVacation;
+                                            // print('set will play input to $newPlay for ${player.id}');
+                                            // player.updateWillPlayInput(newPlay);
+                                            _playerCheckinsList.removeWhere((item) => item == player.id);
+                                            setState(() {
+                                              _desiredCheckState = newPlay;
+                                              _checkInProgress = _clickedOnRank;
+                                            });
+                                          }
+                                        } else if (player.get('WillPlayInput') == willPlayInputChoicesVacation) {
+                                          newPlay = willPlayInputChoicesAbsent;
+                                          // print('set will play input to $newPlay for ${player.id}');
+                                          // player.updateWillPlayInput(newPlay);
+                                          _playerCheckinsList.removeWhere((item) => item == player.id);
+                                          setState(() {
+                                            _desiredCheckState = newPlay;
+                                            _checkInProgress = _clickedOnRank;
+                                          });
+                                        } else {
+                                          newPlay = willPlayInputChoicesPresent;
+                                          // print('set will play input to $newPlay for ${player.id}');
+                                          // player.updateWillPlayInput(newPlay);
+                                          _playerCheckinsList.add(player.id);
+                                          setState(() {
+                                            _desiredCheckState = newPlay;
+                                            _checkInProgress = _clickedOnRank;
+                                          });
+                                        }
+                                      } else if (vacationError.isEmpty) {
+                                        if (player.get('WillPlayInput') == willPlayInputChoicesVacation) {
+                                          newPlay = willPlayInputChoicesAbsent;
+                                          // print('set will play input to $newPlay for ${player.id}');
+                                          // player.updateWillPlayInput(newPlay);
+                                          setState(() {
+                                            _desiredCheckState = newPlay;
+                                            _checkInProgress = _clickedOnRank;
+                                          });
+                                        } else {
+                                          newPlay = willPlayInputChoicesVacation;
+                                          // print('set will play input to $newPlay for ${player.id}');
+                                          // player.updateWillPlayInput(newPlay);
+                                          setState(() {
+                                            _desiredCheckState = newPlay;
+                                            _checkInProgress = _clickedOnRank;
+                                          });
+                                        }
+                                      }
+                                      // print('_desiredCheckState: $_desiredCheckState');
+                                      FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Players').doc(player.id).update({
+                                        'WillPlayInput': _desiredCheckState,
+                                      });
+                                    },
+                                    child: Transform.scale(
+                                      scale: 2.5,
+                                      child: displayIcon,
+                                    ),
+                                  )
+                                : const SizedBox(
+                                    width: 10,
+                                    height: 10,
+                                  ),
+                            (_loggedInUserIsAdmin || (player.id == loggedInUser))
+                                ? Padding(padding: const EdgeInsets.only(left: 15.0), child: displayString)
+                                : const SizedBox(
+                                    width: 10,
+                                    height: 10,
+                                  ),
+                          ],
+                        )),
+                  ),
                   Align(
-                      alignment: Alignment.centerLeft,
-                      child: Row(
-                        children: [
-                          InkWell(
-                            child: Transform.scale(
-                              scale: 2.5,
-                              child: displayIcon,
-                            ),
-                            onTap: () {
-                              int newPlay = -1;
-                              // print('onTap: with checkError="$checkError" WillPlay:${player.get('WillPlayInput')}');
-                              if (checkError.length < 2) {
-                                if (player.get('WillPlayInput') == willPlayInputChoicesPresent) {
-                                  if (checkError.isEmpty) {
-                                    newPlay = willPlayInputChoicesAbsent;
-                                    // print('set will play input to $newPlay for ${player.id}');
-                                    // player.updateWillPlayInput(newPlay);
-                                    _playerCheckinsList.removeWhere((item) => item == player.id);
-                                    setState(() {
-                                      _desiredCheckState = newPlay;
-                                      _checkInProgress = _clickedOnRank;
-                                    });
-                                  } else {
-                                    //admin entry
-                                    newPlay = willPlayInputChoicesVacation;
-                                    // print('set will play input to $newPlay for ${player.id}');
-                                    // player.updateWillPlayInput(newPlay);
-                                    _playerCheckinsList.removeWhere((item) => item == player.id);
-                                    setState(() {
-                                      _desiredCheckState = newPlay;
-                                      _checkInProgress = _clickedOnRank;
-                                    });
-                                  }
-                                } else if (player.get('WillPlayInput') == willPlayInputChoicesVacation) {
-                                  newPlay = willPlayInputChoicesAbsent;
-                                  // print('set will play input to $newPlay for ${player.id}');
-                                  // player.updateWillPlayInput(newPlay);
-                                  _playerCheckinsList.removeWhere((item) => item == player.id);
-                                  setState(() {
-                                    _desiredCheckState = newPlay;
-                                    _checkInProgress = _clickedOnRank;
-                                  });
-                                } else {
-                                  newPlay = willPlayInputChoicesPresent;
-                                  // print('set will play input to $newPlay for ${player.id}');
-                                  // player.updateWillPlayInput(newPlay);
-                                  _playerCheckinsList.add(player.id);
-                                  setState(() {
-                                    _desiredCheckState = newPlay;
-                                    _checkInProgress = _clickedOnRank;
-                                  });
-                                }
-                              } else if (vacationError.isEmpty) {
-                                if (player.get('WillPlayInput') == willPlayInputChoicesVacation) {
-                                  newPlay = willPlayInputChoicesAbsent;
-                                  // print('set will play input to $newPlay for ${player.id}');
-                                  // player.updateWillPlayInput(newPlay);
-                                  setState(() {
-                                    _desiredCheckState = newPlay;
-                                    _checkInProgress = _clickedOnRank;
-                                  });
-                                } else {
-                                  newPlay = willPlayInputChoicesVacation;
-                                  // print('set will play input to $newPlay for ${player.id}');
-                                  // player.updateWillPlayInput(newPlay);
-                                  setState(() {
-                                    _desiredCheckState = newPlay;
-                                    _checkInProgress = _clickedOnRank;
-                                  });
-                                }
-                              }
-                              // print('_desiredCheckState: $_desiredCheckState');
-                              FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Players').doc(player.id).update({
-                                'WillPlayInput': _desiredCheckState,
-                              });
-                            },
-                          ),
-                          Padding(padding: const EdgeInsets.only(left: 15.0), child: displayString)
-                        ],
-                      ))
+                      alignment: Alignment.centerRight,
+                      child: enableImages
+                          ? InkWell(
+                              onTap: ((player.id == loggedInUser))
+                                  ? () async {
+                                      XFile? pickedFile;
+                                      try {
+                                        pickedFile = await ImagePicker().pickImage(
+                                          source: ImageSource.gallery,
+                                          imageQuality: 100,
+                                        );
+                                      } catch (e) {
+                                        if (kDebugMode) {
+                                          print('Exception while picking image $e');
+                                        }
+                                      }
+                                      if (pickedFile == null) {
+                                        print('No file picked');
+                                        return;
+                                      } else {
+                                        print(pickedFile.path);
+                                        await uploadPlayerPicture(pickedFile, player.id);
+                                        setState(() {});
+                                      }
+                                    }
+                                  : null,
+                              child: (playerImageCache.containsKey(player.id) && (playerImageCache[player.id] != null) && enableImages)
+                                  ? Image.network(
+                                      playerImageCache[player.id],
+                                      height: 100,
+                                    )
+                                  : (player.id == loggedInUser)
+                                      ? const Text('Click to\nupload\nphoto')
+                                      : const Text(' '))
+                          : null),
                 ],
               ),
             ],
@@ -224,6 +477,7 @@ class _PlayerHomeState extends State<PlayerHome> {
               } else {
                 setState(() {
                   _clickedOnRank = -1;
+                  clickedOnPlayerDoc = null;
                 });
               }
             });
@@ -240,15 +494,29 @@ class _PlayerHomeState extends State<PlayerHome> {
             ),
           ]),
         ),
-        if ((_clickedOnRank == row) && ((player.id == loggedInUser) || activeLadderDoc!.get('Admins').split(",").contains(loggedInUser) || player.get('Helper') || loggedInUserIsSuper))
-          unfrozenLine(player),
+        // if ((_clickedOnRank == row) && ((player.id == loggedInUser) || activeLadderDoc!.get('Admins').split(",").contains(loggedInUser) || player.get('Helper') || loggedInUserIsSuper))
+        if (_clickedOnRank == row) unfrozenSubLine2(player),
       ],
     );
   }
 
+  _getPlayerImage(String playerEmail) async {
+    if (!enableImages) return;
+    if (await getPlayerImage(playerEmail)) {
+      print('_getPlayerImage: doing setState for $playerEmail');
+      setState(() {});
+    }
+  }
+
+  bool _loggedInUserIsAdmin = false;
+  QueryDocumentSnapshot<Object?>? _loggedInPlayerDoc;
   @override
   Widget build(BuildContext context) {
     playerHomeInstance = this;
+    _loggedInUserIsAdmin = loggedInUserIsSuper;
+    if (activeLadderDoc!.get('Admins').split(',').contains(loggedInUser)) {
+      _loggedInUserIsAdmin = true;
+    }
     return StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Players').orderBy('Rank').snapshots(),
         builder: (BuildContext context, AsyncSnapshot<QuerySnapshot<Object?>> playerSnapshots) {
@@ -271,6 +539,13 @@ class _PlayerHomeState extends State<PlayerHome> {
           }
           _players = playerSnapshots.data!.docs;
 
+          _loggedInPlayerDoc = null;
+          for (var player in _players!) {
+            if (player.id == loggedInUser) {
+              _loggedInPlayerDoc = player;
+            }
+          }
+
           // if (_clickedOnRank>=0) {
           //   print('StreamBuilder: Rank:$_clickedOnRank WillPlayInput:${_players![_clickedOnRank].get('WillPlayInput')}');
           // }
@@ -278,11 +553,11 @@ class _PlayerHomeState extends State<PlayerHome> {
             backgroundColor: activeLadderBackgroundColor.withOpacity(0.1), //Colors.green[50],
             appBar: AppBar(
               title: Text('Ladder: ${activeLadderDoc!.get('DisplayName')}'),
-              backgroundColor: activeLadderBackgroundColor.withOpacity(0.7),//Colors.green[400],
+              backgroundColor: activeLadderBackgroundColor.withOpacity(0.7), //Colors.green[400],
               elevation: 0.0,
               // automaticallyImplyLeading: false,
               actions: [
-                if (loggedInUserIsSuper)
+                if (_loggedInUserIsAdmin)
                   Padding(
                     padding: const EdgeInsets.all(0.0),
                     child: IconButton(
@@ -291,7 +566,6 @@ class _PlayerHomeState extends State<PlayerHome> {
                       icon: const Icon(Icons.supervisor_account),
                       onPressed: () {
                         Navigator.push(context, MaterialPageRoute(builder: (context) => const ConfigPage()));
-                        print('Back from onPressed ConfigPage');
                       },
                       enableFeedback: true,
                       color: Colors.redAccent,
@@ -303,9 +577,17 @@ class _PlayerHomeState extends State<PlayerHome> {
               scrollDirection: Axis.vertical,
               child: Column(
                 children: [
-                  (urlCache.containsKey(activeLadderId) && (urlCache[activeLadderId]!=null))?
-                  CachedNetworkImage(imageUrl: urlCache[activeLadderId] ,
-                    height: 100,): const SizedBox(height:100),
+                  (urlCache.containsKey(activeLadderId) && (urlCache[activeLadderId] != null) && enableImages)
+                      ? Image.network(
+                          urlCache[activeLadderId],
+                          height: 100,
+                        )
+                      : const SizedBox(
+                          height: 100,
+                        ),
+                  // (urlCache.containsKey(activeLadderId) && (urlCache[activeLadderId]!=null))?
+                  // CachedNetworkImage(imageUrl: urlCache[activeLadderId] ,
+                  //   height: 100,): const SizedBox(height:100),
                   ListView.separated(
                     scrollDirection: Axis.vertical,
                     shrinkWrap: true,
