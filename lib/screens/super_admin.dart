@@ -107,6 +107,8 @@ class _SuperAdminState extends State<SuperAdmin> {
     FirebaseFirestore.instance.collection('Ladder').doc(newLadderName).set({
       'Admins': '',
       'CheckInStartHours': 0,
+      'DaysOfPlay': '',
+      'DaysSpecial': '',
       'Disabled': true,
       'DisplayName': newLadderName,
       'FreezeCheckIns': false,
@@ -114,12 +116,10 @@ class _SuperAdminState extends State<SuperAdmin> {
       'Longitude': 0.00,
       'Message': '',
       'MetersFromLatLong': 50.0,
-      'NextDate': DateTime.now(),
-      'PlayOn': 'mon',
       'PriorityOfCourts': '',
       'RandomCourtOf5': 0,
-      'StartTime': 6.30,
-      'VacationStopTime': 18.30,
+      'RequiredSoftwareVersion': softwareVersion,
+      'VacationStopTime': 8.00,
       'SuperDisabled': false,
       'Color':'brown',
     });

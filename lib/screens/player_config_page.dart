@@ -69,6 +69,7 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
       transaction.set(FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Players').doc(newPlayerName), {
         'Helper': false,
         'Name': 'New Player',
+        'Present': false,
         'Rank': _players.length + 1,
         'Score1': -9,
         'Score2': -9,
@@ -78,6 +79,7 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
         'ScoreLastUpdatedBy': '',
         'TimePresent': DateTime.now(),
         'WillPlayInput': 0,
+        'DaysAway':'',
       });
 
       transactionAudit(

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 
 const bool enableImages = false;
 const String fireStoreCollectionName = "social-sport-ladder";
-const int softwareVersion = 3;
+const int softwareVersion = 9;
 
 class LowerCaseTextInputFormatter extends TextInputFormatter {
   @override
@@ -18,6 +18,7 @@ class LowerCaseTextInputFormatter extends TextInputFormatter {
 const double appFontSize = 20;
 const nameStyle = TextStyle(decoration: TextDecoration.none, fontSize: appFontSize, fontWeight: FontWeight.normal);
 const nameBigStyle = TextStyle(decoration: TextDecoration.none, fontSize: appFontSize+6, fontWeight: FontWeight.normal);
+const nameBigRedStyle = TextStyle(decoration: TextDecoration.none, fontSize: appFontSize+6, fontWeight: FontWeight.normal, color:Colors.red);
 const nameStrikeThruStyle = TextStyle(decoration: TextDecoration.lineThrough, fontSize: appFontSize, fontWeight: FontWeight.normal);
 const errorNameStyle = TextStyle(
     color: Colors.red,
@@ -64,10 +65,6 @@ const textFormFieldStandardDecoration = InputDecoration(
         width: 2.0,
       )),
 );
-
-int willPlayInputChoicesAbsent = 0;
-int willPlayInputChoicesPresent = 1;
-int willPlayInputChoicesVacation = 2;
 
 const List<String> daysOfWeek = ['Mon', 'Tues', 'Wed', 'Thurs', 'Fri', 'Sat', 'Sun'];
 const List<String> trueFalse = ['True', 'False'];

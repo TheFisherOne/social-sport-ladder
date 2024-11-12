@@ -4,13 +4,13 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:social_sport_ladder/Utilities/string_validators.dart';
-import 'package:intl/intl.dart';
 import 'package:social_sport_ladder/screens/player_config_page.dart';
 import 'package:social_sport_ladder/screens/player_home.dart';
 import '../Utilities/rounded_text_form.dart';
 import '../constants/constants.dart';
 import '../main.dart';
 import 'audit_page.dart';
+import 'calendar_page.dart';
 import 'ladder_selection_page.dart';
 import 'package:image/image.dart' as img;
 
@@ -56,7 +56,7 @@ uploadPicture(XFile file) async {
   }
   print('Done saving file');
   // urlCache.remove(activeLadderId);
-  if (await getLadderImage(activeLadderId,overrideCache: true)) {
+  if (await getLadderImage(activeLadderId, overrideCache: true)) {
     print('loaded new image for $activeLadderId');
     playerHomeInstance.refresh();
     ladderConfigInstance.refresh();
@@ -64,16 +64,6 @@ uploadPicture(XFile file) async {
   }
 }
 
-void updateNextDate(int incr) {
-  DateTime start = activeLadderDoc!.get('NextDate').toDate();
-  DateTime newDate = start.add(Duration(days: incr));
-  // print('updateNextDate: after  $start $newDate');
-  FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
-    'NextDate': newDate,
-  });
-}
-
-//formatter:on
 class ConfigPage extends StatefulWidget {
   const ConfigPage({super.key});
 
@@ -85,7 +75,7 @@ class _ConfigPageState extends State<ConfigPage> {
   static final List<String> _attrName = [
     'DisplayName',
     'Message',
-    'StartTime',
+    'DaysOfPlay',
     'VacationStopTime',
     'CheckInStartHours',
     'Latitude',
@@ -140,43 +130,10 @@ class _ConfigPageState extends State<ConfigPage> {
   //   return;
   // }
 
-  Widget dateAdjustButton(int incr) {
-    String display = '$incr';
-    if (incr > 0) {
-      display = '+$incr';
-    }
-    return Expanded(
-      child: Padding(
-        padding: const EdgeInsets.only(left: 7, right: 7),
-        child: OutlinedButton(
-            child: Text(
-              display,
-              style: nameStyle,
-              textAlign: TextAlign.center,
-            ),
-            onPressed: () {
-              updateNextDate(incr);
-            }),
-      ),
-    );
-  }
-
-  Widget dateAdjustRow() {
-    return Row(
-      children: [
-        dateAdjustButton(-7),
-        dateAdjustButton(-1),
-        dateAdjustButton(1),
-        dateAdjustButton(7),
-      ],
-    );
-  }
-
   refresh() => setState(() {});
 
   @override
   Widget build(BuildContext context) {
-
     return StreamBuilder<DocumentSnapshot>(
         stream: FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).snapshots(),
         builder: (BuildContext context, AsyncSnapshot<DocumentSnapshot<Object?>> snapshot) {
@@ -201,12 +158,9 @@ class _ConfigPageState extends State<ConfigPage> {
           }
 
           // print('config_page: StreamBuilder: rebuild required $_rebuildRequired');
+          // print('StreamBuilder config page: activeLadderId: $activeLadderId id: ${snapshot.data!.id}');
           activeLadderDoc = snapshot.data;
           RoundedTextForm.initialize(_attrName, activeLadderDoc);
-
-          DateTime nextDate = activeLadderDoc!.get('NextDate').toDate();
-          DateTime now = DateTime.now();
-          int daysFromNow = (nextDate.difference(now)).inDays;
 
           bool isAdmin = activeLadderDoc!.get('Admins').split(',').contains(loggedInUser) || loggedInUserIsSuper;
 
@@ -260,21 +214,17 @@ class _ConfigPageState extends State<ConfigPage> {
                         } else {
                           print(pickedFile.path);
                           await uploadPicture(pickedFile);
-
                         }
                       },
                       child: const Text('Select new picture')),
-                  (urlCache.containsKey(activeLadderId) &&(urlCache[activeLadderId]!=null) &&enableImages) ?
-                  Image.network(urlCache[activeLadderId],
-                    height:100,):const SizedBox(height: 100,),
-                  // (urlCache.containsKey(activeLadderId) && (urlCache[activeLadderId]!=null))?
-                  // CachedNetworkImage(imageUrl: urlCache[activeLadderId] ,
-                  //   height: 100,): const SizedBox(height:100),
-                  const SizedBox(height: 8),
-                  Text(
-                    "DisplayName: ${activeLadderDoc!.get('DisplayName')}",
-                    style: nameStyle,
-                  ),
+                  (urlCache.containsKey(activeLadderId) && (urlCache[activeLadderId] != null) && enableImages)
+                      ? Image.network(
+                          urlCache[activeLadderId],
+                          height: 100,
+                        )
+                      : const SizedBox(
+                          height: 100,
+                        ),
                   const SizedBox(height: 8),
                   OutlinedButton(
                       child: const Text(
@@ -286,11 +236,28 @@ class _ConfigPageState extends State<ConfigPage> {
                         Navigator.push(context, MaterialPageRoute(builder: (context) => const PlayerConfigPage()));
                       }),
                   const SizedBox(height: 8),
-                  Text(
-                    '  NextDate: ${DateFormat("E yyyy-MM-dd").format(activeLadderDoc!.get('NextDate').toDate())} in $daysFromNow days',
-                    style: DateFormat("E").format(activeLadderDoc!.get('NextDate').toDate()).toLowerCase() == activeLadderDoc!.get('PlayOn').toLowerCase() ? nameStyle : errorNameStyle,
+                  SizedBox(
+                    width: double.infinity,
+                    child: Padding(
+                      padding: const EdgeInsets.all(12.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Text('Calendar:  ', style: nameStyle,),
+                            Transform.scale(
+                              scale: 2.5,
+                              child: IconButton(
+                                onPressed: () {
+                                  typeOfCalendarEvent = EventTypes.playOn;
+
+                                  Navigator.push(context, MaterialPageRoute(builder: (context) => const CalendarPage()));
+                                },
+                                icon: const Icon(Icons.edit_calendar, color: Colors.green),
+                              ),
+                            ),]
+                      ),
+                    ),
                   ),
-                  dateAdjustRow(),
                   const Divider(thickness: 3, color: Colors.black),
                   RoundedTextForm.build(
                     0,
@@ -304,15 +271,17 @@ class _ConfigPageState extends State<ConfigPage> {
                       }
                       return;
                     },
-                    onIconPressed: () {
+                    onIconPressed: () async {
                       // print('new value=$value');
                       const int row = 0;
                       String value = RoundedTextForm.getText(row);
                       String newValue = value.trim().replaceAll(RegExp(r' \s+'), ' ');
                       writeAudit(user: loggedInUser, documentName: 'LadderConfig', action: 'Set ${_attrName[row]}', newValue: newValue, oldValue: activeLadderDoc!.get(_attrName[row]));
-                      FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
+                      await FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
                         _attrName[row]: newValue,
                       });
+                      playerHomeInstance.refresh();
+                      // print('onIconPressed config page: activeLadderId: $activeLadderId');
                     },
                   ),
                   RoundedTextForm.build(
@@ -338,93 +307,94 @@ class _ConfigPageState extends State<ConfigPage> {
                       });
                     },
                   ),
-                  SizedBox(
-                      width: double.infinity,
-                      child: Padding(
-                          padding: const EdgeInsets.all(12.0),
-                          child: DropdownButtonFormField<String>(
-                            // onTap: RoundedTextForm.clearEditing(-1),
-                            decoration: const InputDecoration(
-                                labelText: 'PlayOn',
-                                labelStyle: nameBigStyle,
-                                helperText: 'The day of week that will be used',
-                                helperStyle: nameStyle,
-                                contentPadding: EdgeInsets.all(16),
-                                floatingLabelBehavior: FloatingLabelBehavior.auto,
-                                // constraints:  BoxConstraints(maxWidth: 150),
-                                enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.all(Radius.circular(20)),
-                                    borderSide: BorderSide(
-                                      color: Colors.grey,
-                                      width: 2.0,
-                                    ))),
-                            value: daysOfWeek.contains(activeLadderDoc!.get('PlayOn')) ? activeLadderDoc!.get('PlayOn') : daysOfWeek[0],
-                            items: daysOfWeek.map((String value) {
-                              return DropdownMenuItem<String>(
-                                value: value,
-                                child: Text(
-                                  value,
-                                  style: nameStyle,
-                                ),
-                              );
-                            }).toList(),
-                            icon: const Icon(Icons.menu),
-                            iconSize: 30,
-                            dropdownColor: Colors.brown.shade200,
-                            onChanged: (value) {
-                              // print('ladder_config_page set PlayOn to $value');
-                              if (value == null) return;
-                              writeAudit(user: loggedInUser, documentName: 'LadderConfig', action: 'Set PlayOn', newValue: value, oldValue: activeLadderDoc!.get('PlayOn'));
-                              FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
-                                'PlayOn': value,
-                              });
-                            },
-                          ))),
-                  RoundedTextForm.build(
-                    2,
-                    helperText: 'The hour ladder starts: 19.45 is 7:45pm',
-                    keyboardType: const TextInputType.numberWithOptions(signed: false),
-                    onChanged: (value) {
-                      const int row = 2;
-                      double number = 0.0;
-                      try {
-                        number = double.parse(value);
-                      } catch (e) {
-                        RoundedTextForm.setErrorText(row, 'Invalid number entered');
-                        return;
-                      }
-                      if ((number.floor() < 0) || (number.floor() > 23)) {
-                        RoundedTextForm.setErrorText(row, 'hour must be between 0 and 23');
-                        return;
-                      }
-                      double minutes = ((number - number.floor()) * 100.0).round() / 100.0;
-                      List<double> allowedMinutes = [0.00, 0.15, 0.30, 0.45];
-                      if (!allowedMinutes.contains(minutes)) {
-                        RoundedTextForm.setErrorText(row, 'Only allow minutes: $allowedMinutes');
-                      }
-                      return;
-                    },
-                    onIconPressed: () {
-                      const int row = 2;
-                      double number = 0.0;
-                      String txtValue = RoundedTextForm.getText(row);
-                      try {
-                        number = double.parse(txtValue);
-                      } catch (e) {
-                        RoundedTextForm.setErrorText(row, 'Invalid number entered');
-                        return;
-                      }
 
-                      writeAudit(
-                          user: loggedInUser, documentName: 'LadderConfig', action: 'Set ${_attrName[row]}', newValue: number.toString(), oldValue: activeLadderDoc!.get(_attrName[row]).toString());
-                      FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
-                        _attrName[row]: number,
-                      });
-                    },
-                  ),
+                  // SizedBox(
+                  //     width: double.infinity,
+                  //     child: Padding(
+                  //         padding: const EdgeInsets.all(12.0),
+                  //         child: DropdownButtonFormField<String>(
+                  //           // onTap: RoundedTextForm.clearEditing(-1),
+                  //           decoration: const InputDecoration(
+                  //               labelText: 'PlayOn',
+                  //               labelStyle: nameBigStyle,
+                  //               helperText: 'The day of week that will be used',
+                  //               helperStyle: nameStyle,
+                  //               contentPadding: EdgeInsets.all(16),
+                  //               floatingLabelBehavior: FloatingLabelBehavior.auto,
+                  //               // constraints:  BoxConstraints(maxWidth: 150),
+                  //               enabledBorder: OutlineInputBorder(
+                  //                   borderRadius: BorderRadius.all(Radius.circular(20)),
+                  //                   borderSide: BorderSide(
+                  //                     color: Colors.grey,
+                  //                     width: 2.0,
+                  //                   ))),
+                  //           value: daysOfWeek.contains(activeLadderDoc!.get('PlayOn')) ? activeLadderDoc!.get('PlayOn') : daysOfWeek[0],
+                  //           items: daysOfWeek.map((String value) {
+                  //             return DropdownMenuItem<String>(
+                  //               value: value,
+                  //               child: Text(
+                  //                 value,
+                  //                 style: nameStyle,
+                  //               ),
+                  //             );
+                  //           }).toList(),
+                  //           icon: const Icon(Icons.menu),
+                  //           iconSize: 30,
+                  //           dropdownColor: Colors.brown.shade200,
+                  //           onChanged: (value) {
+                  //             // print('ladder_config_page set PlayOn to $value');
+                  //             if (value == null) return;
+                  //             writeAudit(user: loggedInUser, documentName: 'LadderConfig', action: 'Set PlayOn', newValue: value, oldValue: activeLadderDoc!.get('PlayOn'));
+                  //             FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
+                  //               'PlayOn': value,
+                  //             });
+                  //           },
+                  //         ))),
+                  // RoundedTextForm.build(
+                  //   2,
+                  //   helperText: 'The hour ladder starts: 19.45 is 7:45pm',
+                  //   keyboardType: const TextInputType.numberWithOptions(signed: false),
+                  //   onChanged: (value) {
+                  //     const int row = 2;
+                  //     double number = 0.0;
+                  //     try {
+                  //       number = double.parse(value);
+                  //     } catch (e) {
+                  //       RoundedTextForm.setErrorText(row, 'Invalid number entered');
+                  //       return;
+                  //     }
+                  //     if ((number.floor() < 0) || (number.floor() > 23)) {
+                  //       RoundedTextForm.setErrorText(row, 'hour must be between 0 and 23');
+                  //       return;
+                  //     }
+                  //     double minutes = ((number - number.floor()) * 100.0).round() / 100.0;
+                  //     List<double> allowedMinutes = [0.00, 0.15, 0.30, 0.45];
+                  //     if (!allowedMinutes.contains(minutes)) {
+                  //       RoundedTextForm.setErrorText(row, 'Only allow minutes: $allowedMinutes');
+                  //     }
+                  //     return;
+                  //   },
+                  //   onIconPressed: () {
+                  //     const int row = 2;
+                  //     double number = 0.0;
+                  //     String txtValue = RoundedTextForm.getText(row);
+                  //     try {
+                  //       number = double.parse(txtValue);
+                  //     } catch (e) {
+                  //       RoundedTextForm.setErrorText(row, 'Invalid number entered');
+                  //       return;
+                  //     }
+                  //
+                  //     writeAudit(
+                  //         user: loggedInUser, documentName: 'LadderConfig', action: 'Set ${_attrName[row]}', newValue: number.toString(), oldValue: activeLadderDoc!.get(_attrName[row]).toString());
+                  //     FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
+                  //       _attrName[row]: number,
+                  //     });
+                  //   },
+                  // ),
                   RoundedTextForm.build(
                     3,
-                    helperText: 'Hours before StartTime for away',
+                    helperText: 'Hour of the day, player can no longer mark as away',
                     keyboardType: const TextInputType.numberWithOptions(signed: false),
                     onChanged: (value) {
                       const int row = 3;
@@ -656,7 +626,7 @@ class _ConfigPageState extends State<ConfigPage> {
                             onChanged: (value) {
                               // print('ladder_config_page set PlayOn to $value');
                               if (value == null) return;
-                              writeAudit(user: loggedInUser, documentName: 'LadderConfig', action: 'Set Color', newValue: value, oldValue: activeLadderDoc!.get('PlayOn'));
+                              writeAudit(user: loggedInUser, documentName: 'LadderConfig', action: 'Set Color', newValue: value, oldValue: activeLadderDoc!.get('Color'));
                               FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
                                 'Color': value,
                               });
