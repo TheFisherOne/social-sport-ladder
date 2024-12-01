@@ -3,16 +3,18 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:social_sport_ladder/Utilities/my_text_field.dart';
 import 'package:social_sport_ladder/Utilities/string_validators.dart';
 import 'package:social_sport_ladder/screens/player_config_page.dart';
 import 'package:social_sport_ladder/screens/player_home.dart';
-import '../Utilities/rounded_text_form.dart';
+import '../Utilities/rounded_button.dart';
 import '../constants/constants.dart';
-import '../main.dart';
 import 'audit_page.dart';
 import 'calendar_page.dart';
 import 'ladder_selection_page.dart';
 import 'package:image/image.dart' as img;
+
+import 'login_page.dart';
 
 dynamic ladderConfigInstance;
 
@@ -72,65 +74,25 @@ class ConfigPage extends StatefulWidget {
 }
 
 class _ConfigPageState extends State<ConfigPage> {
-  static final List<String> _attrName = [
-    'DisplayName',
-    'Message',
-    'DaysOfPlay',
-    'VacationStopTime',
-    'CheckInStartHours',
-    'Latitude',
-    'Longitude',
-    'MetersFromLatLong',
-    'RandomCourtOf5',
-    'Admins',
-    'PriorityOfCourts',
-  ];
 
   @override
   void initState() {
     super.initState();
-    RoundedTextForm.startFresh(this);
+    //RoundedTextField.startFresh(this);
     ladderConfigInstance = this;
-    // print('initState: getLadderImage');
-    // getLadderImage();
   }
 
-  // getLadderImage() async {
-  //   // print('start of getLadderImage $activeLadderId');
-  //
-  //   if ( urlCache.containsKey(activeLadderId)){
-  //     print('Ladder image for $activeLadderId found in cache');
-  //     return;
-  //   }
-  //
-  //   String filename = 'LadderImage/$activeLadderId.jpg';
-  //
-  //   final storage = FirebaseStorage.instance;
-  //   final ref = storage.ref(filename);
-  //
-  //   try {
-  //     final url = await ref.getDownloadURL();
-  //     print('URL: $url');
-  //     setState(() {
-  //       urlCache[activeLadderId] = url;
-  //     });
-  //
-  //     print('Image $filename downloaded successfully!');
-  //   } catch (e) {
-  //     if (e is FirebaseException) {
-  //       print('FirebaseException: ${e.code} - ${e.message}');
-  //     } else if (e is SocketException) {
-  //       print('SocketException: ${e.message}');
-  //     } else {
-  //       print('downloadLadderImage: getData exception: ${e.runtimeType} || ${e.toString()}');
-  //     }
-  //     return;
-  //   }
-  //   print('SUCCESS');
-  //   return;
-  // }
-
   refresh() => setState(() {});
+  final TextEditingController _ladderNameController = TextEditingController();
+  final TextEditingController _messageController = TextEditingController();
+  final TextEditingController _vacationController = TextEditingController();
+  final TextEditingController _checkInController = TextEditingController();
+  final TextEditingController _latitudeController = TextEditingController();
+  final TextEditingController _longitudeController = TextEditingController();
+  final TextEditingController _metersFromController = TextEditingController();
+  final TextEditingController _randomController = TextEditingController();
+  final TextEditingController _adminsController = TextEditingController();
+  final TextEditingController _courtsController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -160,7 +122,7 @@ class _ConfigPageState extends State<ConfigPage> {
           // print('config_page: StreamBuilder: rebuild required $_rebuildRequired');
           // print('StreamBuilder config page: activeLadderId: $activeLadderId id: ${snapshot.data!.id}');
           activeLadderDoc = snapshot.data;
-          RoundedTextForm.initialize(_attrName, activeLadderDoc);
+          //RoundedTextField.initialize(_attrName, activeLadderDoc);
 
           bool isAdmin = activeLadderDoc!.get('Admins').split(',').contains(loggedInUser) || loggedInUserIsSuper;
 
@@ -175,7 +137,7 @@ class _ConfigPageState extends State<ConfigPage> {
                 if (isAdmin)
                   Padding(
                     padding: const EdgeInsets.all(0.0),
-                    child: IconButton(
+                    child: IconButton.filled(
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
                       icon: const Icon(Icons.history),
@@ -184,6 +146,7 @@ class _ConfigPageState extends State<ConfigPage> {
                       },
                       enableFeedback: true,
                       color: Colors.redAccent,
+                      style: IconButton.styleFrom(backgroundColor: Colors.white),
                     ),
                   ),
               ],
@@ -226,382 +189,310 @@ class _ConfigPageState extends State<ConfigPage> {
                           height: 100,
                         ),
                   const SizedBox(height: 8),
-                  OutlinedButton(
-                      child: const Text(
-                        'Player Config',
-                        style: nameStyle,
-                        textAlign: TextAlign.center,
-                      ),
-                      onPressed: () {
-                        Navigator.push(context, MaterialPageRoute(builder: (context) => const PlayerConfigPage()));
-                      }),
+                  RoundedButton(
+                    text: 'Player Config',
+                    onTap: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const PlayerConfigPage()));
+                    },
+                  ),
+                  // OutlinedButton(
+                  //     child: const Text(
+                  //       'Player Config',
+                  //       style: nameStyle,
+                  //       textAlign: TextAlign.center,
+                  //     ),
+                  //     onPressed: () {
+                  //       Navigator.push(context, MaterialPageRoute(builder: (context) => const PlayerConfigPage()));
+                  //     }),
                   const SizedBox(height: 8),
                   SizedBox(
                     width: double.infinity,
                     child: Padding(
                       padding: const EdgeInsets.all(12.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Text('Calendar:  ', style: nameStyle,),
-                            Transform.scale(
-                              scale: 2.5,
-                              child: IconButton(
-                                onPressed: () {
-                                  typeOfCalendarEvent = EventTypes.playOn;
+                      child: IconButton(
+                        onPressed: () {
+                          typeOfCalendarEvent = EventTypes.playOn;
 
-                                  Navigator.push(context, MaterialPageRoute(builder: (context) => const CalendarPage()));
-                                },
-                                icon: const Icon(Icons.edit_calendar, color: Colors.green),
-                              ),
-                            ),]
+                          Navigator.push(context, MaterialPageRoute(builder: (context) => const CalendarPage()));
+                        },
+                        icon: const Icon(Icons.edit_calendar, color: Colors.green, size: 60),
                       ),
                     ),
                   ),
                   const Divider(thickness: 3, color: Colors.black),
-                  RoundedTextForm.build(
-                    0,
+                  MyTextField(
+                    labelText: 'Ladder Name',
                     helperText: 'Ladder Name Visible to Players',
-                    onChanged: (value) {
-                      const int row = 0;
-                      if (value.length > 20) {
-                        RoundedTextForm.setErrorText(row, 'The name must be less than 20 characters');
-                      } else if (value.length <= 3) {
-                        RoundedTextForm.setErrorText(row, 'The name must be at least 3 characters');
-                      }
-                      return;
+                    controller: _ladderNameController,
+                    entryOK: (entry) {
+                      if (entry.length < 5) return 'Name too short';
+                      if (entry.length > 20) return 'Name too long';
+                      return null;
                     },
-                    onIconPressed: () async {
-                      // print('new value=$value');
-                      const int row = 0;
-                      String value = RoundedTextForm.getText(row);
-                      String newValue = value.trim().replaceAll(RegExp(r' \s+'), ' ');
-                      writeAudit(user: loggedInUser, documentName: 'LadderConfig', action: 'Set ${_attrName[row]}', newValue: newValue, oldValue: activeLadderDoc!.get(_attrName[row]));
-                      await FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
-                        _attrName[row]: newValue,
-                      });
-                      playerHomeInstance.refresh();
-                      // print('onIconPressed config page: activeLadderId: $activeLadderId');
-                    },
-                  ),
-                  RoundedTextForm.build(
-                    1,
-                    helperText: 'Message to all players',
-                    onChanged: (value) {
-                      const int row = 1;
-                      if (value.length > 100) {
-                        RoundedTextForm.setErrorText(row, 'The name must be less than 100 characters');
-                      } else {
-                        RoundedTextForm.setErrorText(row, 'Not Saved');
-                      }
-                      return;
-                    },
-                    onIconPressed: () {
-                      // print('new value=$value');
-                      const int row = 1;
-                      String value = RoundedTextForm.getText(row);
-                      String newValue = value.trim().replaceAll(RegExp(r' \s+'), ' ');
-                      writeAudit(user: loggedInUser, documentName: 'LadderConfig', action: 'Set ${_attrName[row]}', newValue: newValue, oldValue: activeLadderDoc!.get(_attrName[row]));
-                      FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
-                        _attrName[row]: newValue,
-                      });
-                    },
-                  ),
+                    onIconClicked: (entry) {
+                      String attrName = 'DisplayName';
 
-                  // SizedBox(
-                  //     width: double.infinity,
-                  //     child: Padding(
-                  //         padding: const EdgeInsets.all(12.0),
-                  //         child: DropdownButtonFormField<String>(
-                  //           // onTap: RoundedTextForm.clearEditing(-1),
-                  //           decoration: const InputDecoration(
-                  //               labelText: 'PlayOn',
-                  //               labelStyle: nameBigStyle,
-                  //               helperText: 'The day of week that will be used',
-                  //               helperStyle: nameStyle,
-                  //               contentPadding: EdgeInsets.all(16),
-                  //               floatingLabelBehavior: FloatingLabelBehavior.auto,
-                  //               // constraints:  BoxConstraints(maxWidth: 150),
-                  //               enabledBorder: OutlineInputBorder(
-                  //                   borderRadius: BorderRadius.all(Radius.circular(20)),
-                  //                   borderSide: BorderSide(
-                  //                     color: Colors.grey,
-                  //                     width: 2.0,
-                  //                   ))),
-                  //           value: daysOfWeek.contains(activeLadderDoc!.get('PlayOn')) ? activeLadderDoc!.get('PlayOn') : daysOfWeek[0],
-                  //           items: daysOfWeek.map((String value) {
-                  //             return DropdownMenuItem<String>(
-                  //               value: value,
-                  //               child: Text(
-                  //                 value,
-                  //                 style: nameStyle,
-                  //               ),
-                  //             );
-                  //           }).toList(),
-                  //           icon: const Icon(Icons.menu),
-                  //           iconSize: 30,
-                  //           dropdownColor: Colors.brown.shade200,
-                  //           onChanged: (value) {
-                  //             // print('ladder_config_page set PlayOn to $value');
-                  //             if (value == null) return;
-                  //             writeAudit(user: loggedInUser, documentName: 'LadderConfig', action: 'Set PlayOn', newValue: value, oldValue: activeLadderDoc!.get('PlayOn'));
-                  //             FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
-                  //               'PlayOn': value,
-                  //             });
-                  //           },
-                  //         ))),
-                  // RoundedTextForm.build(
-                  //   2,
-                  //   helperText: 'The hour ladder starts: 19.45 is 7:45pm',
-                  //   keyboardType: const TextInputType.numberWithOptions(signed: false),
-                  //   onChanged: (value) {
-                  //     const int row = 2;
-                  //     double number = 0.0;
-                  //     try {
-                  //       number = double.parse(value);
-                  //     } catch (e) {
-                  //       RoundedTextForm.setErrorText(row, 'Invalid number entered');
-                  //       return;
-                  //     }
-                  //     if ((number.floor() < 0) || (number.floor() > 23)) {
-                  //       RoundedTextForm.setErrorText(row, 'hour must be between 0 and 23');
-                  //       return;
-                  //     }
-                  //     double minutes = ((number - number.floor()) * 100.0).round() / 100.0;
-                  //     List<double> allowedMinutes = [0.00, 0.15, 0.30, 0.45];
-                  //     if (!allowedMinutes.contains(minutes)) {
-                  //       RoundedTextForm.setErrorText(row, 'Only allow minutes: $allowedMinutes');
-                  //     }
-                  //     return;
-                  //   },
-                  //   onIconPressed: () {
-                  //     const int row = 2;
-                  //     double number = 0.0;
-                  //     String txtValue = RoundedTextForm.getText(row);
-                  //     try {
-                  //       number = double.parse(txtValue);
-                  //     } catch (e) {
-                  //       RoundedTextForm.setErrorText(row, 'Invalid number entered');
-                  //       return;
-                  //     }
-                  //
-                  //     writeAudit(
-                  //         user: loggedInUser, documentName: 'LadderConfig', action: 'Set ${_attrName[row]}', newValue: number.toString(), oldValue: activeLadderDoc!.get(_attrName[row]).toString());
-                  //     FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
-                  //       _attrName[row]: number,
-                  //     });
-                  //   },
-                  // ),
-                  RoundedTextForm.build(
-                    3,
-                    helperText: 'Hour of the day, player can no longer mark as away',
+                      String newValue = entry.trim().replaceAll(RegExp(r' \s+'), ' ');
+                      String oldValue = activeLadderDoc!.get(attrName);
+                      if (newValue != oldValue) {
+                        writeAudit(user: loggedInUser, documentName: 'LadderConfig', action: 'Set $attrName', newValue: newValue, oldValue: oldValue);
+                        FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
+                          attrName: newValue,
+                        });
+                      }
+                    },
+                    initialValue: activeLadderDoc!.get('DisplayName'),
+                  ),
+                  MyTextField(
+                    labelText: 'Message',
+                    helperText: 'Message to all players',
+                    controller: _messageController,
+                    entryOK: (entry) {
+                      if (entry.length > 100) return 'Message too long';
+                      return null;
+                    },
+                    onIconClicked: (entry) {
+                      String attrName = 'Message';
+
+                      String newValue = entry.trim().replaceAll(RegExp(r' \s+'), ' ');
+                      String oldValue = activeLadderDoc!.get(attrName);
+                      if (newValue != oldValue) {
+                        writeAudit(user: loggedInUser, documentName: 'LadderConfig', action: 'Set $attrName', newValue: newValue, oldValue: oldValue);
+                        FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
+                          attrName: newValue,
+                        });
+                      }
+                    },
+                    initialValue: activeLadderDoc!.get('Message'),
+                  ),
+                  MyTextField(
+                    labelText: 'Vacation Stop Time',
+                    helperText: 'Time of the day, player can no longer mark as away',
+                    controller: _vacationController,
                     keyboardType: const TextInputType.numberWithOptions(signed: false),
-                    onChanged: (value) {
-                      const int row = 3;
+                    entryOK: (entry) {
                       double number = 0.0;
                       try {
-                        number = double.parse(value);
+                        number = double.parse(entry);
                       } catch (e) {
-                        RoundedTextForm.setErrorText(row, 'Invalid number entered');
-                        return;
+                        return 'Invalid number entered';
                       }
                       if ((number.floor() < 0) || (number.floor() > 48)) {
-                        RoundedTextForm.setErrorText(row, 'hour must be between 0 and 48');
-                        return;
+                        return 'hour must be between 0 and 48';
                       }
                       double minutes = ((number - number.floor()) * 100.0).round() / 100.0;
                       List<double> allowedMinutes = [0.00, 0.15, 0.30, 0.45];
                       if (!allowedMinutes.contains(minutes)) {
-                        RoundedTextForm.setErrorText(row, 'Only allow minutes: $allowedMinutes');
+                        return 'Only allow minutes: $allowedMinutes';
                       }
-                      return;
+                      return null;
                     },
-                    onIconPressed: () {
-                      const int row = 3;
-                      double number = 0.0;
-                      String txtValue = RoundedTextForm.getText(row);
-                      try {
-                        number = double.parse(txtValue);
-                      } catch (e) {
-                        RoundedTextForm.setErrorText(row, 'Invalid number entered');
-                        return;
-                      }
+                    onIconClicked: (entry) {
+                      String attrName = 'VacationStopTime';
 
-                      writeAudit(
-                          user: loggedInUser, documentName: 'LadderConfig', action: 'Set ${_attrName[row]}', newValue: number.toString(), oldValue: activeLadderDoc!.get(_attrName[row]).toString());
-                      FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
-                        _attrName[row]: number,
-                      });
+                      String newValueStr = entry.trim().replaceAll(RegExp(r' \s+'), ' ');
+                      String oldValue = activeLadderDoc!.get(attrName).toString();
+                      if (newValueStr != oldValue) {
+                        writeAudit(user: loggedInUser, documentName: 'LadderConfig', action: 'Set $attrName', newValue: newValueStr, oldValue: oldValue);
+                        double number = 0.0;
+                        try {
+                          number = double.parse(entry);
+                        } catch (_) {}
+                        FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
+                          attrName: number,
+                        });
+                      }
                     },
+                    initialValue: activeLadderDoc!.get('VacationStopTime').toString(),
                   ),
-                  RoundedTextForm.build(
-                    4,
+                  MyTextField(
+                    labelText: 'Check in Start Hours Ahead',
                     helperText: 'Hours before StartTime for checkin',
+                    controller: _checkInController,
                     keyboardType: const TextInputType.numberWithOptions(signed: false),
-                    onChanged: (value) {
-                      const int row = 4;
+                    entryOK: (entry) {
                       double number = 0.0;
                       try {
-                        number = double.parse(value);
+                        number = double.parse(entry);
                       } catch (e) {
-                        RoundedTextForm.setErrorText(row, 'Invalid number entered');
-                        return;
+                        return 'Invalid number entered';
                       }
                       if ((number.floor() < 0) || (number.floor() > 23)) {
-                        RoundedTextForm.setErrorText(row, 'hour must be between 0 and 23');
-                        return;
+                        return 'hour must be between 0 and 23';
                       }
                       double minutes = ((number - number.floor()) * 100.0).round() / 100.0;
                       List<double> allowedMinutes = [0.00, 0.15, 0.30, 0.45];
                       if (!allowedMinutes.contains(minutes)) {
-                        RoundedTextForm.setErrorText(row, 'Only allow minutes: $allowedMinutes');
+                        return 'Only allow minutes: $allowedMinutes';
                       }
-                      return;
+                      return null;
                     },
-                    onIconPressed: () {
-                      const int row = 4;
-                      double number = 0.0;
-                      String txtValue = RoundedTextForm.getText(row);
-                      try {
-                        number = double.parse(txtValue);
-                      } catch (e) {
-                        RoundedTextForm.setErrorText(row, 'Invalid number entered');
-                        return;
-                      }
+                    onIconClicked: (entry) {
+                      String attrName = 'CheckInStartHours';
 
-                      writeAudit(
-                          user: loggedInUser, documentName: 'LadderConfig', action: 'Set ${_attrName[row]}', newValue: number.toString(), oldValue: activeLadderDoc!.get(_attrName[row]).toString());
-                      FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
-                        _attrName[row]: number,
-                      });
+                      String newValueStr = entry.trim().replaceAll(RegExp(r' \s+'), ' ');
+                      String oldValue = activeLadderDoc!.get(attrName).toString();
+                      if (newValueStr != oldValue) {
+                        writeAudit(user: loggedInUser, documentName: 'LadderConfig', action: 'Set $attrName', newValue: newValueStr, oldValue: oldValue);
+                        double number = 0.0;
+                        try {
+                          number = double.parse(entry);
+                        } catch (_) {}
+                        FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
+                          attrName: number,
+                        });
+                      }
                     },
+                    initialValue: activeLadderDoc!.get('CheckInStartHours').toString(),
                   ),
-                  RoundedTextForm.build(
-                    5,
-                    helperText: 'Latitude of Courts',
+                  MyTextField(
+                    labelText: 'Latitude of Courts',
+                    helperText: 'For checkin, what is the latitude of the courts',
+                    controller: _latitudeController,
                     keyboardType: const TextInputType.numberWithOptions(signed: true),
-                    onChanged: (value) {
-                      const int row = 5;
+                    entryOK: (entry) {
                       double number = 0.0;
                       try {
-                        number = double.parse(value);
+                        number = double.parse(entry);
                       } catch (e) {
-                        RoundedTextForm.setErrorText(row, 'Invalid number entered');
-                        return;
+                        return 'Invalid number entered';
                       }
-                      if ((number < -90) || (number > 90)) {
-                        RoundedTextForm.setErrorText(row, 'hour must be between -90 and 90');
-                        return;
-                      }
-
-                      return;
+                      if ((number < -90.0) || (number > 90.0)) return 'Must be between -90 and +90';
+                      return null;
                     },
-                    onIconPressed: () {
-                      const int row = 5;
-                      double number = 0.0;
-                      String txtValue = RoundedTextForm.getText(row);
-                      try {
-                        number = double.parse(txtValue);
-                      } catch (e) {
-                        RoundedTextForm.setErrorText(row, 'Invalid number entered');
-                        return;
-                      }
+                    onIconClicked: (entry) {
+                      String attrName = 'Latitude';
 
-                      writeAudit(
-                          user: loggedInUser, documentName: 'LadderConfig', action: 'Set ${_attrName[row]}', newValue: number.toString(), oldValue: activeLadderDoc!.get(_attrName[row]).toString());
-                      FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
-                        _attrName[row]: number,
-                      });
+                      String newValueStr = entry.trim().replaceAll(RegExp(r' \s+'), ' ');
+                      String oldValue = activeLadderDoc!.get(attrName).toString();
+                      if (newValueStr != oldValue) {
+                        writeAudit(user: loggedInUser, documentName: 'LadderConfig', action: 'Set $attrName', newValue: newValueStr, oldValue: oldValue);
+                        double number = 0.0;
+                        try {
+                          number = double.parse(entry);
+                        } catch (_) {}
+                        FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
+                          attrName: number,
+                        });
+                      }
                     },
+                    initialValue: activeLadderDoc!.get('Latitude').toString(),
                   ),
-                  RoundedTextForm.build(
-                    6,
-                    helperText: 'Longitude of Courts',
+                  MyTextField(
+                    labelText: 'Longitude of Courts',
+                    helperText: 'For checkin, what is the longitude of the courts',
+                    controller: _longitudeController,
                     keyboardType: const TextInputType.numberWithOptions(signed: true),
-                    onChanged: (value) {
-                      const int row = 6;
+                    entryOK: (entry) {
                       double number = 0.0;
                       try {
-                        number = double.parse(value);
+                        number = double.parse(entry);
                       } catch (e) {
-                        RoundedTextForm.setErrorText(row, 'Invalid number entered');
-                        return;
+                        return 'Invalid number entered';
                       }
-                      if ((number < -180) || (number > 180)) {
-                        RoundedTextForm.setErrorText(row, 'hour must be between -180 and 180');
-                        return;
-                      }
-
-                      return;
+                      if ((number < -180.0) || (number > 180.0)) return 'Must be between -180 and +180';
+                      return null;
                     },
-                    onIconPressed: () {
-                      const int row = 6;
-                      double number = 0.0;
-                      String txtValue = RoundedTextForm.getText(row);
-                      try {
-                        number = double.parse(txtValue);
-                      } catch (e) {
-                        RoundedTextForm.setErrorText(row, 'Invalid number entered');
-                        return;
-                      }
+                    onIconClicked: (entry) {
+                      String attrName = 'Longitude';
 
-                      writeAudit(
-                          user: loggedInUser, documentName: 'LadderConfig', action: 'Set ${_attrName[row]}', newValue: number.toString(), oldValue: activeLadderDoc!.get(_attrName[row]).toString());
-                      FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
-                        _attrName[row]: number,
-                      });
+                      String newValueStr = entry.trim().replaceAll(RegExp(r' \s+'), ' ');
+                      String oldValue = activeLadderDoc!.get(attrName).toString();
+                      if (newValueStr != oldValue) {
+                        writeAudit(user: loggedInUser, documentName: 'LadderConfig', action: 'Set $attrName', newValue: newValueStr, oldValue: oldValue);
+                        double number = 0.0;
+                        try {
+                          number = double.parse(entry);
+                        } catch (_) {}
+                        FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
+                          attrName: number,
+                        });
+                      }
                     },
+                    initialValue: activeLadderDoc!.get('Longitude').toString(),
                   ),
-                  RoundedTextForm.build(
-                    7,
+                  MyTextField(
+                    labelText: 'Meters From Court to Check In',
                     helperText: 'Distance in m you need to mark present',
+                    controller: _metersFromController,
                     keyboardType: const TextInputType.numberWithOptions(signed: false),
-                    onChanged: (value) {
-                      const int row = 7;
+                    entryOK: (entry) {
                       double number = 0.0;
                       try {
-                        number = double.parse(value);
+                        number = double.parse(entry);
                       } catch (e) {
-                        RoundedTextForm.setErrorText(row, 'Invalid number entered');
-                        return;
+                        return 'Invalid number entered';
                       }
-                      if ((number < 0) || (number > 5000)) {
-                        RoundedTextForm.setErrorText(row, 'hour must be between 0 and 5000');
-                        return;
-                      }
-
-                      return;
+                      if ((number < 0.0) || (number > 5000.0)) return 'Must be between 0 and 5000';
+                      return null;
                     },
-                    onIconPressed: () {
-                      const int row = 7;
-                      double number = 0.0;
-                      String txtValue = RoundedTextForm.getText(row);
-                      try {
-                        number = double.parse(txtValue);
-                      } catch (e) {
-                        RoundedTextForm.setErrorText(row, 'Invalid number entered');
-                        return;
-                      }
+                    onIconClicked: (entry) {
+                      String attrName = 'MetersFromLatLong';
 
-                      writeAudit(
-                          user: loggedInUser, documentName: 'LadderConfig', action: 'Set ${_attrName[row]}', newValue: number.toString(), oldValue: activeLadderDoc!.get(_attrName[row]).toString());
-                      FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
-                        _attrName[row]: number,
-                      });
+                      String newValueStr = entry.trim().replaceAll(RegExp(r' \s+'), ' ');
+                      String oldValue = activeLadderDoc!.get(attrName).toString();
+                      if (newValueStr != oldValue) {
+                        writeAudit(user: loggedInUser, documentName: 'LadderConfig', action: 'Set $attrName', newValue: newValueStr, oldValue: oldValue);
+                        double number = 0.0;
+                        try {
+                          number = double.parse(entry);
+                        } catch (_) {}
+                        FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
+                          attrName: number,
+                        });
+                      }
                     },
+                    initialValue: activeLadderDoc!.get('MetersFromLatLong').toString(),
                   ),
+
+                  MyTextField(
+                    labelText: 'Random Seed',
+                    helperText: 'Random Seed used to calculate courts of 5',
+                    controller: _randomController,
+                    keyboardType: const TextInputType.numberWithOptions(signed: false, decimal: false),
+                    entryOK: (entry) {
+                      double number = 0.0;
+                      try {
+                        number = double.parse(entry);
+                      } catch (e) {
+                        return 'Invalid number entered';
+                      }
+                      if ((number < 0.0) || (number > 2000.0)) return 'Must be between 0 and 2000';
+                      return null;
+                    },
+                    onIconClicked: (entry) {
+                      String attrName = 'RandomCourtOf5';
+
+                      String newValueStr = entry.trim().replaceAll(RegExp(r' \s+'), ' ');
+                      String oldValue = activeLadderDoc!.get(attrName).toString();
+                      if (newValueStr != oldValue) {
+                        writeAudit(user: loggedInUser, documentName: 'LadderConfig', action: 'Set $attrName', newValue: newValueStr, oldValue: oldValue);
+                        double number = 0.0;
+                        try {
+                          number = double.parse(entry);
+                        } catch (_) {}
+                        FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
+                          attrName: number,
+                        });
+                      }
+                    },
+                    initialValue: activeLadderDoc!.get('RandomCourtOf5').toString(),
+                  ),
+
                   SizedBox(
                       width: double.infinity,
                       child: Padding(
                           padding: const EdgeInsets.all(12.0),
                           child: DropdownButtonFormField<String>(
                             // onTap: RoundedTextForm.clearEditing(-1),
-                            decoration: const InputDecoration(
+                            decoration: InputDecoration(
                                 labelText: 'DisplayColor',
                                 labelStyle: nameBigStyle,
                                 helperText: 'The color used to display this ladder',
                                 helperStyle: nameStyle,
                                 contentPadding: EdgeInsets.all(16),
+                                fillColor: tertiaryColor,
+                                filled: true,
                                 floatingLabelBehavior: FloatingLabelBehavior.auto,
                                 // constraints:  BoxConstraints(maxWidth: 150),
                                 enabledBorder: OutlineInputBorder(
@@ -622,7 +513,8 @@ class _ConfigPageState extends State<ConfigPage> {
                             }).toList(),
                             icon: const Icon(Icons.menu),
                             iconSize: 30,
-                            dropdownColor: Colors.brown.shade200,
+                            dropdownColor: tertiaryColor,
+
                             onChanged: (value) {
                               // print('ladder_config_page set PlayOn to $value');
                               if (value == null) return;
@@ -632,71 +524,34 @@ class _ConfigPageState extends State<ConfigPage> {
                               });
                             },
                           ))),
-                  RoundedTextForm.build(
-                    8,
-                    helperText: 'Random integer to pick first court of 5',
-                    keyboardType: const TextInputType.numberWithOptions(signed: false),
-                    onChanged: (value) {
-                      const int row = 8;
-                      double number = 0.0;
-                      try {
-                        number = double.parse(value);
-                      } catch (e) {
-                        RoundedTextForm.setErrorText(row, 'Invalid number entered');
-                        return;
-                      }
-                      if ((number < 0) || (number > 1000)) {
-                        RoundedTextForm.setErrorText(row, 'hour must be between 0 and 1000');
-                        return;
-                      }
-
-                      return;
-                    },
-                    onIconPressed: () {
-                      const int row = 8;
-                      double number = 0.0;
-                      String txtValue = RoundedTextForm.getText(row);
-                      try {
-                        number = double.parse(txtValue);
-                      } catch (e) {
-                        RoundedTextForm.setErrorText(row, 'Invalid number entered');
-                        return;
-                      }
-
-                      writeAudit(
-                          user: loggedInUser, documentName: 'LadderConfig', action: 'Set ${_attrName[row]}', newValue: number.toString(), oldValue: activeLadderDoc!.get(_attrName[row]).toString());
-                      FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
-                        _attrName[row]: number,
-                      });
-                    },
-                  ),
-                  RoundedTextForm.build(
-                    9,
+                  MyTextField(
+                    labelText: 'Admins',
                     helperText: 'List of emails separated by commas',
-                    // keyboardType: const TextInputType.numberWithOptions(signed: false),
-                    onChanged: (value) {
-                      const int row = 9;
+                    controller: _adminsController,
+                    entryOK: (entry) {
+                      //print('admins entryOK: "$entry",${entry.length}');
+                      if (entry.length > 400) return 'List too long';
 
-                      List<String> adminList = RoundedTextForm.getText(row).split(',');
-                      if (adminList.isEmpty) {
-                        RoundedTextForm.setErrorText(row, 'you need at least 1 admin');
-                        return;
+                      List<String> adminList = entry.split(',');
+                      if (entry.isEmpty) {
+                        return 'you need at least 1 admin';
                       }
                       int cnt = 0;
                       for (String email in adminList) {
                         cnt++;
                         if (!email.isValidEmail()) {
-                          RoundedTextForm.setErrorText(row, 'Entry:$cnt="$email" is not a valid email address');
-                          return;
+                          return 'Entry:$cnt="$email" is not a valid email address';
                         }
                       }
-                      return;
+                      return null;
                     },
-                    onIconPressed: () {
-                      const int row = 9;
-                      List<String> oldAdmins = activeLadderDoc!.get('Admins').split(',');
-                      String newAdmins = RoundedTextForm.getText(row);
-                      // print('oldAdmins at start = $oldAdmins => $newAdmins');
+                    onIconClicked: (entry) {
+                      String attrName = 'Admins';
+
+                      String newValue = entry.trim().replaceAll(RegExp(r' \s+'), ' ');
+                      String oldValue = activeLadderDoc!.get(attrName);
+
+                      List<String> oldAdmins = oldValue.split(',');
 
                       FirebaseFirestore.instance.runTransaction((transaction) async {
                         // first the ladder document, which contains the Admins list
@@ -730,10 +585,10 @@ class _ConfigPageState extends State<ConfigPage> {
                         // it is required to do all of the reads before any writes in a transaction
                         // print('updating ladder $activeLadderId with Admins : "$newAdmins"');
                         transaction.update(ladderRef, {
-                          'Admins': newAdmins,
+                          'Admins': newValue,
                         });
 
-                        List<String> adminList = newAdmins.split(',');
+                        List<String> adminList = newValue.split(',');
                         // print('new admins list is $adminList');
                         for (String email in adminList) {
                           try {
@@ -789,64 +644,196 @@ class _ConfigPageState extends State<ConfigPage> {
                               'Ladders': newLadders,
                             });
                             transactionAudit(
-                                transaction: transaction,
-                                user: loggedInUser,
-                                documentName: 'LadderConfig',
-                                action: 'Change Admins',
-                                newValue: newAdmins,
-                                oldValue: activeLadderDoc!.get(_attrName[row]));
+                                transaction: transaction, user: loggedInUser, documentName: 'LadderConfig', action: 'Change Admins', newValue: newValue, oldValue: activeLadderDoc!.get('Admins'));
                           } catch (_) {}
                         }
                       });
-
-                      writeAudit(user: loggedInUser, documentName: 'LadderConfig', action: 'Set ${_attrName[row]}', newValue: newAdmins, oldValue: activeLadderDoc!.get(_attrName[row]).toString());
-                      FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
-                        _attrName[row]: newAdmins,
-                      });
                     },
+                    initialValue: activeLadderDoc!.get('Admins'),
                   ),
-                  RoundedTextForm.build(
-                    10,
-                    helperText: 'List of short court names, by commas',
-                    onChanged: (value) {
-                      const int row = 10;
-                      List<String> courtList = value.split(',');
+                  // RoundedTextField.build(
+                  //   9,context,
+                  //   helperText: 'List of emails separated by commas',
+                  //   // keyboardType: const TextInputType.numberWithOptions(signed: false),
+                  //   onChanged: (value) {
+                  //     const int row = 9;
+                  //
+                  //     List<String> adminList = RoundedTextField.getText(row).split(',');
+                  //     if (adminList.isEmpty) {
+                  //       RoundedTextField.setErrorText(row, 'you need at least 1 admin');
+                  //       return;
+                  //     }
+                  //     int cnt = 0;
+                  //     for (String email in adminList) {
+                  //       cnt++;
+                  //       if (!email.isValidEmail()) {
+                  //         RoundedTextField.setErrorText(row, 'Entry:$cnt="$email" is not a valid email address');
+                  //         return;
+                  //       }
+                  //     }
+                  //     return;
+                  //   },
+                  //   onIconPressed: () {
+                  //     const int row = 9;
+                  //     List<String> oldAdmins = activeLadderDoc!.get('Admins').split(',');
+                  //     String newAdmins = RoundedTextField.getText(row);
+                  //     // print('oldAdmins at start = $oldAdmins => $newAdmins');
+                  //
+                  //     FirebaseFirestore.instance.runTransaction((transaction) async {
+                  //       // first the ladder document, which contains the Admins list
+                  //       DocumentReference ladderRef = FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId);
+                  //
+                  //       // second all of the globalUsers
+                  //       CollectionReference globalUserCollectionRef = FirebaseFirestore.instance.collection('Users');
+                  //       QuerySnapshot snapshot = await globalUserCollectionRef.get();
+                  //       var globalUserNames = snapshot.docs.map((doc) => doc.id);
+                  //       // print('List of all globalUsers  : $globalUserNames');
+                  //
+                  //       var globalUserRefMap = {};
+                  //       for (String userId in globalUserNames) {
+                  //         globalUserRefMap[userId] = FirebaseFirestore.instance.collection('Users').doc(userId);
+                  //       }
+                  //
+                  //       var globalUserDocMap = {};
+                  //       // var ladderDoc = await ladderRef.get();
+                  //       for (String userId in globalUserNames) {
+                  //         globalUserDocMap[userId] = await globalUserRefMap[userId].get();
+                  //       }
+                  //
+                  //       //third the list of all of the Players
+                  //       CollectionReference playersRef = FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Players');
+                  //       QuerySnapshot snapshotPlayers = await playersRef.get();
+                  //       var playerNames = snapshotPlayers.docs.map((doc) => doc.id);
+                  //       // print('List of all Players in ladder $activeLadderId : $playerNames');
+                  //
+                  //       // at this point we have done a get on all of the documents that we need
+                  //       // ladderRef, and globalUserDocMap
+                  //       // it is required to do all of the reads before any writes in a transaction
+                  //       // print('updating ladder $activeLadderId with Admins : "$newAdmins"');
+                  //       transaction.update(ladderRef, {
+                  //         'Admins': newAdmins,
+                  //       });
+                  //
+                  //       List<String> adminList = newAdmins.split(',');
+                  //       // print('new admins list is $adminList');
+                  //       for (String email in adminList) {
+                  //         try {
+                  //           String ladders = globalUserDocMap[email].get('Ladders');
+                  //           List<String> ladderList = ladders.split(',');
+                  //           bool found = false;
+                  //           for (var lad in ladderList) {
+                  //             if (lad == activeLadderId) found = true;
+                  //           }
+                  //           if (!found) {
+                  //             if (ladders.isEmpty) {
+                  //               transaction.update(globalUserRefMap[email], {
+                  //                 'Ladders': activeLadderId,
+                  //               });
+                  //             } else {
+                  //               transaction.update(globalUserRefMap[email], {
+                  //                 'Ladders': '$ladders,$activeLadderId',
+                  //               });
+                  //             }
+                  //           }
+                  //           // print('removing $email from $oldAdmins');
+                  //           oldAdmins.remove(email);
+                  //         } catch (e) {
+                  //           // the global user does not exist
+                  //           // print('creating globalUser $email with Ladders $activeLadderId');
+                  //           var newDocRef = FirebaseFirestore.instance.collection('Users').doc(email);
+                  //           transaction.set(newDocRef, {
+                  //             'Ladders': activeLadderId,
+                  //           });
+                  //         }
+                  //       }
+                  //       // print('oldAdmins is now = $oldAdmins');
+                  //       for (String email in oldAdmins) {
+                  //         // print('setAdmins remove from ladder $activeLadderId from global users $email');
+                  //         // need to find out if the removed admin is also a player, if so then do not remove from Ladders
+                  //         if (playerNames.contains(email)) continue;
+                  //
+                  //         try {
+                  //           String ladders = globalUserDocMap[email].get('Ladders');
+                  //           // print('setAdmins: got $ladders from $email');
+                  //           List<String> ladderList = ladders.split(',');
+                  //           String newLadders = '';
+                  //           for (var lad in ladderList) {
+                  //             if (lad == activeLadderId) continue;
+                  //             if (newLadders.isEmpty) {
+                  //               newLadders = lad;
+                  //             } else {
+                  //               newLadders = '$newLadders,$lad';
+                  //             }
+                  //           }
+                  //           // print('setAdmins: writing $newLadders to global user $email');
+                  //           transaction.update(globalUserRefMap[email], {
+                  //             'Ladders': newLadders,
+                  //           });
+                  //           transactionAudit(
+                  //               transaction: transaction,
+                  //               user: loggedInUser,
+                  //               documentName: 'LadderConfig',
+                  //               action: 'Change Admins',
+                  //               newValue: newAdmins,
+                  //               oldValue: activeLadderDoc!.get(_attrName[row]));
+                  //         } catch (_) {}
+                  //       }
+                  //     });
+                  //
+                  //     writeAudit(user: loggedInUser, documentName: 'LadderConfig', action: 'Set ${_attrName[row]}', newValue: newAdmins, oldValue: activeLadderDoc!.get(_attrName[row]).toString());
+                  //     FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
+                  //       _attrName[row]: newAdmins,
+                  //     });
+                  //   },
+                  // ),
+                  MyTextField(
+                    labelText: 'PriorityOfCourts',
+                    helperText: 'List of short court names using "|"',
+                    controller: _courtsController,
+                    entryOK: (entry) {
+                      if (entry.length > 100) return 'Message too long';
+                      List<String> courtList = entry.split('|');
                       // print('validatePriorityOfCourts: $value  $courtList');
                       int cnt = 0;
                       for (String court in courtList) {
                         cnt++;
                         if (court.isEmpty) {
-                          RoundedTextForm.setErrorText(row, 'you can not have an empty court name [$cnt]');
-                          return;
+                          return 'you can not have an empty court name [$cnt]';
                         }
-                        if (court.length > 3) {
-                          RoundedTextForm.setErrorText(row, 'name "$court" is more than 3 chars [$cnt]');
-                          return;
+                        if (court.length > 6) {
+                          return 'name "$court" is more than 6 chars [$cnt]';
                         }
                       }
+                      return null;
                     },
-                    onIconPressed: () {
-                      // print('new value=$value');
-                      const int row = 10;
-                      String value = RoundedTextForm.getText(row);
-                      String newValue = value.trim().replaceAll(RegExp(r' \s+'), ' ');
-                      writeAudit(user: loggedInUser, documentName: 'LadderConfig', action: 'Set ${_attrName[row]}', newValue: newValue, oldValue: activeLadderDoc!.get(_attrName[row]));
-                      FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
-                        _attrName[row]: newValue,
-                      });
+                    onIconClicked: (entry) {
+                      String attrName = 'PriorityOfCourts';
+
+                      String newValue = entry.trim().replaceAll(RegExp(r' \s+'), ' ');
+                      String oldValue = activeLadderDoc!.get(attrName);
+                      if (newValue != oldValue) {
+                        writeAudit(user: loggedInUser, documentName: 'LadderConfig', action: 'Set $attrName', newValue: newValue, oldValue: oldValue);
+                        FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
+                          attrName: newValue,
+                        });
+                      }
                     },
+                    initialValue: activeLadderDoc!.get('PriorityOfCourts'),
                   ),
+
                   SizedBox(
                       width: double.infinity,
                       child: Padding(
                           padding: const EdgeInsets.all(12.0),
                           child: DropdownButtonFormField<String>(
                             // onTap: RoundedTextForm.clearEditing(-1),
-                            decoration: const InputDecoration(
+                            decoration: InputDecoration(
                                 labelText: 'Disabled',
                                 labelStyle: nameBigStyle,
                                 helperText: 'Is the ladder closed for play',
                                 helperStyle: nameStyle,
+                                fillColor: tertiaryColor,
+                                filled: true,
                                 contentPadding: EdgeInsets.all(16),
                                 floatingLabelBehavior: FloatingLabelBehavior.auto,
                                 // constraints:  BoxConstraints(maxWidth: 150),
@@ -868,7 +855,7 @@ class _ConfigPageState extends State<ConfigPage> {
                             }).toList(),
                             icon: const Icon(Icons.menu),
                             iconSize: 30,
-                            dropdownColor: Colors.brown.shade200,
+                            dropdownColor: tertiaryColor,
                             onChanged: (value) {
                               // print('ladder_config_page set Disabled to $value');
                               if (value == null) return;

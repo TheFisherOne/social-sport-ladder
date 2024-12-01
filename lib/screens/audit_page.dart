@@ -6,9 +6,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:social_sport_ladder/constants/constants.dart';
-import 'package:social_sport_ladder/main.dart';
 import 'package:social_sport_ladder/screens/ladder_config_page.dart';
 import 'package:social_sport_ladder/screens/ladder_selection_page.dart';
+
+import 'login_page.dart';
 
 
 transactionAudit( { required Transaction transaction, required String user, required String documentName,
@@ -27,7 +28,7 @@ transactionAudit( { required Transaction transaction, required String user, requ
 writeAudit({required String user, required String documentName,
    required String action, required String newValue, String? oldValue }){
   // DateFormat format = DateFormat('yyyy.MM.dd_hh:mm:ss', );
-  String auditTime = DateTime.now().toString();
+  String auditTime = DateFormat('yyyy.MM.dd_hh:mm:ss').format(DateTime.now());
   var newContents = {
     'User': user,
     'Document': documentName,

@@ -8,17 +8,19 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:social_sport_ladder/constants/constants.dart';
-import 'package:social_sport_ladder/main.dart';
 import 'package:social_sport_ladder/screens/ladder_config_page.dart';
 import 'package:social_sport_ladder/screens/player_home.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 import 'audit_page.dart';
 import 'ladder_selection_page.dart';
+import 'login_page.dart';
 
-DateTime? getNextPlayDateTime(DocumentSnapshot<Object?> ladderDoc){
+dynamic currentCalendarPage;
+
+(DateTime?,String) getNextPlayDateTime(DocumentSnapshot<Object?> ladderDoc){
   List<String> daysOfPlayOrig = ladderDoc.get('DaysOfPlay').split('|');
-  if ((daysOfPlayOrig.length == 1) && (daysOfPlayOrig[0].isEmpty)) return null;
+  if ((daysOfPlayOrig.length == 1) && (daysOfPlayOrig[0].isEmpty)) return (null,'');
   // remove any that are too short
   List<String> daysOfPlayChecked=[];
   for (int i=0; i<daysOfPlayOrig.length; i++){
@@ -41,19 +43,20 @@ DateTime? getNextPlayDateTime(DocumentSnapshot<Object?> ladderDoc){
       continue;
     }
     if (result.compareTo(DateTime.now())<0){
-      if (kDebugMode) {
-        print('Old start date found $result at offset $i in ${ladderDoc.id} skipping');
-      }
+      // if (kDebugMode) {
+      //   print('Old start date found $result at offset $i in ${ladderDoc.id} skipping');
+      // }
       continue;
     }
     // print('getNextPlayDateTime: ${daysOfPlayChecked[i]} =>$result');
-    return result;
+    return (result, daysOfPlayChecked[i].substring(14));
   }
-  return null;
+  return (null,'');
 }
 
 bool isVacationTimeOk(DocumentSnapshot<Object?> ladderDoc){
-  DateTime? nextPlay = getNextPlayDateTime(ladderDoc);
+  DateTime? nextPlay;
+  (nextPlay,_)= getNextPlayDateTime(ladderDoc);
   if (nextPlay == null ) return false;
 
   DateTime timeNow = DateTime.now();
@@ -292,20 +295,36 @@ class CalendarPageState extends State<CalendarPage> {
     // print('_awayEvents: $m3');
 
     if (typeOfCalendarEvent == EventTypes.playOn) {
-      writeAudit(user: loggedInUser, documentName: activeLadderId, action: 'Set DaysOfPlay', newValue: m1['DaysOfPlay'].toString(),
-          oldValue: activeLadderDoc!.get('DaysOfPlay'));
-      FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update(m1);
+      String newValue = m1['DaysOfPlay'].toString();
+      String oldValue = activeLadderDoc!.get('DaysOfPlay');
+      if (newValue != oldValue) {
+        writeAudit(user: loggedInUser,
+            documentName: activeLadderId,
+            action: 'Set DaysOfPlay',
+            newValue: newValue,
+            oldValue: oldValue);
+        FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update(m1);
+      }
 
     }
     if (typeOfCalendarEvent == EventTypes.standard) {
-      writeAudit(user: loggedInUser, documentName: _playerDoc!.id, action: 'Set DaysAway', newValue: m3['DaysAway'].toString(),
-          oldValue: _playerDoc!.get('DaysAway'));
-      FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Players').doc(_playerDoc!.id).update(m3);
+      String newValue = m3['DaysAway'].toString();
+      String oldValue = _playerDoc!.get('DaysAway');
+      if (newValue != oldValue) {
+        writeAudit(user: loggedInUser,
+            documentName: _playerDoc!.id,
+            action: 'Set DaysAway',
+            newValue: newValue,
+            oldValue: oldValue);
+        FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Players').doc(_playerDoc!.id).update(m3);
+      }
     }
-
+    currentCalendarPage = null;
     super.dispose();
   }
-
+  refresh() => setState(() {
+    // print('doing calendar page refresh');
+  });
   var addedPlayEvents = {};
   var removedPlayEvents = {};
 
@@ -337,7 +356,7 @@ class CalendarPageState extends State<CalendarPage> {
                 setState(() {
                   _specialEvents.addEvent(_selectedDay!, Event(_specialTextFieldController.text));
                 });
-
+                currentCalendarPage.refresh();
                 Navigator.pop(context);
               },
             ),
@@ -353,34 +372,65 @@ class CalendarPageState extends State<CalendarPage> {
     return showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          title: const Text('HH:MM Start of play plus comment'),
-          content: TextField(
-            controller: _playTextFieldController,
-            decoration: const InputDecoration(hintText: "18:30 time plus Text that will appear on the calendar"),
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('CANCEL'),
-              onPressed: () {
-                Navigator.pop(context);
-              },
-            ),
-            TextButton(
-              child: const Text("OK"),
-              onPressed: () {
-                double startTime = parse5CharTimeToDouble(_playTextFieldController.text);
-
-                if (startTime < 0) return; //error
-                _lastPlayOnTime = _playTextFieldController.text;
-                setState(() {
-                  _playOnEvents.addEvent(_selectedDay!, Event(_playTextFieldController.text));
-                });
-
-                Navigator.pop(context);
-              },
-            ),
-          ],
+        String dateStr = _playTextFieldController.text.substring(0,5);
+        String messageStr = _playTextFieldController.text.substring(5);
+        // print('_playTextInputDialog: $dateStr//$messageStr');
+        _playTextFieldController.text = messageStr;
+        int hour=0;
+        int min=0;
+        try {
+          hour = int.parse(dateStr.substring(0,2));
+          min = int.parse(dateStr.substring(3,5));
+        }catch(_){}
+        TimeOfDay? currentSetting = TimeOfDay(hour:hour, minute:min);
+        return StatefulBuilder(
+          builder: (context, setState ) {
+            return AlertDialog(
+              title: const Text('Start of play plus comment'),
+              content: Column(
+                children: [
+                  InkWell( onTap: () async {
+                    currentSetting = await showTimePicker(
+                      context: context,
+                      initialTime: currentSetting!,
+                    );
+                    setState(() {
+                      dateStr = '${currentSetting!.hour.toString().padLeft(2,'0')}:${currentSetting!.minute.toString().padLeft(2,'0')}';
+                    });
+                    // print('enteredTime: $currentSetting ${currentSetting!.hour.toString().padLeft(2,'0')}:${currentSetting!.minute.toString().padLeft(2,'0')}');
+                  },
+                      child: Text('StartTime(24hr): $dateStr', style: nameStyle)),
+                  TextField(
+                    controller: _playTextFieldController,
+                    decoration: const InputDecoration(hintText: "Text that will appear on this event"),
+                  ),
+                ],
+              ),
+              actions: <Widget>[
+                TextButton(
+                  child: const Text('CANCEL'),
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                ),
+                TextButton(
+                  child: const Text("OK"),
+                  onPressed: () {
+                    // double startTime = parse5CharTimeToDouble(_playTextFieldController.text);
+                    //
+                    // if (startTime < 0) return; //error
+                    _lastPlayOnTime = '${currentSetting!.hour.toString().padLeft(2,'0')}:${currentSetting!.minute.toString().padLeft(2,'0')}';
+                    // print('$_lastPlayOnTime ${_playTextFieldController.text}');
+                    setState(() {
+                      _playOnEvents.addEvent(_selectedDay!, Event('$_lastPlayOnTime ${_playTextFieldController.text}'));
+                    });
+                    currentCalendarPage.refresh();
+                    Navigator.pop(context);
+                  },
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -409,9 +459,31 @@ class CalendarPageState extends State<CalendarPage> {
   _buildEvent(value, index, String clickText) {
 
     // print('_buildEvent: index: $index, value[index]: ${value[index]} clickText:"$clickText"');
+    String str = value[index].toString();
+    String eventType = '';
+    if (str.length>=5) {
+      eventType = str.substring(0, 5);
+    }
+    int hour=0;
+    int min=0;
+    bool isPM = false;
+    if (str.length>=10) {
+      try {
+        hour = int.parse(str.substring(5, 7));
+        min = int.parse(str.substring(8,10));
+        if (hour>=12) {
+          isPM=true;
+          if (hour > 12) {
+            hour -= 12;
+          }
+        }
+      } catch(_){}
+    }
+    String thisLine = '$eventType ${hour.toString().padLeft(2,' ')}:${min.toString().padLeft(2,'0')}${isPM?'PM':'AM'} ${str.substring(10)}';
+    // print('thisLine:$thisLine');
     return Row(children: [
       Flexible(
-        child: Text('${value[index]}$clickText', style: nameStyle),
+        child: Text('$thisLine$clickText', style: nameStyle),
       ),
       if (typeOfCalendarEvent == EventTypes.playOn)
         IconButton(
@@ -521,7 +593,8 @@ class CalendarPageState extends State<CalendarPage> {
                   itemCount: value.length,
                   itemBuilder: (context, index) {
                     String clickText = '';
-                    DateTime? nextPlayDate = getNextPlayDateTime(activeLadderDoc!);
+                    DateTime? nextPlayDate;
+                    (nextPlayDate,_) = getNextPlayDateTime(activeLadderDoc!);
                     // print('ListView.builder calendar page: nextPlayDate: $nextPlayDate _selectedDay: $_selectedDay');
                     if ((typeOfCalendarEvent == EventTypes.standard) &&
                         (value[index].toString().startsWith('play') || value[index].toString().startsWith('AWAY'))) {
@@ -542,7 +615,8 @@ class CalendarPageState extends State<CalendarPage> {
                         border: Border.all(),
                         borderRadius: BorderRadius.circular(12.0),
                       ),
-                      child: ListTile(
+                      child:
+                      ListTile(
                         leading: (value[index].toString().startsWith('play'))
                             ? const Icon(
                                 Icons.circle,
@@ -557,7 +631,7 @@ class CalendarPageState extends State<CalendarPage> {
                                     Icons.square,
                                     color: Colors.blue,
                                   ),
-                        onTap: ((typeOfCalendarEvent == EventTypes.standard) && clickText.isEmpty)?null:() {
+                        onTap: ((typeOfCalendarEvent == EventTypes.standard) && clickText.isEmpty)?null:() async {
                           if (typeOfCalendarEvent == EventTypes.standard) {
                             if (value[index].toString().startsWith('play')) {
                               setState(() {
@@ -579,6 +653,8 @@ class CalendarPageState extends State<CalendarPage> {
                             if (initialText.length >= 5) {
                               _playTextFieldController.text = value[index].toString().substring(5);
                             }
+
+                            // print('selectedTimeOfDay: $selectedTimeOfDay');
                             _playTextInputDialog(context);
                           }
                         },
@@ -595,6 +671,7 @@ class CalendarPageState extends State<CalendarPage> {
 
   @override
   Widget build(BuildContext context) {
+    currentCalendarPage = this;
     if (typeOfCalendarEvent == EventTypes.standard) {
       return StreamBuilder<DocumentSnapshot>(
           stream: FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Players').doc(clickedOnPlayerDoc!.id).snapshots(),
@@ -620,6 +697,7 @@ class CalendarPageState extends State<CalendarPage> {
             Map k1 = _playOnEvents.convertToCalendarEvents();
             Map k2 = _specialEvents.convertToCalendarEvents();
             Map k3 = _awayEvents.convertToCalendarEvents();
+            // print(k3);
 
             kEvents.clear();
             k1.forEach((k, v) {
@@ -632,8 +710,15 @@ class CalendarPageState extends State<CalendarPage> {
             });
             k3.forEach((k, v) {
               kEvents[k] = kEvents[k] ?? [];
+              // print('$k $v  ${kEvents[k]}');
               // this replaces the playOnEvent, it does not add to it
-              kEvents[k]![0] = v[0];
+              if (kEvents[k]!.isNotEmpty) {
+                kEvents[k]![0] = v[0];
+              } else {
+                if (kDebugMode) {
+                  print('Invalid away date specified for ${_playerDoc!.id} ${v[0]}');
+                }
+              }
             });
             _selectedEvents.value = List.from(_getEventsForDay(_selectedDay!));
 

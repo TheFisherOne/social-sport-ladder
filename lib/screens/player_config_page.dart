@@ -4,11 +4,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:social_sport_ladder/Utilities/string_validators.dart';
 import 'package:social_sport_ladder/constants/constants.dart';
-import 'package:social_sport_ladder/main.dart';
 import 'package:social_sport_ladder/screens/ladder_config_page.dart';
-import '../Utilities/rounded_text_form.dart';
+import '../Utilities/my_text_field.dart';
 import 'audit_page.dart';
 import 'ladder_selection_page.dart';
+import 'login_page.dart';
 
 class PlayerConfigPage extends StatefulWidget {
   const PlayerConfigPage({super.key});
@@ -20,13 +20,14 @@ class PlayerConfigPage extends StatefulWidget {
 class _PlayerConfigPageState extends State<PlayerConfigPage> {
   String _sortBy = 'Rank';
   String _selectedPlayerId = '';
+  String _errorText = '';
 
   List<QueryDocumentSnapshot<Object?>> _players = List.empty();
 
   @override
   void initState() {
     super.initState();
-    RoundedTextForm.startFresh(this);
+    //RoundedTextField.startFresh(this);
   }
 
   refresh() => setState(() {});
@@ -79,7 +80,7 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
         'ScoreLastUpdatedBy': '',
         'TimePresent': DateTime.now(),
         'WillPlayInput': 0,
-        'DaysAway':'',
+        'DaysAway': '',
       });
 
       transactionAudit(
@@ -92,13 +93,17 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
     });
     FirebaseAuth.instance.createUserWithEmailAndPassword(email: newPlayerName, password: '123456').then((userCredential) {
       // print('addPlayer, create user with email and password, $newPlayerName');
-      RoundedTextForm.setErrorText(0, 'you are now logged in as new user:$newPlayerName');
+      setState(() {
+        _errorText = 'you are now logged in as new user:$newPlayerName';
+      });
     }).catchError((e) {
       if (e.code == 'email-already-in-use') {
         // print('addPlayer, create user ALREADY IN USE, $newPlayerName');
       } else {
         // print('addPlayer, error during registration of $newPlayerName $e');
-        RoundedTextForm.setErrorText(0, 'error during registration of $newPlayerName $e');
+        setState(() {
+          _errorText = 'error during registration of $newPlayerName $e';
+        });
       }
     });
   }
@@ -244,7 +249,8 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
   }
 
   String changePlayerName = '';
-  TextEditingController changeNameEditingController = TextEditingController();
+
+  final TextEditingController _nameChangeController = TextEditingController();
   String? changeNameErrorText;
 
   Widget playerLine(int row) {
@@ -256,15 +262,8 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
       if (pl.get('Name') == rowName) countDuplicateNames += 1;
     }
     if (_selectedPlayerId == playerDoc.id) {
-      // if (changePlayerName.isEmpty) {
-      //   changePlayerName = rowName;
-      // }
-      // // print('playerLine ${changeNameEditingController.text} != $changePlayerName');
-      // if (changeNameEditingController.text != changePlayerName) {
-      //   changeNameEditingController.text = changePlayerName;
-      // }
       return Container(
-        color: Colors.grey[50],
+        color: surfaceColor,
         child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             // mainAxisAlignment: MainAxisAlignment.start,
@@ -303,40 +302,36 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
                 ],
               ),
               const SizedBox(height: 5),
-              RoundedTextForm.build(
-                1,
-                labelStyle: nameBigStyle,
-                helperText: "The Name to display for this player",
-                helperStyle: nameStyle,
-                onChanged: (value) {
-                  const row = 1;
+              MyTextField(
+                labelText: 'Change Player Name',
+                helperText: 'The name to display for this player',
+                controller: _nameChangeController,
+                entryOK: (entry) {
                   // print('Create new Player onChanged:new value=$value');
-                  String newValue = value.trim().replaceAll(RegExp(r' \s+'), ' ');
+                  String newValue = entry.trim().replaceAll(RegExp(r' \s+'), ' ');
 
                   if ((newValue.length < 3) || (newValue.length > 20)) {
-                    RoundedTextForm.setErrorText(row, 'must be between 3 and 20 characters');
-                    return;
+                    return 'Name must be between3 and 20 characters long';
                   }
                   // check for a duplicate name
                   for (QueryDocumentSnapshot<Object?> doc in _players) {
                     if (newValue == doc.get('Name')) {
-                      RoundedTextForm.setErrorText(row, 'that player Name is in use');
-                      return;
+                      return 'that player Name is in use';
                     }
                   }
-                  return;
+                  return null;
                 },
-                onIconPressed: () async {
-                  const row = 1;
-                  // print('onIconPressed: createLadder Text:"${RoundedTextForm.getText(row)}" in ${playerDoc.id}');
-                  String newValue = RoundedTextForm.getText(row).trim().replaceAll(RegExp(r' \s+'), ' ');
+                onIconClicked: (entry) {
+                  String newValue = entry.trim().replaceAll(RegExp(r' \s+'), ' ');
                   writeAudit(user: loggedInUser, documentName: playerDoc.id, action: 'Set Name', newValue: newValue, oldValue: playerDoc.get('Name'));
                   // print('ready to update');
                   FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Players').doc(playerDoc.id).update({
                     'Name': newValue,
                   });
                 },
+                initialValue: '',
               ),
+
               const SizedBox(height: 5),
               Row(children: [
                 const Text(
@@ -414,10 +409,9 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
     );
   }
 
-  List<String> attrNames = ['Add New user', 'Change Player Name'];
+  final TextEditingController _newEmailController = TextEditingController();
   @override
   Widget build(BuildContext context) {
-    RoundedTextForm.initialize(attrNames, null);
     return StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Players').snapshots(),
         builder: (BuildContext context, AsyncSnapshot<QuerySnapshot<Object?>> playerSnapshots) {
@@ -471,42 +465,37 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
                     itemCount: _players.length + 1, //for last divider line
                     itemBuilder: (BuildContext context, int row) {
                       if (row == _players.length) {
-                        return RoundedTextForm.build(
-                          0,
-                          // labelText: 'Create New Ladder',
-                          labelStyle: nameBigStyle,
-                          helperText: "The email for a new Player",
-                          helperStyle: nameStyle,
-                          // errorText: createLadderErrorText,
-                          // textEditingController: createLadderEditingController,
-
-                          onChanged: (value) {
+                        return MyTextField(
+                          labelText: 'Add New Player',
+                          helperText: 'Enter the email for the new player',
+                          controller: _newEmailController,
+                          entryOK: (entry) {
                             // print('Create new Player onChanged:new value=$value');
-                            String newValue = value.trim().replaceAll(RegExp(r' \s+'), ' ');
+                            String newValue = entry.trim().replaceAll(RegExp(r' \s+'), ' ');
 
                             if (!newValue.isValidEmail()) {
-                              RoundedTextForm.setErrorText(0, 'not a valid email');
-                              return;
+                              return 'not a valid email';
                             }
                             // check for a duplicate name
                             for (QueryDocumentSnapshot<Object?> doc in _players) {
                               if (newValue == doc.id) {
-                                RoundedTextForm.setErrorText(0, 'that player ID is in use');
-                                return;
+                                return 'that player ID is in use';
                               }
                             }
-                            return;
+                            return null;
                           },
-                          onIconPressed: () async {
-                            // print('onIconPressed: createLadder Text:"${createLadderEditingController.text}"');
-                            String newValue = RoundedTextForm.getText(0).trim().replaceAll(RegExp(r' \s+'), ' ');
+                          onIconClicked: (entry) {
+                            String newValue = entry.trim().replaceAll(RegExp(r' \s+'), ' ');
                             addPlayer(newValue);
                           },
+                          initialValue: '',
                         );
                       }
+
                       return playerLine(row);
                     },
                   ),
+                  Text(_errorText, style: errorNameStyle),
                 ],
               ),
             ),

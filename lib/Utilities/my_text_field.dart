@@ -1,0 +1,173 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:social_sport_ladder/constants/constants.dart';
+
+class MyTextField extends StatefulWidget {
+  final String labelText;
+  final String helperText;
+  final bool obscureText;
+  final TextEditingController controller;
+  final List<TextInputFormatter>? inputFormatters;
+  final String? Function(String entry)? entryOK;
+  final void Function(String entry)? onIconClicked;
+  final String? initialValue;
+  final TextInputType? keyboardType;
+
+  const MyTextField({
+    super.key,
+    required this.labelText,
+    this.obscureText = false,
+    required this.controller,
+    this.helperText = '',
+    this.inputFormatters,
+    this.entryOK,
+    this.onIconClicked,
+    this.initialValue,
+    this.keyboardType,
+  });
+
+  @override
+  State<MyTextField> createState() => _MyTextFieldState();
+}
+
+class _MyTextFieldState extends State<MyTextField> {
+  final FocusNode _focusNode = FocusNode();
+  String? errorString;
+  String? lastSavedValue;
+
+  @override
+  initState() {
+    super.initState();
+    if (widget.initialValue !=null) {
+      widget.controller.text = widget.initialValue!;
+      lastSavedValue = widget.initialValue;
+
+      _focusNode.addListener(() {
+        setState(() {
+          if (widget.initialValue !=null) {
+            widget.controller.text=widget.initialValue!;
+          } else {
+            widget.controller.text='';
+          }
+          errorString = null;
+        });
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+
+    return SizedBox(
+        width: double.infinity,
+        child: Padding(
+        padding: const EdgeInsets.all(12.0),
+    child:Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 5),
+        child: TextField(
+          focusNode: _focusNode,
+          controller: widget.controller,
+          obscureText: widget.obscureText,
+          inputFormatters: widget.inputFormatters,
+          style: nameStyle,
+          keyboardType: widget.keyboardType,
+          onChanged: (String entry) {
+            if ( (entry.isEmpty) && (widget.entryOK == null)){
+              setState(() {
+                errorString = null;
+              });
+            } else {
+              setState(() {
+                errorString = widget.entryOK!(entry);
+              });
+            }
+            if (widget.onIconClicked != null) {
+              if (lastSavedValue != null) {
+                if (entry != lastSavedValue) {
+                  errorString ??= 'Not Saved';
+                }
+              } else if (entry.isNotEmpty) {
+                errorString ??= 'Not Saved';
+              }
+            }
+          },
+          decoration: InputDecoration(
+            labelText: widget.labelText,
+            helperText: _focusNode.hasFocus ? widget.helperText : null,
+            errorText: errorString,
+            labelStyle: nameStyle,
+            helperStyle: nameStyle,
+            floatingLabelStyle: nameBigStyle,
+            errorStyle: errorNameStyle,
+            contentPadding: EdgeInsets.all(16),
+            floatingLabelBehavior: FloatingLabelBehavior.auto,
+            constraints: BoxConstraints(maxWidth: 150),
+            enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.all(Radius.circular(20)),
+                borderSide: BorderSide(
+                  color: tertiaryColor,
+                  width: 2.0,
+                )),
+            errorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.all(Radius.circular(20)),
+                borderSide: BorderSide(
+                  color: Colors.red,
+                  width: 2.0,
+                )),
+            focusedErrorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.all(Radius.circular(20)),
+                borderSide: BorderSide(
+                  color: Colors.redAccent,
+                  width: 4.0,
+                )),
+            focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.all(Radius.circular(20)),
+                borderSide: BorderSide(
+                  color: primaryColor,
+                  width: 4.0,
+                )),
+            disabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.all(Radius.circular(20)),
+                borderSide: BorderSide(
+                  color: primaryColor,
+                  width: 2.0,
+                )),
+            fillColor: tertiaryColor,
+            filled: true,
+            suffixIcon:  ((widget.onIconClicked==null)||(errorString!='Not Saved'))?null:
+            IconButton(
+              onPressed: () {
+                // print('clicked Icon for ${widget.labelText} with str=${widget.controller.text}');
+                widget.onIconClicked!(widget.controller.text);
+                lastSavedValue = widget.controller.text;
+                setState(() {
+                  errorString=null;
+                });
+                // _editing[index] = false;
+                // _errorStrings[index] = null;
+                // if (_editingDoc != null) {
+                //   _textControllers[index].text = _editingDoc!.get(_attrName[index]).toString();
+                // } else {
+                //   _textControllers[index].text = '';
+                // }
+                // // });
+                // _state!.refresh();
+              },
+              icon: const Icon(
+                Icons.send,
+                color: Colors.redAccent,
+                weight: 2,
+                size: 35,
+              ),
+            ),
+          ),
+        ))
+    ));
+  }
+}

@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:social_sport_ladder/constants/constants.dart';
 
-import '../Utilities/rounded_text_form.dart';
+import '../Utilities/my_text_field.dart';
 
 
 class SuperAdmin extends StatefulWidget {
@@ -17,7 +17,6 @@ class _SuperAdminState extends State<SuperAdmin> {
   @override
   void initState() {
     super.initState();
-    RoundedTextForm.startFresh(this);
   }
 
   void rebuildLadders() {
@@ -103,8 +102,8 @@ class _SuperAdminState extends State<SuperAdmin> {
     });
   }
 
-  void createLadder(String newLadderName) {
-    FirebaseFirestore.instance.collection('Ladder').doc(newLadderName).set({
+  void createLadder(String newLadderName) async {
+    await FirebaseFirestore.instance.collection('Ladder').doc(newLadderName).set({
       'Admins': '',
       'CheckInStartHours': 0,
       'DaysOfPlay': '',
@@ -121,7 +120,7 @@ class _SuperAdminState extends State<SuperAdmin> {
       'RequiredSoftwareVersion': softwareVersion,
       'VacationStopTime': 8.00,
       'SuperDisabled': false,
-      'Color':'brown',
+      'Color': 'brown',
     });
   }
 
@@ -130,12 +129,12 @@ class _SuperAdminState extends State<SuperAdmin> {
   TextEditingController createLadderEditingController = TextEditingController();
   String? createLadderErrorText;
 
-  List<String> attrNames = ['Create New Ladder'];
+  final TextEditingController _ladderNameController = TextEditingController();
+
   refresh() => setState(() {});
 
   @override
   Widget build(BuildContext context) {
-    RoundedTextForm.initialize(attrNames,null);
 
     return StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance.collection('Ladder').snapshots(),
@@ -183,47 +182,39 @@ class _SuperAdminState extends State<SuperAdmin> {
                     rebuildLadders();
                   },
                 ),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.all(15.0),
-                    child: RoundedTextForm.build(0,
-                      // labelText: 'Create New Ladder',
-                      labelStyle: nameBigStyle,
-                      helperText: "Enter a unique id of the ladder",
-                      helperStyle: nameStyle,
-                      // errorText: createLadderErrorText,
-                      // textEditingController: createLadderEditingController,
+                MyTextField(
+                  labelText: 'Create New Ladder',
+                  helperText: 'Enter a unique id of the ladder',
+                  controller: _ladderNameController,
+                  entryOK: (entry) {
+                    // print('Create new Ladder onChanged:new value=$value');
+                    String newValue = entry.trim().replaceAll(RegExp(r' \s+'), ' ');
+                    // check for a duplicate name
+                    for (QueryDocumentSnapshot<Object?> doc in ladderSnapshots.data!.docs) {
+                      if (newValue == doc.id) {
+                        return 'that ladder ID is in use';
+                      }
+                    }
 
-                      onChanged: (value) {
-                        // print('Create new Ladder onChanged:new value=$value');
-                        String newValue = value.trim().replaceAll(RegExp(r' \s+'), ' ');
-                        // check for a duplicate name
-                        for (QueryDocumentSnapshot<Object?> doc in ladderSnapshots.data!.docs) {
-                          if (newValue == doc.id) {
-                              RoundedTextForm.setErrorText(0, 'that ladder ID is in use');
-                            return;
-                          }
-                        }
-
-                        // print('newValue:"$newValue" of length ${newValue.length}');
-                        if (newValue.length < 3) {
-                          RoundedTextForm.setErrorText(0,  'name too short "$newValue"');
-                          return;
-                        }
-                        if (newValue.length > 20) {
-                          RoundedTextForm.setErrorText(0,  'name too long "$newValue"');
-                          return;
-                        }
-                        return;
-                      },
-                      onIconPressed: () async {
-                        // print('onIconPressed: createLadder Text:"${createLadderEditingController.text}"');
-                        String newValue = RoundedTextForm.getText(0).trim().replaceAll(RegExp(r' \s+'), ' ');
-                        createLadder(newValue);
-
-                      },
-                    ),
-                  ),
+                    // print('newValue:"$newValue" of length ${newValue.length}');
+                    if (newValue.length < 3) {
+                      return 'name too short "$newValue"';
+                    }
+                    if (newValue.length > 20) {
+                      return 'name too long "$newValue"';
+                    }
+                    return null;
+                  },
+                  onIconClicked: (entry) async {
+                    String newValue = entry.trim().replaceAll(RegExp(r' \s+'), ' ');
+                    // print('creating ladder $newValue');
+                    createLadder(newValue);
+                    // print('done creating ladder $newValue');
+                    // doc not ready to accept an audit yet
+                    // writeAudit(user: loggedInUser, documentName: newValue, action: 'Create Ladder', newValue: entry, oldValue: 'n/a');
+                    // print('done writing audit log for creating ladder');
+                  },
+                  initialValue: '',
                 ),
               ],
             ),
