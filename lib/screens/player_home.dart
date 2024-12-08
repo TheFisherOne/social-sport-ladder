@@ -96,6 +96,7 @@ dynamic getCourtAssignmentNumbers(List<QueryDocumentSnapshot>? players) {
     'totalCourtsAvailable': totalCourtsAvailable,
     'ranksAway': ranksAway,
     'ranksUnassigned': ranksUnassigned,
+
   };
 }
 
@@ -134,7 +135,7 @@ Widget headerSummary(List<QueryDocumentSnapshot>? players, assign) {
   );
 }
 
-showFrozenLadderPage(context, bool withReplacement) {
+showFrozenLadderPage(context, bool withReplacement, dynamic courtAssignments) {
   String sportDescriptor = 'tennisRG';
   try {
     sportDescriptor = activeLadderDoc!.get('SportDescriptor');
@@ -146,6 +147,7 @@ showFrozenLadderPage(context, bool withReplacement) {
     page = const SportTennisRG();
   }
   if (withReplacement) {
+    // we can create the Score Docs here
     Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => page));
   } else {
     Navigator.push(context, MaterialPageRoute(builder: (context) => page));
@@ -459,7 +461,7 @@ class _PlayerHomeState extends State<PlayerHome> {
           }
           return Text(error);
         }
-        if (!ladderSnapshot.hasData) {
+        if (!ladderSnapshot.hasData || (ladderSnapshot.connectionState != ConnectionState.active)) {
           // print('ladder_selection_page getting user $loggedInUser but hasData is false');
           return const CircularProgressIndicator();
         }
@@ -482,7 +484,7 @@ class _PlayerHomeState extends State<PlayerHome> {
                 return Text(error);
               }
               // print('in StreamBuilder ladder 0');
-              if (!playerSnapshots.hasData) {
+              if (!playerSnapshots.hasData || (playerSnapshots.connectionState != ConnectionState.active)) {
                 // print('ladder_selection_page getting user $loggedInUser but hasData is false');
                 return const CircularProgressIndicator();
               }
@@ -557,13 +559,11 @@ class _PlayerHomeState extends State<PlayerHome> {
                             size: 30,
                           ),
                           onPressed: () async {
-                            //print('FREEZE IT ');
-                            writeAudit(user: loggedInUser, documentName: 'LadderConfig', action: 'Set FreezeCheckIns', newValue: true.toString(), oldValue: false.toString());
-                            setState(() {
-                              FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({'FreezeCheckIns': true});
-                            });
+                              sportTennisRGprepareForScoreEntry(_players);
 
-                            showFrozenLadderPage(context, true);
+
+
+                            showFrozenLadderPage(context, true, courtAssignments);
                           },
                           enableFeedback: true,
                           color: Colors.green,

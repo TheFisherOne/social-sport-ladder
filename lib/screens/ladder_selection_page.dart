@@ -149,7 +149,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
             return Text(error);
           }
           // print('in StreamBuilder ladder 0');
-          if (!snapshot.hasData) {
+          if (!snapshot.hasData || (snapshot.connectionState != ConnectionState.active)) {
             // print('ladder_selection_page getting user $loggedInUser but hasData is false');
             return const CircularProgressIndicator();
           }
@@ -221,7 +221,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                 return Text(error);
               }
               // print('in StreamBuilder ladder 0');
-              if (!snapshot.hasData) {
+              if (!snapshot.hasData || (snapshot.connectionState != ConnectionState.active)) {
                 // print('ladder_selection_page getting user $loggedInUser but hasData is false');
                 return const CircularProgressIndicator();
               }
@@ -368,7 +368,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                                       bool frozen = activeLadderDoc!.get('FreezeCheckIns');
                                       // print('go to players page $activeLadderId');
                                       if (frozen) {
-                                        showFrozenLadderPage(context, false);
+                                        showFrozenLadderPage(context, false,{});
                                       } else {
                                         Navigator.push(context, MaterialPageRoute(builder: (context) => const PlayerHome()));
                                       }

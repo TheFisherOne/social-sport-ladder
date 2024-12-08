@@ -148,7 +148,7 @@ class _SuperAdminState extends State<SuperAdmin> {
             return Text(error);
           }
           // print('in StreamBuilder ladder 0');
-          if (!ladderSnapshots.hasData) {
+          if (!ladderSnapshots.hasData || (ladderSnapshots.connectionState != ConnectionState.active)) {
             // print('ladder_selection_page getting user $loggedInUser but hasData is false');
             return const CircularProgressIndicator();
           }

@@ -683,7 +683,7 @@ class CalendarPageState extends State<CalendarPage> {
               }
               return Text(error);
             }
-            if (!playerSnapshots.hasData) {
+            if (!playerSnapshots.hasData || (playerSnapshots.connectionState != ConnectionState.active)) {
               return const CircularProgressIndicator();
             }
             if (playerSnapshots.data == null) {

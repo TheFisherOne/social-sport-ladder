@@ -424,7 +424,7 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
             return Text(error);
           }
           // print('in StreamBuilder ladder 0');
-          if (!playerSnapshots.hasData) {
+          if (!playerSnapshots.hasData|| (playerSnapshots.connectionState != ConnectionState.active) ) {
             // print('ladder_selection_page getting user $loggedInUser but hasData is false');
             return const CircularProgressIndicator();
           }

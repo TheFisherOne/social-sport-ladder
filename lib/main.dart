@@ -16,19 +16,8 @@ void main() async {
   //   html.window.navigator.serviceWorker!.register('/flutter_service_worker.js');
   // }
   await Firebase.initializeApp(options: myFirebaseOptions);
-  print('initialized');
-
-  String? readMode = 'lightMode';
-
-  settingsColorMode = readMode;
-  print('initializing with settingsColorMode = $settingsColorMode');
-
-
   runApp(
-      // ChangeNotifierProvider( create: (context) => ThemeProvider(),
-      // child:
       const MyApp()
-      // )
   );
 }
 

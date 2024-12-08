@@ -100,7 +100,7 @@ class _AuditPageState extends State<AuditPage> {
             return Text(error);
           }
           // print('in StreamBuilder ladder 0');
-          if (!auditSnapshots.hasData) {
+          if (!auditSnapshots.hasData || (auditSnapshots.connectionState != ConnectionState.active)) {
             // print('ladder_selection_page getting user $loggedInUser but hasData is false');
             return const CircularProgressIndicator();
           }
