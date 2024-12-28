@@ -4,11 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:social_sport_ladder/constants/constants.dart';
 import 'package:social_sport_ladder/sports/score_tennis_rg.dart';
-
+import '../Utilities/helper_icon.dart';
 import '../screens/audit_page.dart';
 import '../screens/ladder_config_page.dart';
 import '../screens/ladder_selection_page.dart';
 import '../screens/login_page.dart';
+import '../screens/player_home.dart';
+import '../screens/score_base.dart';
+
 
 dynamic assignCourtsStandard(List<QueryDocumentSnapshot>? players) {
   var result = {};
@@ -97,8 +100,9 @@ dynamic assignCourtsStandard(List<QueryDocumentSnapshot>? players) {
   result['usedCourtNames'] = usedCourts;
   return result;
 }
+
 void sportTennisRGprepareForScoreEntry(List<QueryDocumentSnapshot>? players) {
-  var courtAssignments = assignCourtsStandard( players);
+  var courtAssignments = assignCourtsStandard(players);
   // print('prepareForScoreEntry: $courtAssignments');
   String currentDate = DateFormat('yyyy.MM.dd').format(DateTime.now());
   int currentRound = activeLadderDoc!.get('CurrentRound');
@@ -112,7 +116,7 @@ void sportTennisRGprepareForScoreEntry(List<QueryDocumentSnapshot>? players) {
   });
 
   for (int court = 0; court < numCourts; court++) {
-    String docStr = '${dateStr}_C#${(court+1).toString()}';
+    String docStr = '${dateStr}_C#${(court + 1).toString()}';
     List crt = courtAssignments['courtAssignments'][court];
     String players = '';
     String ranks = '';
@@ -121,11 +125,15 @@ void sportTennisRGprepareForScoreEntry(List<QueryDocumentSnapshot>? players) {
       if (j != 0) {
         players += '|';
         ranks += '|';
-        gameScores +='|';
+        gameScores += '|';
       }
-      players += crt[j]!.get('Name');
+      players += crt[j]!.id;
       ranks += crt[j]!.get('Rank').toString();
-      gameScores += (courtAssignments['numberOnCourt'][court]==4)?',,':',,,,';
+      gameScores += (courtAssignments['numberOnCourt'][court] == 4) ? ',,' : ',,,,';
+      FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Players').doc(crt[j]!.id).update({
+        'TotalScore':0,
+        'StartingOrder': j+1,
+      });
     }
 
     FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Scores').doc(docStr).set({
@@ -139,6 +147,7 @@ void sportTennisRGprepareForScoreEntry(List<QueryDocumentSnapshot>? players) {
     });
   }
 }
+
 List<String> shuffleCourtsRGWomen(List<String> courtNames) {
   courtNames.shuffle();
   return courtNames;
@@ -164,7 +173,6 @@ List<String> shuffleCourtsRGMen(List<String> courtNames) {
 
 List<Color> courtColors = [Colors.red, Colors.green, Colors.cyan, Colors.grey];
 Widget courtTile(var courtAssignments, int court, Color courtColor, List<QueryDocumentSnapshot>? players, BuildContext context) {
-
   var crt = courtAssignments['courtAssignments'][court];
 
   List<String> courtNames = shuffleCourtsRGMen(courtAssignments['usedCourtNames']);
@@ -172,7 +180,8 @@ Widget courtTile(var courtAssignments, int court, Color courtColor, List<QueryDo
   String courtName = courtNames[court];
 
   return Container(
-    height: (crt.length == 4) ? 180 : 220,
+    // height: (crt.length == 4) ? 180 : 220,
+    // height: (crt.length == 4) ? appFontSize*8.6 : appFontSize*10.3,
     decoration: BoxDecoration(
       border: Border.all(color: courtColor, width: 5),
       borderRadius: BorderRadius.circular(15.0),
@@ -190,7 +199,7 @@ Widget courtTile(var courtAssignments, int court, Color courtColor, List<QueryDo
           Navigator.push(
               context,
               MaterialPageRoute(
-                  builder: (context) => ScoreTennisRg(
+                  builder: (context) => ScoreBase(
                         ladderName: activeLadderId,
                         round: 1,
                         court: court + 1,
@@ -198,7 +207,8 @@ Widget courtTile(var courtAssignments, int court, Color courtColor, List<QueryDo
                       )));
         },
         child: ListView.separated(
-          scrollDirection: Axis.vertical,
+          shrinkWrap: true,
+          physics: NeverScrollableScrollPhysics(),
           separatorBuilder: (context, index) => const SizedBox(
             height: 2,
           ), //Divider(color: Colors.black),
@@ -211,9 +221,23 @@ Widget courtTile(var courtAssignments, int court, Color courtColor, List<QueryDo
                 style: nameBigStyle,
               );
             }
-            return Text(
-              '${crt[row - 1].get('Rank').toString().padLeft(2, ' ')}: ${crt[row - 1].get('Name')}',
-              style: nameStyle,
+            // String scoreStr = 'To:${courtAssignments['Movement'][row-1].afterWinLose} Sc: ${crt[row - 1].get('TotalScore')}';
+            String scoreStr = 'Sc: ${crt[row - 1].get('TotalScore')}';
+            return Row(
+              children: [
+                Text(
+                  '${crt[row - 1].get('Rank').toString().padLeft(2, ' ')}: ${crt[row - 1].get('Name')} ',
+                  style: nameStyle,
+                ),
+                Spacer(),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    scoreStr,
+                    style: nameStyle,
+                  ),
+                ),
+              ],
             );
           },
         ),
@@ -231,8 +255,8 @@ class SportTennisRG extends StatefulWidget {
 
 class _SportTennisRGState extends State<SportTennisRG> {
   List<QueryDocumentSnapshot>? _players;
-
-
+  String _dateStr='';
+  List<PlayerList>? _movement;
 
   @override
   Widget build(BuildContext context) {
@@ -242,6 +266,10 @@ class _SportTennisRGState extends State<SportTennisRG> {
       colorString = activeLadderDoc!.get('Color').toLowerCase();
     } catch (_) {}
     activeLadderBackgroundColor = colorFromString(colorString);
+    List<String> admins = activeLadderDoc!.get('Admins').split(',');
+    _dateStr = activeLadderDoc!.get('FrozenDate');
+
+
     //print('SportTennisRGPage build');
     return StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Players').orderBy('Rank').snapshots(),
@@ -263,40 +291,29 @@ class _SportTennisRGState extends State<SportTennisRG> {
             // print('ladder_selection_page getting user global ladder but data is null');
             return const CircularProgressIndicator();
           }
+
+
+          _players = playerSnapshots.data!.docs;
+          for (var player in _players!) {
+            if (player.id == loggedInUser) {
+              loggedInPlayerDoc = player;
+            }
+          }
+          _movement = sportTennisRGDetermineMovement(_players, _dateStr);
           AppBar thisAppBar = AppBar(
             title: Text('${activeLadderDoc!.get('DisplayName')}'),
             backgroundColor: activeLadderBackgroundColor.withOpacity(0.7),
             elevation: 0.0,
             automaticallyImplyLeading: true,
             actions: [
-              Padding(
-                padding: const EdgeInsets.all(5.0),
-                child: IconButton.filled(
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                  icon: Icon(
-                    Icons.pause,
-                    size: 30,
-                  ), //TODO: add conditions
-                  onPressed: () async {
-                    writeAudit(user: loggedInUser, documentName: 'LadderConfig', action: 'Set FreezeCheckIns', newValue: false.toString(), oldValue: true.toString());
-                    setState(() {
-                      FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
-                        'FreezeCheckIns': false,
-                      'FrozenDate': ''});
-                    });
-                    Navigator.pop(context);
-                  },
-                  enableFeedback: true,
-                  color: Colors.green,
-                  style: IconButton.styleFrom(backgroundColor: Colors.white),
-                ),
-              ),
+              (loggedInPlayerDoc!.get('Helper')|| (admins.contains(loggedInUser)) )?
+              helperIcon(context, activeLadderId, _movement) : SizedBox(width: 1),
               SizedBox(width: 20),
             ],
           );
-          _players = playerSnapshots.data!.docs;
+
           var courtAssignments = assignCourtsStandard(_players);
+          courtAssignments['Movement'] = _movement;
           if (courtAssignments['Error']) {
             return Scaffold(
               backgroundColor: Colors.brown[50],
@@ -304,7 +321,6 @@ class _SportTennisRGState extends State<SportTennisRG> {
               body: Text('There are only ${courtAssignments['presentPlayers'].length} players marked present can not assign courts', style: nameBigStyle),
             );
           }
-
           return Scaffold(
             backgroundColor: Colors.brown[50],
             appBar: thisAppBar,

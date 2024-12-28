@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 
 const bool enableImages = false;
 const String fireStoreCollectionName = "social-sport-ladder";
-const int softwareVersion = 11;
+const int softwareVersion = 17;
 
 //colors
 Color surfaceColor = Colors.grey.shade300;
@@ -22,20 +22,38 @@ class LowerCaseTextInputFormatter extends TextInputFormatter {
   }
 }
 
-const double appFontSize = 20;
-const nameStyle = TextStyle(decoration: TextDecoration.none, fontSize: appFontSize, fontWeight: FontWeight.normal);
-const nameBigStyle = TextStyle(decoration: TextDecoration.none, fontSize: appFontSize+6, fontWeight: FontWeight.normal);
-const nameBigRedStyle = TextStyle(decoration: TextDecoration.none, fontSize: appFontSize+6, fontWeight: FontWeight.normal, color:Colors.red);
-const nameStrikeThruStyle = TextStyle(decoration: TextDecoration.lineThrough, fontSize: appFontSize, fontWeight: FontWeight.normal);
-const errorNameStyle = TextStyle(
+double appFontSize = 30;
+
+var nameStyle = TextStyle(decoration: TextDecoration.none, fontSize: appFontSize, fontWeight: FontWeight.normal);
+var nameBigStyle = TextStyle(decoration: TextDecoration.none, fontSize: appFontSize*1.3, fontWeight: FontWeight.normal);
+var nameBigRedStyle = TextStyle(decoration: TextDecoration.none, fontSize: appFontSize*1.3, fontWeight: FontWeight.normal, color:Colors.red);
+var nameStrikeThruStyle = TextStyle(decoration: TextDecoration.lineThrough, fontSize: appFontSize, fontWeight: FontWeight.normal);
+var errorNameStyle = TextStyle(
     color: Colors.red,
     decoration: TextDecoration.none,
     fontSize: appFontSize,
     fontWeight: FontWeight.bold);
-const italicNameStyle = TextStyle(
+var italicNameStyle = TextStyle(
     decoration: TextDecoration.none, fontStyle: FontStyle.italic, fontSize: appFontSize, fontWeight: FontWeight.normal);
 
-const nameBoldStyle = TextStyle(decoration: TextDecoration.none, fontSize: appFontSize, fontWeight: FontWeight.bold);
+var nameBoldStyle = TextStyle(decoration: TextDecoration.none, fontSize: appFontSize, fontWeight: FontWeight.bold);
+setBaseFont(double fontSize){
+  appFontSize = fontSize;
+
+  nameStyle = TextStyle(decoration: TextDecoration.none, fontSize: appFontSize, fontWeight: FontWeight.normal);
+  nameBigStyle = TextStyle(decoration: TextDecoration.none, fontSize: appFontSize*1.3, fontWeight: FontWeight.normal);
+  nameBigRedStyle = TextStyle(decoration: TextDecoration.none, fontSize: appFontSize*1.3, fontWeight: FontWeight.normal, color:Colors.red);
+  nameStrikeThruStyle = TextStyle(decoration: TextDecoration.lineThrough, fontSize: appFontSize, fontWeight: FontWeight.normal);
+  errorNameStyle = TextStyle(
+      color: Colors.red,
+      decoration: TextDecoration.none,
+      fontSize: appFontSize,
+      fontWeight: FontWeight.bold);
+  italicNameStyle = TextStyle(
+      decoration: TextDecoration.none, fontStyle: FontStyle.italic, fontSize: appFontSize, fontWeight: FontWeight.normal);
+
+  // var nameBoldStyle = TextStyle(decoration: TextDecoration.none, fontSize: appFontSize, fontWeight: FontWeight.bold);
+}
 
 const List<String> daysOfWeek = ['Mon', 'Tues', 'Wed', 'Thurs', 'Fri', 'Sat', 'Sun'];
 const List<String> trueFalse = ['True', 'False'];

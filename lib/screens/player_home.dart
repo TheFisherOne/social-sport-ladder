@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -8,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:location/location.dart';
 import 'package:social_sport_ladder/screens/ladder_config_page.dart';
 
+import '../Utilities/helper_icon.dart';
 import '../Utilities/location.dart';
 import '../Utilities/player_image.dart';
 import '../constants/constants.dart';
@@ -19,6 +18,7 @@ import 'login_page.dart';
 
 dynamic playerHomeInstance;
 QueryDocumentSnapshot? clickedOnPlayerDoc;
+QueryDocumentSnapshot<Object?>? loggedInPlayerDoc;
 bool headerSummarySelected = false;
 
 dynamic getCourtAssignmentNumbers(List<QueryDocumentSnapshot>? players) {
@@ -28,10 +28,10 @@ dynamic getCourtAssignmentNumbers(List<QueryDocumentSnapshot>? players) {
   List<int> ranksAway = List.empty(growable: true);
   List<int> ranksUnassigned = List.empty(growable: true);
   DateTime? nextPlay;
-  (nextPlay,_)= getNextPlayDateTime(activeLadderDoc!);
+  (nextPlay, _) = getNextPlayDateTime(activeLadderDoc!);
   String nextPlayStr;
   if (nextPlay != null) {
-    nextPlayStr = DateFormat('yyyyMMdd').format(nextPlay);
+    nextPlayStr = DateFormat('yyyy.MM.dd').format(nextPlay);
   } else {
     nextPlayStr = '';
   }
@@ -42,7 +42,6 @@ dynamic getCourtAssignmentNumbers(List<QueryDocumentSnapshot>? players) {
       numPresent++;
     }
     if (player.get('DaysAway').split('|').contains(nextPlayStr)) {
-
       ranksAway.add(player.get('Rank'));
       numAway++;
       //print('will be away: ${player.get('Name')} ${player.get('DaysAway').split('|')} == $nextPlayStr ranksAway: $ranksAway');
@@ -96,12 +95,10 @@ dynamic getCourtAssignmentNumbers(List<QueryDocumentSnapshot>? players) {
     'totalCourtsAvailable': totalCourtsAvailable,
     'ranksAway': ranksAway,
     'ranksUnassigned': ranksUnassigned,
-
   };
 }
 
 Widget headerSummary(List<QueryDocumentSnapshot>? players, assign) {
-
   String unAssignedStr = '';
   if (assign['playersNotAssigned'] > 0) {
     unAssignedStr = '(${assign['playersNotAssigned']})';
@@ -197,7 +194,7 @@ class _PlayerHomeState extends State<PlayerHome> {
       return (Icons.cancel_outlined, 'not while the ladder is frozen');
     }
     DateTime? nextPlayDate;
-    (nextPlayDate,_)= getNextPlayDateTime(activeLadderDoc!);
+    (nextPlayDate, _) = getNextPlayDateTime(activeLadderDoc!);
     DateTime timeNow = DateTime.now();
     if (nextPlayDate == null) return (Icons.cancel_outlined, 'no start time specified for next day of play');
 
@@ -212,51 +209,51 @@ class _PlayerHomeState extends State<PlayerHome> {
         int secAgo = 9999;
         (where, secAgo) = _loc.getLast();
         if ((where == null) || (secAgo > 60)) return (Icons.location_off, 'Your location has not been determined');
-        if (!isLocationOk(activeLadderDoc, where)) return (Icons.location_off, 'You are too far away ${_lastDistanceAway.toInt()} m');
+        if (!_loc.isLastLocationOk()) return (Icons.location_off, 'You are too far away ${_loc.getLastDistanceAway().toInt()} m');
       }
 
       if (player.get('Present')) return (Icons.check_box, 'Checked in and ready to play');
       if (player.id == loggedInUser) {
         return (Icons.check_box_outline_blank, 'Ready to check in if you are going to play');
-      } else if (_loggedInPlayerDoc!.get('Helper')) {
+      } else if (loggedInPlayerDoc!.get('Helper')) {
         return (Icons.check_box_outline_blank, 'Helper checkin');
       }
     } else {
-      if ((player.id == loggedInUser) || (_loggedInPlayerDoc!.get('Helper'))){
-        return(Icons.access_time, 'you have to wait until ${ activeLadderDoc!.get('CheckInStartHours')} hours before ladder start');
+      if ((player.id == loggedInUser) || (loggedInPlayerDoc!.get('Helper'))) {
+        return (Icons.access_time, 'you have to wait until ${activeLadderDoc!.get('CheckInStartHours')} hours before ladder start');
       }
     }
 
-    return (Icons.access_time, 'You are logged in as "${_loggedInPlayerDoc!.get('Name')}"" you can not change the player "${player.get('Name')}"');
+    return (Icons.access_time, 'You are logged in as "${loggedInPlayerDoc!.get('Name')}"" you can not change the player "${player.get('Name')}"');
   }
 
-  double measureDistance(lat1, lon1, lat2, lon2) {
-    // generally used geo measurement function
-    var R = 6378.137; // Radius of earth in KM
-    var dLat = lat2 * pi / 180 - lat1 * pi / 180;
-    var dLon = lon2 * pi / 180 - lon1 * pi / 180;
-    var a = sin(dLat / 2) * sin(dLat / 2) + cos(lat1 * pi / 180) * cos(lat2 * pi / 180) * sin(dLon / 2) * sin(dLon / 2);
-    var c = 2 * atan2(sqrt(a), sqrt(1 - a));
-    var d = R * c;
-    return d * 1000; // meters
-  }
+  // double measureDistance(lat1, lon1, lat2, lon2) {
+  //   // generally used geo measurement function
+  //   var R = 6378.137; // Radius of earth in KM
+  //   var dLat = lat2 * pi / 180 - lat1 * pi / 180;
+  //   var dLon = lon2 * pi / 180 - lon1 * pi / 180;
+  //   var a = sin(dLat / 2) * sin(dLat / 2) + cos(lat1 * pi / 180) * cos(lat2 * pi / 180) * sin(dLon / 2) * sin(dLon / 2);
+  //   var c = 2 * atan2(sqrt(a), sqrt(1 - a));
+  //   var d = R * c;
+  //   return d * 1000; // meters
+  // }
 
-  double _lastDistanceAway = -99.0;
-  bool isLocationOk(DocumentSnapshot<Object?>? activeLadderDoc, LocationData where) {
-    if ((where.latitude == null) || (where.longitude == null)) return false;
-    double allowedDistance = activeLadderDoc!.get('MetersFromLatLong');
-    if (allowedDistance <= 0.0) return true; // this is disabled
-
-    double distance = measureDistance(activeLadderDoc.get('Latitude'), activeLadderDoc.get('Longitude'), where.latitude!, where.longitude!);
-
-    _lastDistanceAway = distance;
-    if (distance > allowedDistance) {
-      // print('isLocationOk: too far away $distance > $allowedDistance');
-      return false;
-    }
-    // print('isLocationOK: location good $distance');
-    return true;
-  }
+  // double _lastDistanceAway = -99.0;
+  // bool isLocationOk(DocumentSnapshot<Object?>? activeLadderDoc, LocationData where) {
+  //   if ((where.latitude == null) || (where.longitude == null)) return false;
+  //   double allowedDistance = activeLadderDoc!.get('MetersFromLatLong');
+  //   if (allowedDistance <= 0.0) return true; // this is disabled
+  //
+  //   double distance = measureDistance(activeLadderDoc.get('Latitude'), activeLadderDoc.get('Longitude'), where.latitude!, where.longitude!);
+  //
+  //   _lastDistanceAway = distance;
+  //   if (distance > allowedDistance) {
+  //     print('isLocationOk: too far away $distance > $allowedDistance');
+  //     return false;
+  //   }
+  //   print('isLocationOK: location good $distance');
+  //   return true;
+  // }
 
   Widget unfrozenSubLine(QueryDocumentSnapshot player) {
     _getPlayerImage(player.id);
@@ -264,6 +261,7 @@ class _PlayerHomeState extends State<PlayerHome> {
     if (player.id == loggedInUser) {
       if (!player.get('Present')) {
         _loc.askForSetState(this);
+        _loc.startTimer();
       }
     }
     IconData checkBoxIcon;
@@ -410,6 +408,7 @@ class _PlayerHomeState extends State<PlayerHome> {
                 setState(() {
                   _clickedOnRank = -1;
                   clickedOnPlayerDoc = null;
+                  _loc.stopTimer();
                 });
               }
             });
@@ -421,7 +420,7 @@ class _PlayerHomeState extends State<PlayerHome> {
                     ? const Icon(Icons.check_box, color: Colors.black)
                     : (markedAway ? const Icon(Icons.horizontal_rule, color: Colors.black) : const Icon(Icons.check_box_outline_blank))),
             Text(
-              ' $rank: ${player.get('Name') ?? 'No Name attr'} ${unassigned?'(Last)':''}',
+              ' $rank: ${player.get('Name') ?? 'No Name attr'} ${unassigned ? '(Last)' : ''}',
               style: isUserRow ? nameBoldStyle : ((player.get('Helper') ?? false) ? italicNameStyle : nameStyle),
             ),
           ]),
@@ -441,7 +440,7 @@ class _PlayerHomeState extends State<PlayerHome> {
   }
 
   bool _loggedInUserIsAdmin = false;
-  QueryDocumentSnapshot<Object?>? _loggedInPlayerDoc;
+
   Color activeLadderBackgroundColor = Colors.brown;
   @override
   Widget build(BuildContext context) {
@@ -494,25 +493,29 @@ class _PlayerHomeState extends State<PlayerHome> {
               }
               _players = playerSnapshots.data!.docs;
 
-              _loggedInPlayerDoc = null;
+              loggedInPlayerDoc = null;
               int numberOfHelpersPresent = 0;
+              int numberOfPlayersPresent = 0;
 
               for (var player in _players!) {
                 if (player.id == loggedInUser) {
-                  _loggedInPlayerDoc = player;
+                  loggedInPlayerDoc = player;
                 }
-                if (player.get('Helper') && player.get('Present')) {
-                  numberOfHelpersPresent += 1;
+                if (player.get('Present')) {
+                  numberOfPlayersPresent++;
+                  if (player.get('Helper')) {
+                    numberOfHelpersPresent += 1;
+                  }
                 }
               }
 
               DateTime? nextPlayDate;
-              (nextPlayDate,_)= getNextPlayDateTime(activeLadderDoc!);
+              (nextPlayDate, _) = getNextPlayDateTime(activeLadderDoc!);
               DateTime timeNow = DateTime.now();
               bool mayFreeze = false;
               if (_loggedInUserIsAdmin) mayFreeze = true;
-              if ((nextPlayDate != null) && (timeNow.difference(nextPlayDate).inMinutes.abs() < 30.0)) {
-                if ((_loggedInPlayerDoc != null) && (_loggedInPlayerDoc!.get('Helper') ?? false)) {
+              if ((nextPlayDate != null) && (timeNow.difference(nextPlayDate).inMinutes.abs() < 30.0) && (numberOfPlayersPresent>=4)) {
+                if ((loggedInPlayerDoc != null) && (loggedInPlayerDoc!.get('Helper') ?? false)) {
                   //TODO: can not unfreeze if scores are entered
                   mayFreeze = true;
                 }
@@ -559,9 +562,7 @@ class _PlayerHomeState extends State<PlayerHome> {
                             size: 30,
                           ),
                           onPressed: () async {
-                              sportTennisRGprepareForScoreEntry(_players);
-
-
+                            sportTennisRGprepareForScoreEntry(_players);
 
                             showFrozenLadderPage(context, true, courtAssignments);
                           },
@@ -571,6 +572,9 @@ class _PlayerHomeState extends State<PlayerHome> {
                         ),
                       ),
                     const SizedBox(width: 10),
+                    (loggedInPlayerDoc!.get('Helper') || _loggedInUserIsAdmin)?
+                    helperIcon(context, activeLadderId,null):SizedBox(width:1),
+                    SizedBox(width: 20),
                   ],
                 ),
                 body: SingleChildScrollView(
@@ -585,7 +589,7 @@ class _PlayerHomeState extends State<PlayerHome> {
                           : const SizedBox(
                               height: 100,
                             ),
-                      headerSummary(_players,courtAssignments),
+                      headerSummary(_players, courtAssignments),
                       ListView.separated(
                         scrollDirection: Axis.vertical,
                         shrinkWrap: true,

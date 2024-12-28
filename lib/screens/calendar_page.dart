@@ -18,13 +18,23 @@ import 'login_page.dart';
 
 dynamic currentCalendarPage;
 
+
+bool mapContainsDateKey(var events, DateTime key){
+  return events.keys.any((date){
+    // print('date: $date ${date.runtimeType}');
+    return (date.year==key.year) &&
+        (date.month == key.month) &&
+        (date.day == key.day );
+  });
+}
+
 (DateTime?,String) getNextPlayDateTime(DocumentSnapshot<Object?> ladderDoc){
   List<String> daysOfPlayOrig = ladderDoc.get('DaysOfPlay').split('|');
   if ((daysOfPlayOrig.length == 1) && (daysOfPlayOrig[0].isEmpty)) return (null,'');
   // remove any that are too short
   List<String> daysOfPlayChecked=[];
   for (int i=0; i<daysOfPlayOrig.length; i++){
-    if (daysOfPlayOrig[i].length >=14){
+    if (daysOfPlayOrig[i].length >=16){
       daysOfPlayChecked.add(daysOfPlayOrig[i]);
     } else {
       if (kDebugMode) {
@@ -35,7 +45,7 @@ dynamic currentCalendarPage;
   for (int i=0; i<daysOfPlayChecked.length; i++) {
     DateTime result;
     try {
-      result = FixedDateTimeFormatter('YYYYMMDD_hh:mm',isUtc: false).decode(daysOfPlayChecked[i]);
+      result = FixedDateTimeFormatter('YYYY.MM.DD_hh:mm',isUtc: false).decode(daysOfPlayChecked[i]);
     } catch(e){
       if (kDebugMode) {
         print('exception: $e from ${daysOfPlayChecked[i]}');
@@ -49,7 +59,7 @@ dynamic currentCalendarPage;
       continue;
     }
     // print('getNextPlayDateTime: ${daysOfPlayChecked[i]} =>$result');
-    return (result, daysOfPlayChecked[i].substring(14));
+    return (result, daysOfPlayChecked[i].substring(16));
   }
   return (null,'');
 }
@@ -135,11 +145,11 @@ class EventsList {
   Map<Object, Object?> getDBUpdateMap() {
     var working = dbList;
     added.forEach((k, v) {
-      String dateStr = DateFormat('yyyyMMdd').format(k);
+      String dateStr = DateFormat('yyyy.MM.dd').format(k);
       // check if there is an entry already
       int found = -1;
       for (int i = 0; i < dbList.length; i++) {
-        if (dateStr == dbList[i].toString().substring(0, 8)) {
+        if (dateStr == dbList[i].toString().substring(0, 10)) {
           found = i;
           break;
         }
@@ -155,11 +165,11 @@ class EventsList {
       }
     });
     removed.forEach((k, v) {
-      String dateStr = DateFormat('yyyyMMdd').format(k);
+      String dateStr = DateFormat('yyyy.MM.dd').format(k);
       // check if there is an entry already
       int found = -1;
       for (int i = 0; i < dbList.length; i++) {
-        if (dateStr == working[i].toString().substring(0, 8)) {
+        if (dateStr == working[i].toString().substring(0, 10)) {
           found = i;
           break;
         }
@@ -181,22 +191,25 @@ class EventsList {
       String dateStr = dbList[i].toString();
       DateTime date;
       String valueStr = '';
-      if (dateStr.length > 9) {
-        valueStr = dateStr.substring(9);
+      if (dateStr.length > 11) {
+        valueStr = dateStr.substring(11);
       }
       try {
-        date = DateTime.utc(int.parse(dateStr.substring(0, 4)), int.parse(dateStr.substring(4, 6)), int.parse(dateStr.substring(6, 8)));
+        date = DateFormat('yyyy.MM.dd').parse(dateStr.substring(0,10));
+        // date = DateTime.utc(int.parse(dateStr.substring(0, 4)), int.parse(dateStr.substring(4, 6)), int.parse(dateStr.substring(6, 8)));
         ret[date] = [Event('$baseText:$valueStr')];
       } catch (_) {}
     }
     added.forEach((k, v) {
-      if (ret.containsKey(k)) {
+      if (mapContainsDateKey(added, k)) {
+      // if (ret.containsKey(k)) {
         ret.remove(k);
       }
       ret[k] = [Event('$baseText:$v')];
     });
     removed.forEach((k, v) {
-      if (ret.containsKey(k)) {
+      if (mapContainsDateKey(removed, k)) {
+      // if (ret.containsKey(k)) {
         ret.remove(k);
       }
     });
@@ -204,21 +217,25 @@ class EventsList {
   }
 
   addEvent(DateTime date, Event newEvent) {
-    if (added.containsKey(date)) {
+    if (mapContainsDateKey(added, date)) {
+    // if (added.containsKey(date)) {
       added.remove(date);
     }
     added[date] = newEvent;
-    if (removed.containsKey(date)) {
+    if (mapContainsDateKey(removed, date)) {
+    // if (removed.containsKey(date)) {
       removed.remove(date);
     }
   }
 
   removeEvent(DateTime date) {
-    if (removed.containsKey(date)) {
+    if (mapContainsDateKey(removed, date)) {
+    // if (removed.containsKey(date)) {
       removed.remove(date);
     }
     removed[date] = '';
-    if (added.containsKey(date)) {
+    if (mapContainsDateKey(added, date)) {
+    // if (added.containsKey(date)) {
       added.remove(date);
     }
   }
@@ -272,7 +289,7 @@ class CalendarPageState extends State<CalendarPage> {
 
     _playOnEvents = EventsList('DaysOfPlay', 'play');
     _specialEvents = EventsList('DaysSpecial', 'misc');
-    _awayEvents = EventsList('DaysAway', 'AWAY:you have indicated that you will not play');
+    _awayEvents = EventsList('DaysAway', 'AWAY: you have indicated that you will not play');
 
      String tmpStr = activeLadderDoc!.get('DaysOfPlay').split('|')[0];
      if (tmpStr.length >=14) {
@@ -350,7 +367,7 @@ class CalendarPageState extends State<CalendarPage> {
               },
             ),
             TextButton(
-              child: const Text("OK"),
+              child: const Text('OK'),
               onPressed: () {
                 // print(_specialTextFieldController.text);
                 setState(() {
@@ -414,7 +431,7 @@ class CalendarPageState extends State<CalendarPage> {
                   },
                 ),
                 TextButton(
-                  child: const Text("OK"),
+                  child: const Text('OK'),
                   onPressed: () {
                     // double startTime = parse5CharTimeToDouble(_playTextFieldController.text);
                     //
@@ -438,11 +455,11 @@ class CalendarPageState extends State<CalendarPage> {
 
   void _onDaySelected(DateTime selectedDay, DateTime focusedDay) {
     setState(() {
-      _selectedDay = selectedDay;
-      _focusedDay = focusedDay;
+      _selectedDay = DateTime(selectedDay.year, selectedDay.month, selectedDay.day);
+      _focusedDay = DateTime(focusedDay.year, focusedDay.month, focusedDay.day);
     });
     if (typeOfCalendarEvent == EventTypes.playOn) {
-      if (!_playOnEvents.convertToCalendarEvents().containsKey(_selectedDay)) {
+      if (!mapContainsDateKey(_playOnEvents.convertToCalendarEvents(), _selectedDay!)) {
         // String eventString = 'play - this is a scheduled day of play';
         _playOnEvents.addEvent(_selectedDay!, Event(_lastPlayOnTime));
       } else {
@@ -480,6 +497,11 @@ class CalendarPageState extends State<CalendarPage> {
       } catch(_){}
     }
     String thisLine = '$eventType ${hour.toString().padLeft(2,' ')}:${min.toString().padLeft(2,'0')}${isPM?'PM':'AM'} ${str.substring(10)}';
+    if (eventType == 'AWAY:') {
+      thisLine = str;
+    } else if (eventType == 'misc:'){
+      thisLine = str;
+    }
     // print('thisLine:$thisLine');
     return Row(children: [
       Flexible(
@@ -644,9 +666,8 @@ class CalendarPageState extends State<CalendarPage> {
                             }
                           } else if ((typeOfCalendarEvent == EventTypes.playOn) && (value[index].toString().startsWith('misc'))) {
                             String initialText = value[index].toString();
-                            if (initialText.length >= 5) {
-                              _specialTextFieldController.text = value[index].toString().substring(5);
-                            }
+                            _specialTextFieldController.text = initialText.substring(5);
+
                             _specialTextInputDialog(context);
                           } else if ((typeOfCalendarEvent == EventTypes.playOn) && (value[index].toString().startsWith('play'))) {
                             String initialText = value[index].toString();

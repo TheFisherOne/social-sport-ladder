@@ -14,7 +14,7 @@ import 'login_page.dart';
 
 transactionAudit( { required Transaction transaction, required String user, required String documentName,
   required String action, required String newValue, String? oldValue }){
-  String auditTime = DateFormat('yyyy.MM.dd_hh:mm:ss').format(DateTime.now());
+  String auditTime = DateFormat('yyyy.MM.dd_HH:mm:ss').format(DateTime.now());
   var newContents = {
     'User': user,
     'Document': documentName,
@@ -27,8 +27,7 @@ transactionAudit( { required Transaction transaction, required String user, requ
 
 writeAudit({required String user, required String documentName,
    required String action, required String newValue, String? oldValue }){
-  // DateFormat format = DateFormat('yyyy.MM.dd_hh:mm:ss', );
-  String auditTime = DateFormat('yyyy.MM.dd_hh:mm:ss').format(DateTime.now());
+  String auditTime = DateFormat('yyyy.MM.dd_HH:mm:ss').format(DateTime.now());
   var newContents = {
     'User': user,
     'Document': documentName,
@@ -185,12 +184,12 @@ class _AuditPageState extends State<AuditPage> {
 
                             );
                           },
-                          child: const Text('Download audit log',
+                          child: Text('Download audit log',
                               style: nameStyle),
                         ),
                         Row(
                           children: [
-                            const Text('Filter:', style: nameStyle,),
+                            Text('Filter:', style: nameStyle,),
                             Expanded(
                               child: TextField(
                                 onChanged: (val){

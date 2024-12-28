@@ -161,6 +161,12 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
           }
 
           loggedInUserDoc = snapshot.data;
+          double usersFontSize = appFontSize;
+          try{
+            usersFontSize = loggedInUserDoc!.get('FontSize');
+          } catch(_){}
+          setBaseFont(usersFontSize);
+
           loggedInUserIsSuper = false;
           try {
             loggedInUserIsSuper = snapshot.data!.get('SuperUser');
@@ -189,7 +195,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                     child: makeDoubleConfirmationButton(
                         buttonText: 'Log\nOut',
                         dialogTitle: 'You will have to enter your password again',
-                        dialogQuestion: 'Are you sure you want to logout?',
+                        dialogQuestion: 'Are you sure you want to logout?\n$loggedInUser',
                         disabled: false,
                         onOk: () {
                           FirebaseAuth.instance.signOut();
@@ -265,6 +271,19 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                   elevation: 0.0,
                   automaticallyImplyLeading: false,
                   actions: [
+                    IconButton(
+                        onPressed: () {
+                          setState(() {
+                            double newFontSize=appFontSize+ 1.0;
+                            if (newFontSize > 40) newFontSize = 20.0;
+                            setBaseFont(newFontSize);
+                            print('appFontSize: $appFontSize');
+                            FirebaseFirestore.instance.collection('Users').doc(loggedInUserDoc!.id).update({
+                              'FontSize': appFontSize,
+                            });
+                          });
+                        },
+                        icon: Icon(Icons.text_increase)),
                     if (loggedInUserIsSuper)
                       Padding(
                         padding: const EdgeInsets.all(0.0),
@@ -284,7 +303,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                       child: makeDoubleConfirmationButton(
                           buttonText: 'Log\nOut',
                           dialogTitle: 'You will have to enter your password again',
-                          dialogQuestion: 'Are you sure you want to logout?',
+                          dialogQuestion: 'Are you sure you want to logout?\n$loggedInUser',
                           disabled: false,
                           onOk: () {
                             NavigatorState nav = Navigator.of(context);
@@ -368,7 +387,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                                       bool frozen = activeLadderDoc!.get('FreezeCheckIns');
                                       // print('go to players page $activeLadderId');
                                       if (frozen) {
-                                        showFrozenLadderPage(context, false,{});
+                                        showFrozenLadderPage(context, false, {});
                                       } else {
                                         Navigator.push(context, MaterialPageRoute(builder: (context) => const PlayerHome()));
                                       }
@@ -400,7 +419,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                                       ),
                                     ),
                                   ),
-                                  const Text(
+                                  Text(
                                     'Next Play:',
                                     style: nameStyle,
                                   ),

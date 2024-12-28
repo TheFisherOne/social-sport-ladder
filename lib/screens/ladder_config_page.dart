@@ -651,141 +651,7 @@ class _ConfigPageState extends State<ConfigPage> {
                     },
                     initialValue: activeLadderDoc!.get('Admins'),
                   ),
-                  // RoundedTextField.build(
-                  //   9,context,
-                  //   helperText: 'List of emails separated by commas',
-                  //   // keyboardType: const TextInputType.numberWithOptions(signed: false),
-                  //   onChanged: (value) {
-                  //     const int row = 9;
-                  //
-                  //     List<String> adminList = RoundedTextField.getText(row).split(',');
-                  //     if (adminList.isEmpty) {
-                  //       RoundedTextField.setErrorText(row, 'you need at least 1 admin');
-                  //       return;
-                  //     }
-                  //     int cnt = 0;
-                  //     for (String email in adminList) {
-                  //       cnt++;
-                  //       if (!email.isValidEmail()) {
-                  //         RoundedTextField.setErrorText(row, 'Entry:$cnt="$email" is not a valid email address');
-                  //         return;
-                  //       }
-                  //     }
-                  //     return;
-                  //   },
-                  //   onIconPressed: () {
-                  //     const int row = 9;
-                  //     List<String> oldAdmins = activeLadderDoc!.get('Admins').split(',');
-                  //     String newAdmins = RoundedTextField.getText(row);
-                  //     // print('oldAdmins at start = $oldAdmins => $newAdmins');
-                  //
-                  //     FirebaseFirestore.instance.runTransaction((transaction) async {
-                  //       // first the ladder document, which contains the Admins list
-                  //       DocumentReference ladderRef = FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId);
-                  //
-                  //       // second all of the globalUsers
-                  //       CollectionReference globalUserCollectionRef = FirebaseFirestore.instance.collection('Users');
-                  //       QuerySnapshot snapshot = await globalUserCollectionRef.get();
-                  //       var globalUserNames = snapshot.docs.map((doc) => doc.id);
-                  //       // print('List of all globalUsers  : $globalUserNames');
-                  //
-                  //       var globalUserRefMap = {};
-                  //       for (String userId in globalUserNames) {
-                  //         globalUserRefMap[userId] = FirebaseFirestore.instance.collection('Users').doc(userId);
-                  //       }
-                  //
-                  //       var globalUserDocMap = {};
-                  //       // var ladderDoc = await ladderRef.get();
-                  //       for (String userId in globalUserNames) {
-                  //         globalUserDocMap[userId] = await globalUserRefMap[userId].get();
-                  //       }
-                  //
-                  //       //third the list of all of the Players
-                  //       CollectionReference playersRef = FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Players');
-                  //       QuerySnapshot snapshotPlayers = await playersRef.get();
-                  //       var playerNames = snapshotPlayers.docs.map((doc) => doc.id);
-                  //       // print('List of all Players in ladder $activeLadderId : $playerNames');
-                  //
-                  //       // at this point we have done a get on all of the documents that we need
-                  //       // ladderRef, and globalUserDocMap
-                  //       // it is required to do all of the reads before any writes in a transaction
-                  //       // print('updating ladder $activeLadderId with Admins : "$newAdmins"');
-                  //       transaction.update(ladderRef, {
-                  //         'Admins': newAdmins,
-                  //       });
-                  //
-                  //       List<String> adminList = newAdmins.split(',');
-                  //       // print('new admins list is $adminList');
-                  //       for (String email in adminList) {
-                  //         try {
-                  //           String ladders = globalUserDocMap[email].get('Ladders');
-                  //           List<String> ladderList = ladders.split(',');
-                  //           bool found = false;
-                  //           for (var lad in ladderList) {
-                  //             if (lad == activeLadderId) found = true;
-                  //           }
-                  //           if (!found) {
-                  //             if (ladders.isEmpty) {
-                  //               transaction.update(globalUserRefMap[email], {
-                  //                 'Ladders': activeLadderId,
-                  //               });
-                  //             } else {
-                  //               transaction.update(globalUserRefMap[email], {
-                  //                 'Ladders': '$ladders,$activeLadderId',
-                  //               });
-                  //             }
-                  //           }
-                  //           // print('removing $email from $oldAdmins');
-                  //           oldAdmins.remove(email);
-                  //         } catch (e) {
-                  //           // the global user does not exist
-                  //           // print('creating globalUser $email with Ladders $activeLadderId');
-                  //           var newDocRef = FirebaseFirestore.instance.collection('Users').doc(email);
-                  //           transaction.set(newDocRef, {
-                  //             'Ladders': activeLadderId,
-                  //           });
-                  //         }
-                  //       }
-                  //       // print('oldAdmins is now = $oldAdmins');
-                  //       for (String email in oldAdmins) {
-                  //         // print('setAdmins remove from ladder $activeLadderId from global users $email');
-                  //         // need to find out if the removed admin is also a player, if so then do not remove from Ladders
-                  //         if (playerNames.contains(email)) continue;
-                  //
-                  //         try {
-                  //           String ladders = globalUserDocMap[email].get('Ladders');
-                  //           // print('setAdmins: got $ladders from $email');
-                  //           List<String> ladderList = ladders.split(',');
-                  //           String newLadders = '';
-                  //           for (var lad in ladderList) {
-                  //             if (lad == activeLadderId) continue;
-                  //             if (newLadders.isEmpty) {
-                  //               newLadders = lad;
-                  //             } else {
-                  //               newLadders = '$newLadders,$lad';
-                  //             }
-                  //           }
-                  //           // print('setAdmins: writing $newLadders to global user $email');
-                  //           transaction.update(globalUserRefMap[email], {
-                  //             'Ladders': newLadders,
-                  //           });
-                  //           transactionAudit(
-                  //               transaction: transaction,
-                  //               user: loggedInUser,
-                  //               documentName: 'LadderConfig',
-                  //               action: 'Change Admins',
-                  //               newValue: newAdmins,
-                  //               oldValue: activeLadderDoc!.get(_attrName[row]));
-                  //         } catch (_) {}
-                  //       }
-                  //     });
-                  //
-                  //     writeAudit(user: loggedInUser, documentName: 'LadderConfig', action: 'Set ${_attrName[row]}', newValue: newAdmins, oldValue: activeLadderDoc!.get(_attrName[row]).toString());
-                  //     FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
-                  //       _attrName[row]: newAdmins,
-                  //     });
-                  //   },
-                  // ),
+
                   MyTextField(
                     labelText: 'PriorityOfCourts',
                     helperText: 'List of short court names using "|"',
@@ -873,7 +739,7 @@ class _ConfigPageState extends State<ConfigPage> {
                             padding: const EdgeInsets.all(12.0),
                             child: DropdownButtonFormField<String>(
                               // onTap: RoundedTextForm.clearEditing(-1),
-                              decoration: const InputDecoration(
+                              decoration: InputDecoration(
                                   labelText: 'SuperDisabled',
                                   labelStyle: nameBigStyle,
                                   helperText: 'Is the ladder closed for admins',

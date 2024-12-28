@@ -247,7 +247,7 @@ class LoginPageState extends State<LoginPage> {
                       onTap: (emailErrorText != null) || (_emailController.text.isEmpty) ? null : _sendPasswordReset,
                       text: 'Send Password Reset Email',
                     )
-                  : const Text('Enter email if you have forgotten your password', style: nameStyle),
+                  : Text('Enter email if you have forgotten your password', style: nameStyle),
               const SizedBox(height: 20),
               Text(
                 _passwordResetError,

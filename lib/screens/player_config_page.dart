@@ -31,7 +31,7 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
   }
 
   refresh() => setState(() {});
-  void addPlayer(String newPlayerName) {
+  void addPlayer(BuildContext context, String newPlayerName) {
     DocumentReference globalUserRef = FirebaseFirestore.instance.collection('Users').doc(newPlayerName);
 
     FirebaseFirestore.instance.runTransaction((transaction) async {
@@ -72,15 +72,11 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
         'Name': 'New Player',
         'Present': false,
         'Rank': _players.length + 1,
-        'Score1': -9,
-        'Score2': -9,
-        'Score3': -9,
-        'Score4': -9,
-        'Score5': -9,
         'ScoreLastUpdatedBy': '',
         'TimePresent': DateTime.now(),
         'WillPlayInput': 0,
         'DaysAway': '',
+        'StartingOrder': 0,
       });
 
       transactionAudit(
@@ -91,16 +87,32 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
         newValue: 'Create',
       );
     });
+    print('addPlayer, calling firebase to create user with email and password, $newPlayerName');
     FirebaseAuth.instance.createUserWithEmailAndPassword(email: newPlayerName, password: '123456').then((userCredential) {
-      // print('addPlayer, create user with email and password, $newPlayerName');
+      print('addPlayer, create user with email and password, $newPlayerName returned without error');
+      final _ = showDialog<bool>( context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+              title: Text('WARNING'),
+              content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('you are now logged in as new user:$newPlayerName\n'
+                        'but you can continue to add new players\n'
+                        'but you will have to Log Out once you leave this page', style: nameStyle),
+                  ]
+              ));
+        },
+      );
       setState(() {
         _errorText = 'you are now logged in as new user:$newPlayerName';
       });
     }).catchError((e) {
       if (e.code == 'email-already-in-use') {
-        // print('addPlayer, create user ALREADY IN USE, $newPlayerName');
+        print('addPlayer, create user ALREADY IN USE, $newPlayerName');
       } else {
-        // print('addPlayer, error during registration of $newPlayerName $e');
+        print('addPlayer, error during registration of $newPlayerName $e');
         setState(() {
           _errorText = 'error during registration of $newPlayerName $e';
         });
@@ -280,7 +292,7 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
                   )),
               Row(
                 children: [
-                  const Text(
+                  Text(
                     'Rank: ',
                     style: nameStyle,
                     textAlign: TextAlign.left,
@@ -334,7 +346,7 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
 
               const SizedBox(height: 5),
               Row(children: [
-                const Text(
+                Text(
                   'Helper: ',
                   style: nameStyle,
                   textAlign: TextAlign.left,
@@ -486,7 +498,7 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
                           },
                           onIconClicked: (entry) {
                             String newValue = entry.trim().replaceAll(RegExp(r' \s+'), ' ');
-                            addPlayer(newValue);
+                            addPlayer(context, newValue);
                           },
                           initialValue: '',
                         );

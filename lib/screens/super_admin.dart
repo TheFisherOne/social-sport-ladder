@@ -2,7 +2,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:social_sport_ladder/constants/constants.dart';
-
 import '../Utilities/my_text_field.dart';
 
 
@@ -126,16 +125,14 @@ class _SuperAdminState extends State<SuperAdmin> {
 
   bool waitingForRebuild = false;
   String newLadderName = '';
-  TextEditingController createLadderEditingController = TextEditingController();
-  String? createLadderErrorText;
 
   final TextEditingController _ladderNameController = TextEditingController();
+  final TextEditingController _revisionController = TextEditingController();
 
   refresh() => setState(() {});
 
   @override
   Widget build(BuildContext context) {
-
     return StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance.collection('Ladder').snapshots(),
         builder: (BuildContext context, AsyncSnapshot<QuerySnapshot<Object?>> ladderSnapshots) {
@@ -216,6 +213,77 @@ class _SuperAdminState extends State<SuperAdmin> {
                   },
                   initialValue: '',
                 ),
+                MyTextField(
+                  labelText: 'Update Software Revision V$softwareVersion',
+                  helperText: 'A number for all ladders',
+                  controller: _revisionController,
+                  entryOK: (entry) {
+                    // print('Create new Ladder onChanged:new value=$value');
+                    String newValue = entry.trim().replaceAll(RegExp(r' \s+'), ' ');
+
+                    try {
+                      int.parse(newValue);
+                    } catch (_) {
+                      return 'not a valid integer';
+                    }
+                    return null;
+                  },
+                  onIconClicked: (entry) async {
+                    String newValue = entry.trim().replaceAll(RegExp(r' \s+'), ' ');
+                    // print('creating ladder $newValue');
+                    // createLadder(newValue);
+                    int number = 0;
+                    try {
+                      number = int.parse(newValue);
+                    } catch (_) {
+                      return;
+                    }
+                    for (QueryDocumentSnapshot<Object?> doc in ladderSnapshots.data!.docs) {
+                      FirebaseFirestore.instance.collection('Ladder').doc(doc.id).update({
+                        'RequiredSoftwareVersion': number,
+                      });
+                    }
+                    // print('done creating la
+                    // dder $newValue');
+                    // doc not ready to accept an audit yet
+                    // writeAudit(user: loggedInUser, documentName: newValue, action: 'Create Ladder', newValue: entry, oldValue: 'n/a');
+                    // print('done writing audit log for creating ladder');
+                  },
+                  initialValue: '',
+                ),
+                Row(children: [
+
+
+                Text(
+                  'empty n/a',
+                  style: nameStyle,
+                ),
+                IconButton(
+                    onPressed: null,
+                    // true?null:() {
+                    //   FirebaseFirestore.instance.collection('Ladder').get().then((QuerySnapshot ladder) {
+                    //     for (var doc in ladder.docs) {
+                    //       // FirebaseFirestore.instance.collection('Ladder').doc(doc.id).update({
+                    //       //   'DaysSpecial': '',
+                    //       // });
+                    //       FirebaseFirestore.instance.collection('Ladder/${doc.id}/Players').get().then((QuerySnapshot player) {
+                    //         for (var subDoc in player.docs) {
+                    //           // print('Ladder: ${doc.id} and Player: ${subDoc.id}');
+                    //           FirebaseFirestore.instance.collection('Ladder').doc(doc.id).collection('Players').doc(subDoc.id)
+                    //           .update({
+                    //             // 'TotalScore':0,
+                    //             // 'StartingOrder': 0,
+                    //             // 'Score1': FieldValue.delete(),
+                    //             // 'Score2': FieldValue.delete(),
+                    //             'WillPlayInput': FieldValue.delete(),
+                    //           });
+                    //         }
+                    //       });
+                    //     }
+                    //   });
+                    // },
+                    icon: Icon(Icons.check)),
+                ],),
               ],
             ),
           );
