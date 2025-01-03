@@ -120,6 +120,8 @@ class _SuperAdminState extends State<SuperAdmin> {
       'VacationStopTime': 8.00,
       'SuperDisabled': false,
       'Color': 'brown',
+      'SportDescriptor': '',
+      'FrozenDate': '',
     });
   }
 
@@ -275,7 +277,8 @@ class _SuperAdminState extends State<SuperAdmin> {
                     //             // 'StartingOrder': 0,
                     //             // 'Score1': FieldValue.delete(),
                     //             // 'Score2': FieldValue.delete(),
-                    //             'WillPlayInput': FieldValue.delete(),
+                    //             'ScoreConfirmed': FieldValue.delete(),
+                    //             'ScoresConfirmed':false,
                     //           });
                     //         }
                     //       });

@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:social_sport_ladder/screens/ladder_selection_page.dart';
 import 'package:social_sport_ladder/screens/login_page.dart';
+import 'Utilities/helper_icon.dart';
 import 'constants/firebase_setup2.dart';
 
 String settingsColorMode = 'lightMode';
@@ -31,6 +32,8 @@ class MyApp extends StatelessWidget {
     if (FirebaseAuth.instance.currentUser != null){
       if (FirebaseAuth.instance.currentUser!.email != null ){
         loggedInUser = FirebaseAuth.instance.currentUser!.email!.toLowerCase();
+        activeUser.id = loggedInUser;
+        print('logged in already as: ${activeUser.id}');
       }
     }
     // print('MyApp build: with email: $loggedInUser');

@@ -2,218 +2,12 @@ import 'dart:async';
 import 'dart:core';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:social_sport_ladder/Utilities/helper_icon.dart';
 import 'package:social_sport_ladder/constants/constants.dart';
 import 'package:social_sport_ladder/screens/ladder_selection_page.dart';
-import 'package:social_sport_ladder/screens/login_page.dart';
+import 'package:social_sport_ladder/sports/sport_tennis_rg.dart';
 import '../screens/audit_page.dart';
-import '../screens/ladder_config_page.dart';
 
-class PlayerList {
-  final QueryDocumentSnapshot snapshot;
-  int newRank = 0;
-  int currentRank = 0;
-
-  int courtNumber = -1;
-
-  int startingRank = 0;
-  int afterDownOne = 0;
-  int afterDownTwo = 0;
-  int afterScores = 0;
-  int afterWinLose = 0;
-
-
-  PlayerList(this.snapshot);
-
-  int get rank {
-    return snapshot.get('Rank');
-  }
-
-  bool get present {
-    return snapshot.get('Present');
-  }
-
-  int get totalScore {
-    return snapshot.get('TotalScore');
-  }
-
-  int get startingOrder {
-    return snapshot.get('StartingOrder');
-  }
-
-  String get daysAway {
-    return snapshot.get('DaysAway');
-  }
-
-  bool daysAwayIncludes(String dayStr) {
-    return snapshot.get('DaysAway').split('|').contains(dayStr);
-  }
-}
-
-List<PlayerList>?  sportTennisRGDetermineMovement(List<QueryDocumentSnapshot>? players, String dateWithRoundStr) {
-  if (players == null) return null;
-  if (dateWithRoundStr.isEmpty) return null;
-  String dateStr = dateWithRoundStr.substring(0, 10);
-
-  // this should be in Rank order
-  List<PlayerList> startingList = List.generate(players.length, (index) => PlayerList(players[index]));
-
-  List<PlayerList> notPresentList = List.empty(growable: true);
-  List<PlayerList> presentList = List.empty(growable: true);
-  List<List<PlayerList>> courtAssignments = List.empty(growable: true);
-  int currentCourt = -1;
-  int lastStartingOrder = 99;
-
-  for (int i = 0; i < players.length; i++) {
-    int startingOrder = startingList[i].startingOrder;
-    startingList[i].startingRank = startingList[i].rank;
-    if (startingList[i].present) {
-      if (startingOrder < lastStartingOrder) {
-        currentCourt++;
-        courtAssignments.add(List<PlayerList>.empty(growable: true));
-      }
-      courtAssignments[currentCourt].add(startingList[i]);
-      lastStartingOrder = startingOrder;
-      // print('startingOrder: i: $i court: $currentCourt startingOrder:$startingOrder ${startingList[i].snapshot.id}');
-
-      startingList[i].courtNumber = currentCourt;
-      startingList[i].newRank = 0;
-      presentList.add(startingList[i]);
-    } else {
-      startingList[i].newRank = startingList[i].rank + 1;
-      notPresentList.add(startingList[i]);
-    }
-  }
-  if (presentList.length < 4) return null;
-
-  // can't move down players that are already at the bottom
-  for (int i = presentList.last.rank - 1; i < players.length; i++) {
-    startingList[i].newRank = 0;
-  }
-  List<PlayerList> afterDownOne = List.empty(growable: true);
-  for (int i = 0; i < players.length; i++) {
-    if ((notPresentList.isNotEmpty && ((i + 1) == notPresentList[0].newRank)) || (presentList.isEmpty)){
-      afterDownOne.add(notPresentList.removeAt(0));
-    } else {
-      afterDownOne.add(presentList.removeAt(0));
-    }
-    afterDownOne.last.currentRank = i + 1;
-    afterDownOne.last.afterDownOne = i + 1;
-    // print('i:$i P: ${afterDownOne.last.present.toString().padRight(5)} R:${afterDownOne.last.rank} current: ${afterDownOne.last.currentRank}');
-  }
-
-  notPresentList = List.empty(growable: true);
-  presentList = List.empty(growable: true);
-  startingList = afterDownOne.toList();
-
-  for (int i = 0; i < players.length; i++) {
-    if (startingList[i].present || (startingList[i].daysAwayIncludes(dateStr))) {
-      startingList[i].newRank = 0;
-      presentList.add(startingList[i]);
-    } else {
-      startingList[i].newRank = startingList[i].currentRank + 1;
-      notPresentList.add(startingList[i]);
-    }
-  }
-  // print('afterDownTwo P len:${presentList.length} NP len: ${notPresentList.length} $dateStr');
-  if (presentList.length < 4) return null;
-
-  // can't move down players that are already at the bottom
-  for (int i = presentList.last.rank - 1; i < players.length; i++) {
-    startingList[i].newRank = 0;
-  }
-  List<PlayerList> afterDownTwo = List.empty(growable: true);
-  for (int i = 0; i < players.length; i++) {
-    if ((presentList.isEmpty) || ((notPresentList.isNotEmpty) && ((i + 1) == notPresentList[0].newRank))) {
-      afterDownTwo.add(notPresentList.removeAt(0));
-    } else {
-      afterDownTwo.add(presentList.removeAt(0));
-    }
-    afterDownTwo.last.currentRank = i + 1;
-    afterDownTwo.last.afterDownTwo = i + 1;
-    // print('i:$i P: ${afterDownTwo.last.present.toString().padRight(5)} WP: ${startingList[i].daysAwayIncludes(dateStr)} '
-    //     'R:${afterDownTwo.last.rank} current: ${afterDownTwo.last.currentRank}'
-    //     ' PLlen: ${presentList.length} NPlen: ${notPresentList.length}');
-  }
-  // for (int i=0; i<afterDownTwo.length;i++){
-  //   print('Start: ${afterDownTwo[i].rank} A1:${afterDownTwo[i].afterDownOne}  A2: ${afterDownTwo[i].afterDownTwo} R: ${i+1}');
-  // }
-
-  // now figure out movement due to score
-  List<PlayerList> afterScoresTmp = List.empty(growable: true);
-  for (int i = 0; i < courtAssignments.length; i++) {
-    List<PlayerList> playersOnCourt = List.empty(growable: true);
-    for (int j = 0; j < courtAssignments[i].length; j++) {
-      playersOnCourt.add(courtAssignments[i][j]);
-    }
-    // for (int j=0; j<playersOnCourt.length; j++) {
-    //   print('Court1: $i score: ${playersOnCourt[j].totalScore} email: ${playersOnCourt[j].snapshot.id}');
-    // }
-    playersOnCourt.sort((a, b) {
-      if (a.totalScore > b.totalScore) return -1;
-      if (a.totalScore < b.totalScore) return 1;
-      if (a.rank < b.rank) return -1;
-      return 1;
-    });
-    // for (int j=0; j<playersOnCourt.length; j++) {
-    //   print('Court2: $i score: ${playersOnCourt[j].totalScore} email: ${playersOnCourt[j].snapshot.id}');
-    // }
-    afterScoresTmp.addAll(playersOnCourt);
-  }
-
-  // now build a complete list including present and not present players
-  List<PlayerList> afterScores = List.empty(growable: true);
-  for (int i = 0; i < afterDownTwo.length; i++) {
-    var pl = afterDownTwo[i];
-    if (!pl.present) {
-      afterScores.add(pl);
-    } else {
-      afterScores.add(afterScoresTmp.removeAt(0));
-    }
-    afterScores.last.afterScores = i + 1;
-  }
-  // for (int i=0; i<afterScores.length;i++){
-  //   print('Start3: ${afterScores[i].rank} A1:${afterScores[i].afterDownOne}  A2: ${afterScores[i].afterDownTwo} A3:${afterScores[i].afterScores} R: ${i+1}');
-  // }
-
-  List<PlayerList> afterWinLose = afterScores.toList();
-  int lastWinner = -1;
-  int lastPresent = -1;
-  int lastCourtNumber = 99;
-  currentCourt = 0;
-  for (int i = 0; i < afterWinLose.length; i++) {
-    var pl = afterWinLose[i];
-    // print('i:$i pl: ${pl.rank} ${pl.snapshot.id}');
-    if (pl.present) {
-      if (pl.courtNumber != lastCourtNumber) {
-        if (lastWinner >= 0) {
-          // exchange this winner with the loser from the higher court
-          var tmp = afterWinLose[lastPresent];
-          // print('swapping: i: $i lastPresent: $lastPresent ${afterWinLose[i].snapshot.id} ${afterWinLose[lastPresent].snapshot.id}');
-          tmp.afterWinLose = i + 1;
-          afterWinLose[lastPresent] = afterWinLose[i];
-          afterWinLose[lastPresent].afterWinLose = lastPresent + 1;
-          afterWinLose[i] = tmp;
-        } else {
-          afterWinLose[i].afterWinLose = i + 1;
-        }
-        // we have a winner
-        lastWinner = i;
-      } else {
-        pl.afterWinLose = i + 1;
-      }
-      lastPresent = i;
-      lastCourtNumber = pl.courtNumber;
-    } else {
-      pl.afterWinLose = i + 1;
-    }
-  }
-  // for (int i=0; i<afterWinLose.length;i++){
-  //   print('Start4: ${afterWinLose[i].rank} A1:${afterWinLose[i].afterDownOne}  A2: ${afterWinLose[i].afterDownTwo} '
-  //       'A3:${afterWinLose[i].afterScores} A4: ${afterWinLose[i].afterWinLose} R: ${i+1}');
-  // }
-
-  return startingList;
-}
 
 class ScoreTennisRg extends StatefulWidget {
   final String ladderName;
@@ -253,7 +47,6 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
   late List<bool> _gameScoreErrors;
   String? _lastBeingEditedById;
   bool _anyScoresToSave = false;
-  bool _loggedInUserIsAdmin = false;
   bool _neverEdited = true;
 
   dynamic _movementList;
@@ -294,12 +87,12 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
     if (_playerList.length == 5) _numGames = 5;
 
     if (_beingEditedById != _lastBeingEditedById) {
-      if (_lastBeingEditedById == loggedInUser) {
+      if (_lastBeingEditedById == activeUser.id) {
         cancelWorkingScores();
       }
       // print('change in editor from $_lastBeingEditedById to $_beingEditedById');
       _lastBeingEditedById = _beingEditedById;
-      if ((_beingEditedById != loggedInUser) && _beingEditedById.isNotEmpty) {
+      if ((_beingEditedById != activeUser.id) && _beingEditedById.isNotEmpty) {
         _startTimer();
       }
     }
@@ -323,7 +116,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
     }
 
     int addUpTo = 8;
-    if (_numGames == 5 ) addUpTo = 6;
+    if (_numGames == 5) addUpTo = 6;
     _gameScoreErrors = List.filled(_numGames, false);
     for (int game = 0; game < _numGames; game++) {
       bool allOK = true;
@@ -333,7 +126,8 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
         if (b == null) return 1; // Place nulls at the beginning
         return a.compareTo(b); // Ascending order
       });
-      if (scores.last != null ) {  // if they are all null then it is ok nothing has been entered
+      if (scores.last != null) {
+        // if they are all null then it is ok nothing has been entered
         if (_numGames == 3) {
           if (scores.first == null) {
             print('_gameScoreErrors[$game] found null');
@@ -355,7 +149,6 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
         }
       }
       _gameScoreErrors[game] = !allOK;
-
     }
     // print('_gameScoreErrors: $_gameScoreErrors $_gameScores');
   }
@@ -468,25 +261,22 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
       workingValue = _workingGameScores[playerNum][gameNum]!;
       scoreEdited = true;
     }
-    bool helper = false;
+
     bool isInPlayerList = false;
     for (var doc in widget.fullPlayerList!) {
-      if (doc.id == loggedInUser) {
-        helper = doc.get('Helper');
-      }
-      if (_playerList.contains(loggedInUser)) {
+      if (_playerList.contains(doc.id)) {
         isInPlayerList = true;
       }
     }
     bool allowedToEdit = false;
 
-    if (_loggedInUserIsAdmin || helper || isInPlayerList) {
+    if (activeUser.helper || isInPlayerList) {
       allowedToEdit = true;
     }
-    bool colorBlue=false;
-    var zeroGame = [4,3,2,1,0];
-    if (_numGames == 5){
-      if (gameNum ==  zeroGame[playerNum]) {
+    bool colorBlue = false;
+    var zeroGame = [4, 3, 2, 1, 0];
+    if (_numGames == 5) {
+      if (gameNum == zeroGame[playerNum]) {
         colorBlue = true;
       }
     }
@@ -504,17 +294,17 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
               ? Colors.white
               : (_gameScoreErrors[gameNum])
                   ? Colors.red.shade300
-                  : (colorBlue? Colors.blue.shade300:null),
+                  : (colorBlue ? Colors.blue.shade300 : null),
           borderRadius: BorderRadius.circular(10), // Rounded border
           border: Border.all(color: Colors.black, width: 2), // Border styling
         ),
         child: InkWell(
           borderRadius: BorderRadius.circular(10),
-          onTap: (allowedToEdit && ((_beingEditedById.isEmpty) || (_beingEditedById == loggedInUser)))
+          onTap: (allowedToEdit && ((_beingEditedById.isEmpty) || (_beingEditedById == activeUser.id)))
               ? () {
                   // print('clicked on P:$playerNum, G:$gameNum V:$initialValue/$workingValue');
                   workingValue = (workingValue ?? 0) + 1;
-                  if (_numGames == 4 ) {
+                  if (_numGames == 4) {
                     if (workingValue! > 8) workingValue = 0;
                   } else {
                     if (workingValue! > 6) workingValue = 0;
@@ -522,15 +312,14 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                   setState(() {
                     _workingGameScores[playerNum][gameNum] = workingValue;
 
-                    if (_beingEditedById != loggedInUser ) {
+                    if (_beingEditedById != activeUser.id) {
                       FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Scores').doc(widget.scoreDoc.id).update({
-                        'BeingEditedBy': loggedInUser,
+                        'BeingEditedBy': activeUser.id,
                       });
                       _neverEdited = false;
                     }
-                    _beingEditedById = loggedInUser;
+                    _beingEditedById = activeUser.id;
                     _anyScoresToSave = true;
-
                   });
 
                   // print('workingGameScores2: $_workingGameScores');
@@ -567,7 +356,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
       int partner = (orderOfPartners[game])[lastPlayerWithScore];
       List result = [-1, -1, -1, -1];
       int score1 = getScore(lastPlayerWithScore, game)!;
-      if (score1>8) return null;
+      if (score1 > 8) return null;
       int score2 = 8 - score1;
       result[lastPlayerWithScore] = score1;
       result[partner] = score1;
@@ -578,6 +367,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
     }
     return null;
   }
+
   List? autoFill5(int game) {
     int scoresFilledIn = 0;
     int lastPlayerWithScore = -1;
@@ -592,31 +382,30 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
     if (scoresFilledIn == 0) return null;
     if (scoresFilledIn == 1) {
       var orderOfPartners = [
-        [1,  0,  3,  2, -1],
-        [4,  2,  1, -1,  0],
-        [3,  4, -1,  0,  1],
-        [2, -1,  0,  4,  3],
-        [-1, 3,  4,  1,  2],
+        [1, 0, 3, 2, -1],
+        [4, 2, 1, -1, 0],
+        [3, 4, -1, 0, 1],
+        [2, -1, 0, 4, 3],
+        [-1, 3, 4, 1, 2],
       ];
       int partner = (orderOfPartners[game])[lastPlayerWithScore];
       List result = [-1, -1, -1, -1, -1];
       int score1 = getScore(lastPlayerWithScore, game)!;
-      if (score1>6) return null;
+      if (score1 > 6) return null;
       int score2 = 6 - score1;
       result[lastPlayerWithScore] = score1;
       result[partner] = score1;
       for (int i = 0; i < result.length; i++) {
         if (result[i] < 0) result[i] = score2;
       }
-      result[4-game] = null; // the diagonal blank scores
+      result[4 - game] = null; // the diagonal blank scores
       return result;
     }
     return null;
   }
 
-
   void setScoresForGame4(int game) {
-    if (_playerList.length != 4){
+    if (_playerList.length != 4) {
       print('ERROR: setScoresForGame4 but there are not 4 games but ${_playerList.length}');
     }
     List newScores = autoFill4(game)!;
@@ -624,16 +413,17 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
       _workingGameScores[i][game] = newScores[i];
     }
     _anyScoresToSave = true;
-    if (_beingEditedById != loggedInUser ) {
+    if (_beingEditedById != activeUser.id) {
       FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Scores').doc(widget.scoreDoc.id).update({
-        'BeingEditedBy': loggedInUser,
+        'BeingEditedBy': activeUser.id,
       });
       _neverEdited = false;
     }
     setState(() {});
   }
+
   void setScoresForGame5(int game) {
-    if (_playerList.length != 5){
+    if (_playerList.length != 5) {
       print('ERROR: setScoresForGame5 but there are not 5 games but ${_playerList.length}');
     }
     List newScores = autoFill5(game)!;
@@ -642,9 +432,9 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
     }
     _anyScoresToSave = true;
 
-    if (_beingEditedById != loggedInUser ) {
+    if (_beingEditedById != activeUser.id) {
       FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Scores').doc(widget.scoreDoc.id).update({
-        'BeingEditedBy': loggedInUser,
+        'BeingEditedBy': activeUser.id,
       });
       _neverEdited = false;
     }
@@ -811,8 +601,8 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                         onPressed: (autoFill5(0) == null)
                             ? null
                             : () {
-                          setScoresForGame5(0);
-                        },
+                                setScoresForGame5(0);
+                              },
                         icon: Icon((autoFill5(0) == null) ? null : Icons.arrow_upward, size: 30)),
                   ),
                 ),
@@ -824,8 +614,8 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                         onPressed: (autoFill5(1) == null)
                             ? null
                             : () {
-                          setScoresForGame5(1);
-                        },
+                                setScoresForGame5(1);
+                              },
                         icon: Icon((autoFill5(1) == null) ? null : Icons.arrow_upward, size: 30)),
                   ),
                 ),
@@ -837,8 +627,8 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                         onPressed: (autoFill5(2) == null)
                             ? null
                             : () {
-                          setScoresForGame5(2);
-                        },
+                                setScoresForGame5(2);
+                              },
                         icon: Icon((autoFill5(2) == null) ? null : Icons.arrow_upward, size: 30)),
                   ),
                 ),
@@ -850,8 +640,8 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                         onPressed: (autoFill5(3) == null)
                             ? null
                             : () {
-                          setScoresForGame5(3);
-                        },
+                                setScoresForGame5(3);
+                              },
                         icon: Icon((autoFill5(3) == null) ? null : Icons.arrow_upward, size: 30)),
                   ),
                 ),
@@ -863,8 +653,8 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                         onPressed: (autoFill5(4) == null)
                             ? null
                             : () {
-                          setScoresForGame5(4);
-                        },
+                                setScoresForGame5(4);
+                              },
                         icon: Icon((autoFill5(4) == null) ? null : Icons.arrow_upward, size: 30)),
                   ),
                 ),
@@ -893,7 +683,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
           if ((row == 0) || (row == 4)) rowColor = Colors.green.shade200;
         } else if (_gameScores[0][2] == null) {
           if ((row == 0) || (row == 3)) rowColor = Colors.green.shade200;
-        }else if (_gameScores[0][3] == null) {
+        } else if (_gameScores[0][3] == null) {
           if ((row == 0) || (row == 4)) rowColor = Colors.green.shade200;
         } else {
           if ((row == 1) || (row == 3)) rowColor = Colors.green.shade200;
@@ -934,44 +724,44 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
       },
     );
   }
-Widget showRank(int rank, String helpString){
+
+  Widget showRank(int rank, String helpString) {
     // print('showRank: $rank $helpString');
-  return TextButton(
-    onPressed: () async {
-      return showDialog(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            // title: Text('Help'),
-            content: Text(helpString, style: nameStyle,),
-            actions: [
-              TextButton(
-                child: const Text('OK'),
-                onPressed: () {
-                  Navigator.pop(context);
-                },
+    return TextButton(
+      onPressed: () async {
+        return showDialog(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              // title: Text('Help'),
+              content: Text(
+                helpString,
+                style: nameStyle,
               ),
-            ],
-          );
-        },
-      );
-    },
-    child: Text(rank.toString().padLeft(2), style: nameStyle),
-  );
-}
+              actions: [
+                TextButton(
+                  child: const Text('OK'),
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      },
+      child: Text(rank.toString().padLeft(2), style: nameStyle),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     _dateStr = widget.activeLadderDoc.get('FrozenDate');
     // print('score_tennis_rg: id: ${_scoreDoc.id} ');
     updateFromDoc();
-    _loggedInUserIsAdmin = loggedInUserIsSuper;
-    if (activeLadderDoc!.get('Admins').split(',').contains(loggedInUser)) {
-      _loggedInUserIsAdmin = true;
-    }
 
     bool notLastEditor = true;
-    if (_scoresEnteredBy.split('|').last == loggedInUser) {
+    if (_scoresEnteredBy.split('|').last == activeUser.id) {
       notLastEditor = false;
     }
 
@@ -1006,7 +796,7 @@ Widget showRank(int rank, String helpString){
               child: Column(children: [
                 if (_playerList.length == 4) show4Players() else if (_playerList.length == 5) show5Players() else Text('Invalid number of players ${_playerList.length} ${_playerList.toString()}'),
                 const Divider(color: Colors.black),
-                if ((_beingEditedById == loggedInUser) && _anyScoresToSave)
+                if ((_beingEditedById == activeUser.id) && _anyScoresToSave)
                   Row(
                     children: [
                       Align(
@@ -1014,7 +804,7 @@ Widget showRank(int rank, String helpString){
                         child: IconButton(
                             onPressed: () {
                               String gameScoresStr = saveWorkingScores();
-                              writeAudit(user: loggedInUser, documentName: '${widget.ladderName}/$_scoreDocStr', action: 'EnterScore', newValue: gameScoresStr, oldValue: _gameScoresStr);
+                              writeAudit(user: activeUser.id, documentName: '${widget.ladderName}/$_scoreDocStr', action: 'EnterScore', newValue: gameScoresStr, oldValue: _gameScoresStr);
                               String newScoresEnteredBy = _scoresEnteredBy;
                               if (newScoresEnteredBy.isNotEmpty) newScoresEnteredBy += '|';
                               FirebaseFirestore.instance.collection('Ladder').doc(widget.ladderName).collection('Scores').doc(_scoreDocStr).update({
@@ -1032,6 +822,7 @@ Widget showRank(int rank, String helpString){
                                 FirebaseFirestore.instance.collection('Ladder').doc(widget.ladderName).collection('Players').doc(_playerList[play]).update({
                                   'TotalScore': score,
                                   'StartingOrder': play + 1,
+                                  'ScoresConfirmed': false,
                                 });
                               }
                               setState(() {
@@ -1058,7 +849,7 @@ Widget showRank(int rank, String helpString){
                       ),
                     ],
                   ),
-                if ((_beingEditedById != loggedInUser) && _beingEditedById.isNotEmpty)
+                if ((_beingEditedById != activeUser.id) && _beingEditedById.isNotEmpty)
                   TextButton(
                       onPressed: _isOverrideEditorEnabled
                           ? () {
@@ -1076,19 +867,25 @@ Widget showRank(int rank, String helpString){
                     'Scores being entered by:\n$_beingEditedByName',
                     style: nameStyle,
                   ),
-                if (_allScoresEntered && _beingEditedById.isEmpty && notLastEditor && !_scoresConfirmed)
+                if (activeUser.admin ||(_allScoresEntered && _beingEditedById.isEmpty && notLastEditor && !_scoresConfirmed))
                   TextButton(
                     style: ButtonStyle(
                       backgroundColor: WidgetStatePropertyAll(Colors.green.shade600),
                       foregroundColor: const WidgetStatePropertyAll(Colors.white),
                     ),
                     onPressed: () {
-                      writeAudit(user: loggedInUser, documentName: '${widget.ladderName}/$_scoreDocStr', action: 'ConfirmScore', newValue: 'True', oldValue: 'n/a');
+                      writeAudit(user: activeUser.id, documentName: '${widget.ladderName}/$_scoreDocStr', action: 'ConfirmScore', newValue: 'True', oldValue: 'n/a');
                       String newScoresEnteredBy = _scoresEnteredBy;
                       if (newScoresEnteredBy.isNotEmpty) newScoresEnteredBy += '|';
                       FirebaseFirestore.instance.collection('Ladder').doc(widget.ladderName).collection('Scores').doc(_scoreDocStr).update({
-                        'ScoresEnteredBy': '$newScoresEnteredBy$loggedInUser CONFIRMED',
+                        'ScoresEnteredBy': '$newScoresEnteredBy${activeUser.id} CONFIRMED',
                       });
+
+                      for (int i=0; i<_playerList.length; i++) {
+                        FirebaseFirestore.instance.collection('Ladder').doc(widget.ladderName).collection('Players').doc(_playerList[i]).update({
+                          'ScoresConfirmed': true,
+                        });
+                      }
                     },
                     child: Text('Confirm Scores', style: nameStyle),
                   ),
@@ -1111,35 +908,53 @@ Widget showRank(int rank, String helpString){
                       }),
                 ),
                 const Divider(color: Colors.black),
-                (_scoresConfirmed  && _neverEdited)? Text(
-                  'Change in Your Rank',
-                  style: nameStyle,
-                ):SizedBox(height: 1,),
-                (_scoresConfirmed && _neverEdited)?Padding(
-                  padding: const EdgeInsets.only(left: 12.0),
-                  child: ListView.builder(
-                      scrollDirection: Axis.vertical,
-                      shrinkWrap: true,
-                      physics: const ScrollPhysics(),
-                      itemCount: courtMovementList.length,
-                      itemBuilder: (context, row) {
-                        return Row(
-                          children: [
-                            showRank(courtMovementList[row].rank, 'The Rank you Started with'),
-                            Text("=>",style: nameStyle,),
-                            showRank(courtMovementList[row].afterDownOne, 'After others not present moved down'),
-                            Text("=>", style: nameStyle,),
-                            showRank(courtMovementList[row].afterDownTwo,
-                                'After others not present who didn\'t mark themselves away moved down a second one'),
-                            Text("=>",style: nameStyle,),
-                            showRank(courtMovementList[row].afterScores, 'Shuffle within your court as a result of your score'),
-                            Text("=>",style: nameStyle,),
-                            showRank(courtMovementList[row].afterWinLose,
-                                'If you won the court you exchange places with whoever lost on the court above'),
-                          ],
-                        );
-                      }),
-                ):SizedBox(height: 1,),
+                (_scoresConfirmed && _neverEdited)
+                    ? Text(
+                        'Change in Your Rank',
+                        style: nameStyle,
+                      )
+                    : SizedBox(
+                        height: 1,
+                      ),
+                (_scoresConfirmed && _neverEdited)
+                    ? Padding(
+                        padding: const EdgeInsets.only(left: 12.0),
+                        child: ListView.builder(
+                            scrollDirection: Axis.vertical,
+                            shrinkWrap: true,
+                            physics: const ScrollPhysics(),
+                            itemCount: courtMovementList.length,
+                            itemBuilder: (context, row) {
+                              return Row(
+                                children: [
+                                  showRank(courtMovementList[row].rank, 'The Rank you Started with'),
+                                  Text(
+                                    "=>",
+                                    style: nameStyle,
+                                  ),
+                                  showRank(courtMovementList[row].afterDownOne, 'After others not present moved down'),
+                                  Text(
+                                    "=>",
+                                    style: nameStyle,
+                                  ),
+                                  showRank(courtMovementList[row].afterDownTwo, 'After others not present who didn\'t mark themselves away moved down a second one'),
+                                  Text(
+                                    "=>",
+                                    style: nameStyle,
+                                  ),
+                                  showRank(courtMovementList[row].afterScores, 'Shuffle within your court as a result of your score'),
+                                  Text(
+                                    "=>",
+                                    style: nameStyle,
+                                  ),
+                                  showRank(courtMovementList[row].afterWinLose, 'If you won the court you exchange places with whoever lost on the court above'),
+                                ],
+                              );
+                            }),
+                      )
+                    : SizedBox(
+                        height: 1,
+                      ),
               ]))),
     );
   }

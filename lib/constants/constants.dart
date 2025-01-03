@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 
 const bool enableImages = false;
 const String fireStoreCollectionName = "social-sport-ladder";
-const int softwareVersion = 17;
+const int softwareVersion = 18;
 
 //colors
 Color surfaceColor = Colors.grey.shade300;

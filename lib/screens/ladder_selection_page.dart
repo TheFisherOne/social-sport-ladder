@@ -9,12 +9,13 @@ import 'package:intl/intl.dart';
 import 'package:social_sport_ladder/constants/constants.dart';
 import 'package:social_sport_ladder/screens/calendar_page.dart';
 import 'package:social_sport_ladder/screens/player_home.dart';
+import 'package:social_sport_ladder/screens/score_base.dart';
 import 'package:social_sport_ladder/screens/super_admin.dart';
+import '../Utilities/helper_icon.dart';
 import '../Utilities/misc.dart';
 import 'ladder_config_page.dart';
 import 'login_page.dart';
 
-// TODO: could add advertising between each of the ladders
 
 String activeLadderId = '';
 
@@ -161,16 +162,21 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
           }
 
           loggedInUserDoc = snapshot.data;
+          activeUser.canBeSuper = false;
+          activeUser.superEnabled = false;
+          activeUser.canBeHelper = false;
+          activeUser.helperEnabled = false;
+          activeUser.canBeAdmin = false;
+          activeUser.adminEnabled = false;
+          try {
+            activeUser.canBeSuper = loggedInUserDoc!.get('SuperUser');
+          } catch(_){}
+
           double usersFontSize = appFontSize;
           try{
             usersFontSize = loggedInUserDoc!.get('FontSize');
           } catch(_){}
           setBaseFont(usersFontSize);
-
-          loggedInUserIsSuper = false;
-          try {
-            loggedInUserIsSuper = snapshot.data!.get('SuperUser');
-          } catch (_) {}
 
           bool userOk = false;
           try {
@@ -195,11 +201,11 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                     child: makeDoubleConfirmationButton(
                         buttonText: 'Log\nOut',
                         dialogTitle: 'You will have to enter your password again',
-                        dialogQuestion: 'Are you sure you want to logout?\n$loggedInUser',
+                        dialogQuestion: 'Are you sure you want to logout?\n${activeUser.id}',
                         disabled: false,
                         onOk: () {
                           FirebaseAuth.instance.signOut();
-                          loggedInUser = '';
+                          activeUser.id = '';
                           Navigator.push(context, MaterialPageRoute(builder: (context) => const LoginPage()));
                         }),
                   ),
@@ -208,11 +214,11 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
               body: Text(errorText, style: nameStyle),
             );
           }
-          if (_lastLoggedInUser != loggedInUser) {
-            FirebaseFirestore.instance.collection('Users').doc(loggedInUser).update({
+          if (_lastLoggedInUser != activeUser.id) {
+            FirebaseFirestore.instance.collection('Users').doc(activeUser.id).update({
               'LastLogin': DateTime.now(),
             });
-            _lastLoggedInUser = loggedInUser;
+            _lastLoggedInUser = activeUser.id;
           }
 
           return StreamBuilder<QuerySnapshot>(
@@ -237,30 +243,29 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
               }
 
               List<String> availableLadders = _userLadders.split(",");
-              List<String> displayNames = List.empty(growable: true);
               List<QueryDocumentSnapshot<Object?>> availableDocs = List.empty(growable: true);
 
-              if (loggedInUserIsSuper) {
+              if (activeUser.canBeSuper) {
                 // print('number of ladders: ${snapshot.data!.docs.length}');
                 for (QueryDocumentSnapshot<Object?> doc in snapshot.data!.docs) {
-                  String displayName = doc.get('DisplayName');
-                  displayNames.add(displayName);
                   availableDocs.add(doc);
                 }
               } else {
                 for (String ladder in availableLadders) {
                   for (QueryDocumentSnapshot<Object?> doc in snapshot.data!.docs) {
                     if ((doc.id == ladder) && (!doc.get('SuperDisabled'))) {
-                      String displayName = doc.get('DisplayName');
-                      displayNames.add(displayName);
                       availableDocs.add(doc);
                       // print('Found ladders: $ladder => $displayName');
                     }
                   }
                 }
               }
-              for (var doc in availableDocs) {
-                _getLadderImage(doc.id);
+              availableDocs.sort( (a,b) =>
+               a.get('DisplayName').compareTo(b.get('DisplayName'))
+              );
+              for (int i=0; i<availableDocs.length;i++) {
+                _getLadderImage(availableDocs[i].id);
+                print('DisplayName: ${availableDocs[i].get('DisplayName')}');
               }
               // print('urlCache: $urlCache');
               return Scaffold(
@@ -284,7 +289,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                           });
                         },
                         icon: Icon(Icons.text_increase)),
-                    if (loggedInUserIsSuper)
+                    if (activeUser.canBeSuper)
                       Padding(
                         padding: const EdgeInsets.all(0.0),
                         child: IconButton(
@@ -343,8 +348,9 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                       activeLadderBackgroundColor = colorFromString(availableDocs[row].get('Color').toLowerCase());
 
                       String message = availableDocs[row].get('Message');
+                      print('message: $row $message');
 
-                      bool isAdmin = availableDocs[row].get('Admins').split(',').contains(loggedInUser) || loggedInUserIsSuper;
+                      bool isAdmin = availableDocs[row].get('Admins').split(',').contains(loggedInUser) || activeUser.amSuper;
                       String nextPlay1 = '';
                       String nextPlay2 = '';
 
@@ -379,6 +385,10 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                                   : () {
                                       activeLadderDoc = availableDocs[row];
                                       activeLadderId = availableDocs[row].id;
+                                      activeUser.canBeAdmin = activeLadderDoc!.get('Admins').split(',').contains(activeUser.id);
+                                      //print('canBeAdmin: ${activeUser.canBeAdmin} ${activeLadderDoc!.get('Admins').split(',')}');
+                                      activeUser.adminEnabled = false;
+
                                       String colorString = '';
                                       try {
                                         colorString = availableDocs[row].get('Color').toLowerCase();
@@ -387,14 +397,14 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                                       bool frozen = activeLadderDoc!.get('FreezeCheckIns');
                                       // print('go to players page $activeLadderId');
                                       if (frozen) {
-                                        showFrozenLadderPage(context, false, {});
+                                        showFrozenLadderPage(context, activeLadderDoc!, false);
                                       } else {
                                         Navigator.push(context, MaterialPageRoute(builder: (context) => const PlayerHome()));
                                       }
                                     },
                               child: Column(
                                 children: [
-                                  Text(' ${displayNames[row]}', textAlign: TextAlign.start, style: disabled ? nameStrikeThruStyle : nameBigStyle),
+                                  Text(' ${availableDocs[row].get('DisplayName')}', textAlign: TextAlign.start, style: disabled ? nameStrikeThruStyle : nameBigStyle),
                                   // SizedBox(height: 10),
                                   (urlCache.containsKey(availableDocs[row].id) && (urlCache[availableDocs[row].id] != null) && enableImages)
                                       ? Image.network(

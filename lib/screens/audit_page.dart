@@ -9,6 +9,7 @@ import 'package:social_sport_ladder/constants/constants.dart';
 import 'package:social_sport_ladder/screens/ladder_config_page.dart';
 import 'package:social_sport_ladder/screens/ladder_selection_page.dart';
 
+import '../Utilities/helper_icon.dart';
 import 'login_page.dart';
 
 
@@ -126,7 +127,7 @@ class _AuditPageState extends State<AuditPage> {
               auditDisplayStrings.add(line);
             }
           }
-          bool isAdmin = activeLadderDoc!.get('Admins').split(',').contains(loggedInUser) || loggedInUserIsSuper;
+          bool isAdmin = activeLadderDoc!.get('Admins').split(',').contains(loggedInUser) || activeUser.amSuper;
 
           return Scaffold(
               backgroundColor: Colors.green[50],

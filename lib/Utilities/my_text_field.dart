@@ -12,6 +12,7 @@ class MyTextField extends StatefulWidget {
   final void Function(String entry)? onIconClicked;
   final String? initialValue;
   final TextInputType? keyboardType;
+  final clearEntryOnLostFocus;
 
   const MyTextField({
     super.key,
@@ -24,6 +25,7 @@ class MyTextField extends StatefulWidget {
     this.onIconClicked,
     this.initialValue,
     this.keyboardType,
+    this.clearEntryOnLostFocus=true,
   });
 
   @override
@@ -41,18 +43,20 @@ class _MyTextFieldState extends State<MyTextField> {
     if (widget.initialValue !=null) {
       widget.controller.text = widget.initialValue!;
       lastSavedValue = widget.initialValue;
-
+    }
       _focusNode.addListener(() {
         setState(() {
-          if (widget.initialValue !=null) {
-            widget.controller.text=widget.initialValue!;
-          } else {
-            widget.controller.text='';
+          if (widget.clearEntryOnLostFocus) {
+            if (widget.initialValue != null) {
+              widget.controller.text = widget.initialValue!;
+            } else {
+              widget.controller.text = '';
+            }
           }
           errorString = null;
         });
       });
-    }
+
   }
 
   @override
@@ -69,7 +73,7 @@ class _MyTextFieldState extends State<MyTextField> {
         child: Padding(
         padding: const EdgeInsets.all(12.0),
     child:Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 5),
+        padding: const EdgeInsets.all(5.0),// .symmetric(horizontal: 5),
         child: TextField(
           focusNode: _focusNode,
           controller: widget.controller,
@@ -99,7 +103,7 @@ class _MyTextFieldState extends State<MyTextField> {
           },
           decoration: InputDecoration(
             labelText: widget.labelText,
-            helperText: _focusNode.hasFocus ? widget.helperText : null,
+            helper: _focusNode.hasFocus ? Text(widget.helperText, softWrap: true, overflow: TextOverflow.visible, style: nameStyle) : null,
             errorText: errorString,
             labelStyle: nameStyle,
             helperStyle: nameStyle,

@@ -5,10 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:social_sport_ladder/Utilities/string_validators.dart';
 import 'package:social_sport_ladder/constants/constants.dart';
 import 'package:social_sport_ladder/screens/ladder_config_page.dart';
+import '../Utilities/helper_icon.dart';
 import '../Utilities/my_text_field.dart';
 import 'audit_page.dart';
 import 'ladder_selection_page.dart';
-import 'login_page.dart';
+
 
 class PlayerConfigPage extends StatefulWidget {
   const PlayerConfigPage({super.key});
@@ -77,11 +78,12 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
         'WillPlayInput': 0,
         'DaysAway': '',
         'StartingOrder': 0,
+        'TotalScore': 0,
       });
 
       transactionAudit(
         transaction: transaction,
-        user: loggedInUser,
+        user: activeUser.id,
         documentName: newPlayerName,
         action: 'CreateUser',
         newValue: 'Create',
@@ -175,7 +177,7 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
 
         transactionAudit(
           transaction: transaction,
-          user: loggedInUser,
+          user: activeUser.id,
           documentName: playerId,
           action: 'DeleteUser',
           newValue: 'Delete',
@@ -224,7 +226,7 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
           'Rank': newRank,
         });
 
-        transactionAudit(transaction: transaction, user: loggedInUser, documentName: playerId, action: 'Change Rank', newValue: newRank.toString(), oldValue: oldRank.toString());
+        transactionAudit(transaction: transaction, user: activeUser.id, documentName: playerId, action: 'Change Rank', newValue: newRank.toString(), oldValue: oldRank.toString());
       }
       setState(() {});
     });
@@ -335,7 +337,7 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
                 },
                 onIconClicked: (entry) {
                   String newValue = entry.trim().replaceAll(RegExp(r' \s+'), ' ');
-                  writeAudit(user: loggedInUser, documentName: playerDoc.id, action: 'Set Name', newValue: newValue, oldValue: playerDoc.get('Name'));
+                  writeAudit(user: activeUser.id, documentName: playerDoc.id, action: 'Set Name', newValue: newValue, oldValue: playerDoc.get('Name'));
                   // print('ready to update');
                   FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Players').doc(playerDoc.id).update({
                     'Name': newValue,
@@ -359,7 +361,7 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
                           'Helper': val,
                         });
                         writeAudit(
-                          user: loggedInUser,
+                          user: activeUser.id,
                           documentName: playerDoc.id,
                           action: 'Change Helper',
                           newValue: val.toString(),

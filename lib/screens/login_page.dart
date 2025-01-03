@@ -8,13 +8,14 @@ import 'package:social_sport_ladder/Utilities/my_text_field.dart';
 import 'package:social_sport_ladder/Utilities/rounded_button.dart';
 import 'package:social_sport_ladder/Utilities/string_validators.dart';
 
+import '../Utilities/helper_icon.dart';
 import '../constants/constants.dart';
 import '../constants/firebase_setup2.dart';
 import 'ladder_selection_page.dart';
 
 String loggedInUser = "";
 DocumentSnapshot<Object?>? loggedInUserDoc;
-bool loggedInUserIsSuper = false;
+
 
 // this is used to trigger a signOut from another module
 LoginPageState? globalHomePage;
@@ -89,6 +90,8 @@ class LoginPageState extends State<LoginPage> {
         }
         // print('_signInWithEmailAndPassword: email: ${userCredential.user!.email!.toLowerCase()} ');
         loggedInUser = userCredential.user!.email!.toLowerCase();
+        activeUser.id = loggedInUser;
+        print('logged in with email as: ${activeUser.id}');
 
         _emailController.text = '';
         _passwordController.text = '';
@@ -156,6 +159,8 @@ class LoginPageState extends State<LoginPage> {
 
         // print('_signInWithGoogle: got email ${userCredential.user!.email!}');
         loggedInUser = userCredential.user!.email!.toLowerCase();
+        activeUser.id = loggedInUser;
+        print('logged with google as: ${activeUser.id}');
         nav.push(MaterialPageRoute(builder: (context) => const LadderSelectionPage()));
 
         return;
@@ -201,12 +206,15 @@ class LoginPageState extends State<LoginPage> {
         body: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               MyTextField(
                 labelText: 'Email',
                 controller: _emailController,
-                helperText: 'the email your administrator\nused to register you',
+                clearEntryOnLostFocus: false,
+                // initialValue: '',
+                helperText: 'the email your administrator used to register you',
                 inputFormatters: [LowerCaseTextInputFormatter()],
                 entryOK: (String? val) {
                   setState(() {
@@ -223,7 +231,9 @@ class LoginPageState extends State<LoginPage> {
               MyTextField(
                 labelText: 'Password',
                 obscureText: true,
-                helperText: 'Please enter your password for this app\nif you don''t know your password\nfill in email\nand press Reset button',
+                clearEntryOnLostFocus: false,
+                // initialValue: '',
+                helperText: 'Please enter your password for this app if you don''t know your password fill in email and press Reset button',
                 controller: _passwordController,
                 entryOK: (String? val) {
                   setState(() {
@@ -263,22 +273,6 @@ class LoginPageState extends State<LoginPage> {
               //   onPressed: _signInWithFacebook,),
               // const SizedBox(height: 20),
               Text(_loginErrorString, style: errorNameStyle),
-              //TODO: this color theme can probably be removed totally, we are using color to differentiate between ladders.
-              // const SizedBox(height: 40),
-              // MyTextField(
-              //   labelText: 'Color Theme',
-              //   helperText: 'DarkMode or LightMode',
-              //   controller: _modeController,
-              //   entryOK: (String? val) {
-              //
-              //     if ((_modeController.text == 'DarkMode')|| (_modeController.text == 'LightMode')) {
-              //       print('setting color theme ${_modeController.text}');
-              //       Provider.of<ThemeProvider>(context,listen:false).setTheme(_modeController.text);
-              //       return null;
-              //     }
-              //     return null;
-              //   },
-              // ),
             ],
           ),
         ));

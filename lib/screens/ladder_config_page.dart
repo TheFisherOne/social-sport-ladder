@@ -7,6 +7,7 @@ import 'package:social_sport_ladder/Utilities/my_text_field.dart';
 import 'package:social_sport_ladder/Utilities/string_validators.dart';
 import 'package:social_sport_ladder/screens/player_config_page.dart';
 import 'package:social_sport_ladder/screens/player_home.dart';
+import '../Utilities/helper_icon.dart';
 import '../Utilities/rounded_button.dart';
 import '../constants/constants.dart';
 import 'audit_page.dart';
@@ -124,7 +125,7 @@ class _ConfigPageState extends State<ConfigPage> {
           activeLadderDoc = snapshot.data;
           //RoundedTextField.initialize(_attrName, activeLadderDoc);
 
-          bool isAdmin = activeLadderDoc!.get('Admins').split(',').contains(loggedInUser) || loggedInUserIsSuper;
+          bool isAdmin = activeLadderDoc!.get('Admins').split(',').contains(loggedInUser) || activeUser.amSuper;
 
           // print('Days from now $daysFromNow');
           return Scaffold(
@@ -654,7 +655,7 @@ class _ConfigPageState extends State<ConfigPage> {
 
                   MyTextField(
                     labelText: 'PriorityOfCourts',
-                    helperText: 'List of short court names using "|"',
+                    helperText: 'List of short court names using "|" to separate them. If not all of the courts are required the ones at the end will not be used.',
                     controller: _courtsController,
                     entryOK: (entry) {
                       if (entry.length > 100) return 'Message too long';
@@ -732,7 +733,7 @@ class _ConfigPageState extends State<ConfigPage> {
                               });
                             },
                           ))),
-                  if (loggedInUserIsSuper)
+                  if (activeUser.amSuper)
                     SizedBox(
                         width: double.infinity,
                         child: Padding(

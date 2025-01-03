@@ -3,6 +3,48 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:social_sport_ladder/sports/score_tennis_rg.dart';
 
+import '../sports/sport_tennis_rg.dart';
+
+showFrozenLadderPage(context, DocumentSnapshot activeLadderDoc, bool withReplacement) {
+  String sportDescriptor = 'tennisRG';
+  try {
+    sportDescriptor = activeLadderDoc.get('SportDescriptor');
+  } catch (_) {
+    print('Can not find SPortDescriptor in ladder doc $activeLadderDoc ${activeLadderDoc.id}');
+  }
+
+  //print('SportDescriptor: "${sportDescriptor.split(':')}" withReplacement: $withReplacement');
+  dynamic page;
+  if (sportDescriptor.split(':')[0] == 'tennisRG') {
+    page = const SportTennisRG();
+  }
+  if (withReplacement) {
+    // we can create the Score Docs here
+    Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => page));
+  } else {
+    Navigator.push(context, MaterialPageRoute(builder: (context) => page));
+  }
+}
+
+void prepareForScoreEntry(DocumentSnapshot activeLadderDoc, List<QueryDocumentSnapshot>? players) {
+String sportDescriptor = activeLadderDoc.get('SportDescriptor');
+if (sportDescriptor.split(':')[0] == 'tennisRG') {
+sportTennisRGprepareForScoreEntry(players);
+return;
+}
+print('ERROR: determineMovement could not find SportDescriptor: $sportDescriptor');
+
+}
+List<PlayerList>? determineMovement(DocumentSnapshot activeLadderDoc, List<QueryDocumentSnapshot>? players) {
+  String sportDescriptor = activeLadderDoc.get('SportDescriptor');
+  String dateWithRoundStr = activeLadderDoc.get('FrozenDate');
+  if (sportDescriptor.contains('rg_mens')) {
+    return sportTennisRGDetermineMovement(players, dateWithRoundStr);
+  }
+  print('ERROR: determineMovement could not find SportDescriptor: $sportDescriptor');
+  return sportTennisRGDetermineMovement(players, dateWithRoundStr);
+}
+
 class ScoreBase extends StatefulWidget {
   final String ladderName;
 
@@ -21,6 +63,7 @@ class ScoreBase extends StatefulWidget {
   @override
   State<ScoreBase> createState() => _ScoreBaseState();
 }
+
 
 class _ScoreBaseState extends State<ScoreBase> {
   DocumentSnapshot<Object?>? _activeLadderDoc;
@@ -91,9 +134,17 @@ class _ScoreBaseState extends State<ScoreBase> {
                 // print('StreamBuilder config page: activeLadderId: $activeLadderId id: ${snapshot.data!.id}');
                 _scoreDoc = snapshot.data!;
 
-                //TODO this is where we decide which score page to render
-                return ScoreTennisRg(ladderName: widget.ladderName, round: widget.round, court: widget.court,
-                    fullPlayerList: widget.fullPlayerList, activeLadderDoc: _activeLadderDoc!, scoreDoc: _scoreDoc);
+                List<String> sportDescriptor = _activeLadderDoc!.get('SportDescriptor').split(':');
+                if (sportDescriptor[0]=='tennisRG') {
+                  return ScoreTennisRg(ladderName: widget.ladderName,
+                      round: widget.round,
+                      court: widget.court,
+                      fullPlayerList: widget.fullPlayerList,
+                      activeLadderDoc: _activeLadderDoc!,
+                      scoreDoc: _scoreDoc);
+                } else {
+                  return Text('invalid sportDescriptor for Score screen $sportDescriptor');
+                }
               });
         });
   }

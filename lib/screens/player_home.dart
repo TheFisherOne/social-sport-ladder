@@ -2,14 +2,15 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:intl/intl.dart';
 import 'package:location/location.dart';
 import 'package:social_sport_ladder/screens/ladder_config_page.dart';
+import 'package:social_sport_ladder/screens/score_base.dart';
 
 import '../Utilities/helper_icon.dart';
 import '../Utilities/location.dart';
 import '../Utilities/player_image.dart';
 import '../constants/constants.dart';
+// import '../sports/score_tennis_rg.dart';
 import '../sports/sport_tennis_rg.dart';
 import 'audit_page.dart';
 import 'calendar_page.dart';
@@ -21,87 +22,88 @@ QueryDocumentSnapshot? clickedOnPlayerDoc;
 QueryDocumentSnapshot<Object?>? loggedInPlayerDoc;
 bool headerSummarySelected = false;
 
-dynamic getCourtAssignmentNumbers(List<QueryDocumentSnapshot>? players) {
-  int numPresent = 0;
-  int numExpected = 0;
-  int numAway = 0;
-  List<int> ranksAway = List.empty(growable: true);
-  List<int> ranksUnassigned = List.empty(growable: true);
-  DateTime? nextPlay;
-  (nextPlay, _) = getNextPlayDateTime(activeLadderDoc!);
-  String nextPlayStr;
-  if (nextPlay != null) {
-    nextPlayStr = DateFormat('yyyy.MM.dd').format(nextPlay);
-  } else {
-    nextPlayStr = '';
-  }
+// dynamic getCourtAssignmentNumbers(List<QueryDocumentSnapshot>? players) {
+//   int numPresent = 0;
+//   int numExpected = 0;
+//   int numAway = 0;
+//   List<int> ranksAway = List.empty(growable: true);
+//   List<int> ranksUnassigned = List.empty(growable: true);
+//   DateTime? nextPlay;
+//   (nextPlay, _) = getNextPlayDateTime(activeLadderDoc!);
+//   String nextPlayStr;
+//   if (nextPlay != null) {
+//     nextPlayStr = DateFormat('yyyy.MM.dd').format(nextPlay);
+//   } else {
+//     nextPlayStr = '';
+//   }
+//
+//   int totalCourtsAvailable = activeLadderDoc!.get('PriorityOfCourts').split('|').length;
+//   for (var player in players!) {
+//     if (player.get('Present')) {
+//       numPresent++;
+//     }
+//     if (player.get('DaysAway').split('|').contains(nextPlayStr)) {
+//       ranksAway.add(player.get('Rank'));
+//       numAway++;
+//       //print('will be away: ${player.get('Name')} ${player.get('DaysAway').split('|')} == $nextPlayStr ranksAway: $ranksAway');
+//     } else {
+//       numExpected++;
+//     }
+//   }
+//
+//   int numCourts = numPresent ~/ 4;
+//   if (numCourts > totalCourtsAvailable) numCourts = totalCourtsAvailable;
+//
+//   int numCourtsOf4 = numCourts;
+//   int numCourtsOf5 = 0;
+//   int playersNotAssigned = numPresent - 4 * numCourtsOf4;
+//
+//   while ((numCourtsOf4 > 0) && (playersNotAssigned > 0)) {
+//     numCourtsOf4--;
+//     numCourtsOf5++;
+//     playersNotAssigned = numPresent - 4 * numCourtsOf4 - 5 * numCourtsOf5;
+//   }
+//   print('Courts of 4:$numCourtsOf4 5:$numCourtsOf5 =:$numCourts');
+//
+//   int unassigned = playersNotAssigned;
+//   while (unassigned > 0) {
+//     QueryDocumentSnapshot? latestPlayer;
+//     Timestamp latestTime = Timestamp(1, 0);
+//     for (var player in players) {
+//       if (!ranksUnassigned.contains(player.get('Rank'))) {
+//         Timestamp thisTime = player.get('TimePresent');
+//         // print('compare ${thisTime.toDate()} > ${latestTime.toDate()} ${thisTime.compareTo(latestTime)}');
+//         if (thisTime.compareTo(latestTime) > 0) {
+//           latestTime = thisTime;
+//           latestPlayer = player;
+//         }
+//       }
+//     }
+//     if (latestPlayer == null) break;
+//     ranksUnassigned.add(latestPlayer.get('Rank'));
+//     unassigned--;
+//   }
+//   //if (playersNotAssigned > 0) print('unassigned players: $playersNotAssigned $ranksUnassigned');
+//   //print('player ranks marked as away $numAway $ranksAway');
+//
+//   return {
+//     'numPresent': numPresent,
+//     'numExpected': numExpected,
+//     'numAway': numAway,
+//     'numCourtsOf4': numCourtsOf4,
+//     'numCourtsOf5': numCourtsOf5,
+//     'playersNotAssigned': playersNotAssigned,
+//     'numCourts': numCourts,
+//     'totalCourtsAvailable': totalCourtsAvailable,
+//     'ranksAway': ranksAway,
+//     'ranksUnassigned': ranksUnassigned,
+//   };
+// }
 
-  int totalCourtsAvailable = activeLadderDoc!.get('PriorityOfCourts').split('|').length;
-  for (var player in players!) {
-    if (player.get('Present')) {
-      numPresent++;
-    }
-    if (player.get('DaysAway').split('|').contains(nextPlayStr)) {
-      ranksAway.add(player.get('Rank'));
-      numAway++;
-      //print('will be away: ${player.get('Name')} ${player.get('DaysAway').split('|')} == $nextPlayStr ranksAway: $ranksAway');
-    } else {
-      numExpected++;
-    }
-  }
-
-  int numCourts = numPresent ~/ 4;
-  if (numCourts > totalCourtsAvailable) numCourts = totalCourtsAvailable;
-
-  int numCourtsOf4 = numCourts;
-  int numCourtsOf5 = 0;
-  int playersNotAssigned = numPresent - 4 * numCourtsOf4;
-
-  while ((numCourtsOf4 > 0) && (playersNotAssigned > 0)) {
-    numCourtsOf4--;
-    numCourtsOf5++;
-    playersNotAssigned = numPresent - 4 * numCourtsOf4 - 5 * numCourtsOf5;
-  }
-
-  int unassigned = playersNotAssigned;
-  while (unassigned > 0) {
-    QueryDocumentSnapshot? latestPlayer;
-    Timestamp latestTime = Timestamp(1, 0);
-    for (var player in players) {
-      if (!ranksUnassigned.contains(player.get('Rank'))) {
-        Timestamp thisTime = player.get('TimePresent');
-        // print('compare ${thisTime.toDate()} > ${latestTime.toDate()} ${thisTime.compareTo(latestTime)}');
-        if (thisTime.compareTo(latestTime) > 0) {
-          latestTime = thisTime;
-          latestPlayer = player;
-        }
-      }
-    }
-    if (latestPlayer == null) break;
-    ranksUnassigned.add(latestPlayer.get('Rank'));
-    unassigned--;
-  }
-  //if (playersNotAssigned > 0) print('unassigned players: $playersNotAssigned $ranksUnassigned');
-  //print('player ranks marked as away $numAway $ranksAway');
-
-  return {
-    'numPresent': numPresent,
-    'numExpected': numExpected,
-    'numAway': numAway,
-    'numCourtsOf4': numCourtsOf4,
-    'numCourtsOf5': numCourtsOf5,
-    'playersNotAssigned': playersNotAssigned,
-    'numCourts': numCourts,
-    'totalCourtsAvailable': totalCourtsAvailable,
-    'ranksAway': ranksAway,
-    'ranksUnassigned': ranksUnassigned,
-  };
-}
-
-Widget headerSummary(List<QueryDocumentSnapshot>? players, assign) {
+Widget headerSummary(List<QueryDocumentSnapshot>? players, List<PlayerList> assign) {
   String unAssignedStr = '';
-  if (assign['playersNotAssigned'] > 0) {
-    unAssignedStr = '(${assign['playersNotAssigned']})';
+  if (PlayerList.numUnassigned > 0) {
+    unAssignedStr = '(${PlayerList.numUnassigned})';
   }
   return InkWell(
     onTap: () {
@@ -111,45 +113,30 @@ Widget headerSummary(List<QueryDocumentSnapshot>? players, assign) {
     child: (headerSummarySelected)
         ? Column(
             children: [
-              Text('Present: ${assign['numPresent']} out of ${assign['numExpected']} expected', style: nameStyle),
-              Text('Courts of 4=${assign['numCourtsOf4']}  Courts of 5=${assign['numCourtsOf5']}', style: nameStyle),
-              if ((assign['playersNotAssigned'] > 0) && (assign['numCourtsOf5'] == assign['numCourts']) && (assign['numCourts'] == assign['totalCourtsAvailable']))
+              Text('Present: ${PlayerList.numPresent} out of ${PlayerList.numExpected} expected', style: nameStyle),
+              Text('Courts of 4=${PlayerList.numCourtsOf4}  Courts of 5=${PlayerList.numCourtsOf5}', style: nameStyle),
+              (PlayerList.numCourts == (PlayerList.numCourtsOf4+PlayerList.numCourtsOf5))?
+              Text('Courts available ${PlayerList.numCourts}', style: nameStyle):SizedBox(height: 1,),
+              if ((PlayerList.numUnassigned > 0) && (PlayerList.numCourtsOf5 == PlayerList.numCourts) && (PlayerList.numCourts == PlayerList.totalCourtsAvailable))
                 Text(
-                  'Players not on court ${assign['playersNotAssigned']}:marked (Last)\nall available courts are full',
+                  'Players not on court ${PlayerList.numUnassigned}:marked (Last)\nall available courts are full',
                   style: nameStyle,
                 )
-              else if (assign['playersNotAssigned'] > 0)
+              else if (PlayerList.numUnassigned > 0)
                 Text(
-                  'Players not on court ${assign['playersNotAssigned']}:marked (Last)\nwaiting for more players to checkin',
+                  'Players not on court ${PlayerList.numUnassigned}:marked (Last)\nwaiting for more players to checkin',
                   style: nameStyle,
                 ),
             ],
           )
         : Text(
-            '${assign['numPresent']}/${assign['numExpected']} 4=${assign['numCourtsOf4']} 5=${assign['numCourtsOf5']} $unAssignedStr',
+            '${PlayerList.numPresent}/${PlayerList.numExpected} 4=${PlayerList.numCourtsOf4} 5=${PlayerList.numCourtsOf5} $unAssignedStr',
             style: nameStyle,
           ),
   );
 }
 
-showFrozenLadderPage(context, bool withReplacement, dynamic courtAssignments) {
-  String sportDescriptor = 'tennisRG';
-  try {
-    sportDescriptor = activeLadderDoc!.get('SportDescriptor');
-  } catch (_) {}
 
-  //print('SportDescriptor: "${sportDescriptor.split(':')}" withReplacement: $withReplacement');
-  dynamic page;
-  if (sportDescriptor.split(':')[0] == 'tennisRG') {
-    page = const SportTennisRG();
-  }
-  if (withReplacement) {
-    // we can create the Score Docs here
-    Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => page));
-  } else {
-    Navigator.push(context, MaterialPageRoute(builder: (context) => page));
-  }
-}
 
 class PlayerHome extends StatefulWidget {
   const PlayerHome({super.key});
@@ -184,7 +171,7 @@ class _PlayerHomeState extends State<PlayerHome> {
     if (player.get('Present') ?? false) {
       standardIcon = Icons.check_box;
     }
-    if (_loggedInUserIsAdmin) return (standardIcon, 'You are on Admin override');
+    if (activeUser.admin) return (standardIcon, 'You are on Admin override');
 
     // this should not happen, as this function should not be called in this circumstance
     if (activeLadderDoc!.get('FreezeCheckIns') ?? false) {
@@ -204,7 +191,7 @@ class _PlayerHomeState extends State<PlayerHome> {
     }
 
     if (((nextPlayDate.hour + nextPlayDate.minute / 100.0) - (timeNow.hour + timeNow.minute / 100.0)) < activeLadderDoc!.get('CheckInStartHours')) {
-      if ((!player.get('Present')) && (player.id == loggedInUser)) {
+      if ((!player.get('Present')) && (player.id == activeUser.id)) {
         LocationData? where;
         int secAgo = 9999;
         (where, secAgo) = _loc.getLast();
@@ -213,13 +200,13 @@ class _PlayerHomeState extends State<PlayerHome> {
       }
 
       if (player.get('Present')) return (Icons.check_box, 'Checked in and ready to play');
-      if (player.id == loggedInUser) {
+      if (player.id == activeUser.id) {
         return (Icons.check_box_outline_blank, 'Ready to check in if you are going to play');
-      } else if (loggedInPlayerDoc!.get('Helper')) {
+      } else if (activeUser.helper) {
         return (Icons.check_box_outline_blank, 'Helper checkin');
       }
     } else {
-      if ((player.id == loggedInUser) || (loggedInPlayerDoc!.get('Helper'))) {
+      if ((player.id == activeUser.id) || (activeUser.helper)) {
         return (Icons.access_time, 'you have to wait until ${activeLadderDoc!.get('CheckInStartHours')} hours before ladder start');
       }
     }
@@ -258,7 +245,7 @@ class _PlayerHomeState extends State<PlayerHome> {
   Widget unfrozenSubLine(QueryDocumentSnapshot player) {
     _getPlayerImage(player.id);
     clickedOnPlayerDoc = player;
-    if (player.id == loggedInUser) {
+    if (player.id == activeUser.id) {
       if (!player.get('Present')) {
         _loc.askForSetState(this);
         _loc.startTimer();
@@ -271,7 +258,7 @@ class _PlayerHomeState extends State<PlayerHome> {
     // print('unfrozenSubLine: presentCheckBoxText: $presentCheckBoxText');
     // print('unfrozenSubLine: ${checkBoxIcon == Icons.check_box} || ${(checkBoxIcon == Icons.check_outline_blank)}');
     return Container(
-      color: (player.id == loggedInUser) ? Colors.green.shade100 : Colors.blue.shade100,
+      color: (player.id == activeUser.id) ? Colors.green.shade100 : Colors.blue.shade100,
       child: Padding(
         padding: const EdgeInsets.all(15.0),
         child: Row(
@@ -279,7 +266,7 @@ class _PlayerHomeState extends State<PlayerHome> {
             Container(
               height: 50,
               width: 50,
-              color: (player.id == loggedInUser) ? Colors.green.shade100 : Colors.blue.shade100,
+              color: (player.id == activeUser.id) ? Colors.green.shade100 : Colors.blue.shade100,
               child: Padding(
                 padding: const EdgeInsets.all(0.0),
                 child: InkWell(
@@ -290,7 +277,7 @@ class _PlayerHomeState extends State<PlayerHome> {
                             newPresent = true;
                           }
 
-                          writeAudit(user: loggedInUser, documentName: player.id, action: 'Set Present', newValue: newPresent.toString(), oldValue: player.get('Present').toString());
+                          writeAudit(user: activeUser.id, documentName: player.id, action: 'Set Present', newValue: newPresent.toString(), oldValue: player.get('Present').toString());
                           FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Players').doc(player.id).update({
                             'Present': newPresent,
                             'TimePresent': DateTime.now(),
@@ -311,7 +298,7 @@ class _PlayerHomeState extends State<PlayerHome> {
               ),
             ),
             InkWell(
-              onTap: (_loggedInUserIsAdmin || (loggedInUser == player.id))
+              onTap: (activeUser.admin || (loggedInUser == player.id))
                   ? () async {
                       // print('Select Picture');
                       XFile? pickedFile;
@@ -358,7 +345,7 @@ class _PlayerHomeState extends State<PlayerHome> {
             Container(
               height: 50,
               width: 50,
-              color: (player.id == loggedInUser) ? Colors.green.shade100 : Colors.blue.shade100,
+              color: (player.id == activeUser.id) ? Colors.green.shade100 : Colors.blue.shade100,
               child: Padding(
                 padding: const EdgeInsets.all(0.0),
                 child: InkWell(
@@ -376,11 +363,11 @@ class _PlayerHomeState extends State<PlayerHome> {
     );
   }
 
-  Widget buildPlayerLine(int row, courtAssignments) {
+  Widget buildPlayerLine(int row, List<PlayerList>? courtAssignments) {
     if (_players == null || row >= _players!.length) return Text('ERROR loading Player for row $row');
 
     QueryDocumentSnapshot player = _players![row];
-    final isUserRow = (player.id == loggedInUser);
+    final isUserRow = (player.id == activeUser.id);
 
     if (row == _checkInProgress) {
       if (player.get('Present')) {
@@ -389,10 +376,6 @@ class _PlayerHomeState extends State<PlayerHome> {
     }
 
     int rank = player.get('Rank');
-
-    bool markedAway = courtAssignments['ranksAway'].contains(rank);
-
-    bool unassigned = courtAssignments['ranksUnassigned'].contains(rank);
 
     // print('buildPlayerLine: _clickedOnRank: $_clickedOnRank vs $row admin: ${activeLadderDoc!.get('Admins').split(",").contains(loggedInUser) } ${player.id} vs $loggedInUser OR $loggedInUserIsSuper');
     return Column(
@@ -414,19 +397,21 @@ class _PlayerHomeState extends State<PlayerHome> {
             });
           },
           child: Row(children: [
+            (courtAssignments!=null)? (
             (row == _checkInProgress)
                 ? const Icon(Icons.refresh)
                 : ((player.get('Present') ?? false)
                     ? const Icon(Icons.check_box, color: Colors.black)
-                    : (markedAway ? const Icon(Icons.horizontal_rule, color: Colors.black) : const Icon(Icons.check_box_outline_blank))),
+                    : (courtAssignments[row].markedAway ? const Icon(Icons.horizontal_rule, color: Colors.black) : const Icon(Icons.check_box_outline_blank)))):SizedBox(width:10),
+            (courtAssignments==null)?Text(' $rank: ${player.get('Name')}',style:nameStyle ):
             Text(
-              ' $rank: ${player.get('Name') ?? 'No Name attr'} ${unassigned ? '(Last)' : ''}',
+              ' $rank: ${player.get('Name') ?? 'No Name attr'} ${courtAssignments[row].unassigned ? '(Last)' : ''}',
               style: isUserRow ? nameBoldStyle : ((player.get('Helper') ?? false) ? italicNameStyle : nameStyle),
             ),
           ]),
         ),
         // if ((_clickedOnRank == row) && ((player.id == loggedInUser) || activeLadderDoc!.get('Admins').split(",").contains(loggedInUser) || player.get('Helper') || loggedInUserIsSuper))
-        if (_clickedOnRank == row) unfrozenSubLine(player),
+        if ((_clickedOnRank == row)&&(courtAssignments!=null)) unfrozenSubLine(player),
       ],
     );
   }
@@ -439,16 +424,11 @@ class _PlayerHomeState extends State<PlayerHome> {
     }
   }
 
-  bool _loggedInUserIsAdmin = false;
-
   Color activeLadderBackgroundColor = Colors.brown;
   @override
   Widget build(BuildContext context) {
     playerHomeInstance = this;
-    _loggedInUserIsAdmin = loggedInUserIsSuper;
-    if (activeLadderDoc!.get('Admins').split(',').contains(loggedInUser)) {
-      _loggedInUserIsAdmin = true;
-    }
+
     // print('loggedInUserIsAdmin: $_loggedInUserIsAdmin');
     return StreamBuilder<DocumentSnapshot>(
       stream: FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).snapshots(),
@@ -500,6 +480,8 @@ class _PlayerHomeState extends State<PlayerHome> {
               for (var player in _players!) {
                 if (player.id == loggedInUser) {
                   loggedInPlayerDoc = player;
+                  activeUser.canBeHelper = loggedInPlayerDoc!.get('Helper');
+                  activeUser.helperEnabled = false;
                 }
                 if (player.get('Present')) {
                   numberOfPlayersPresent++;
@@ -513,19 +495,29 @@ class _PlayerHomeState extends State<PlayerHome> {
               (nextPlayDate, _) = getNextPlayDateTime(activeLadderDoc!);
               DateTime timeNow = DateTime.now();
               bool mayFreeze = false;
-              if (_loggedInUserIsAdmin) mayFreeze = true;
-              if ((nextPlayDate != null) && (timeNow.difference(nextPlayDate).inMinutes.abs() < 30.0) && (numberOfPlayersPresent>=4)) {
-                if ((loggedInPlayerDoc != null) && (loggedInPlayerDoc!.get('Helper') ?? false)) {
-                  //TODO: can not unfreeze if scores are entered
-                  mayFreeze = true;
-                }
-                if ((timeNow.difference(nextPlayDate).inMinutes < 5.0) && (numberOfHelpersPresent == 0)) {
-                  print('mayFreeze: special override, no helpers present, less than 5 minutes to go');
-                  mayFreeze = true;
+
+              if (numberOfPlayersPresent>=4) {
+                if (activeUser.admin) mayFreeze = true;
+                if ((nextPlayDate != null) && (timeNow
+                    .difference(nextPlayDate)
+                    .inMinutes
+                    .abs() < 30.0) && (numberOfPlayersPresent >= 4)) {
+                  if (activeUser.helper) {
+                    //TODO: can not unfreeze if scores are entered
+                    mayFreeze = true;
+                  } else {
+                    if ((timeNow
+                        .difference(nextPlayDate)
+                        .inMinutes < 5.0) && (numberOfHelpersPresent == 0)) {
+                      print('mayFreeze: special override, no helpers present, less than 5 minutes to go');
+                      mayFreeze = true;
+                    }
+                  }
                 }
               }
               // print('mayFreeze: $mayFreeze, nextDate $nextPlayDate, now: ${DateTime.now()}');
-              var courtAssignments = getCourtAssignmentNumbers(_players);
+              List<PlayerList>? courtAssignments = determineMovement( activeLadderDoc!, _players );//getCourtAssignmentNumbers(_players);
+
               return Scaffold(
                 backgroundColor: activeLadderBackgroundColor.withOpacity(0.1), //Colors.green[50],
                 appBar: AppBar(
@@ -534,7 +526,7 @@ class _PlayerHomeState extends State<PlayerHome> {
                   elevation: 0.0,
                   automaticallyImplyLeading: true,
                   actions: [
-                    _loggedInUserIsAdmin
+                    activeUser.admin
                         ? Padding(
                             padding: const EdgeInsets.all(5.0),
                             child: IconButton.filled(
@@ -550,7 +542,7 @@ class _PlayerHomeState extends State<PlayerHome> {
                             ),
                           )
                         : const SizedBox(width: 2),
-                    SizedBox(width: _loggedInUserIsAdmin ? 10 : 1),
+                    SizedBox(width: activeUser.admin ? 10 : 1),
                     if (mayFreeze)
                       Padding(
                         padding: const EdgeInsets.all(5.0),
@@ -562,9 +554,9 @@ class _PlayerHomeState extends State<PlayerHome> {
                             size: 30,
                           ),
                           onPressed: () async {
-                            sportTennisRGprepareForScoreEntry(_players);
+                            prepareForScoreEntry(activeLadderDoc!,_players);
 
-                            showFrozenLadderPage(context, true, courtAssignments);
+                            showFrozenLadderPage(context, activeLadderDoc!, true);
                           },
                           enableFeedback: true,
                           color: Colors.green,
@@ -572,7 +564,7 @@ class _PlayerHomeState extends State<PlayerHome> {
                         ),
                       ),
                     const SizedBox(width: 10),
-                    (loggedInPlayerDoc!.get('Helper') || _loggedInUserIsAdmin)?
+                    ( activeUser.mayGetHelperIcon)?
                     helperIcon(context, activeLadderId,null):SizedBox(width:1),
                     SizedBox(width: 20),
                   ],
@@ -589,7 +581,8 @@ class _PlayerHomeState extends State<PlayerHome> {
                           : const SizedBox(
                               height: 100,
                             ),
-                      headerSummary(_players, courtAssignments),
+                      (courtAssignments!=null)?
+                      headerSummary(_players, courtAssignments):Text('No next date of play configured', style: nameStyle,),
                       ListView.separated(
                         scrollDirection: Axis.vertical,
                         shrinkWrap: true,
