@@ -162,6 +162,7 @@ class _PlayerHomeState extends State<PlayerHome> {
 
   @override
   void dispose() {
+    playerHomeInstance = null;
     _loc.askForSetState(null);
     super.dispose();
   }
@@ -262,33 +263,102 @@ class _PlayerHomeState extends State<PlayerHome> {
       child: Padding(
         padding: const EdgeInsets.all(15.0),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              height: 50,
-              width: 50,
-              color: (player.id == activeUser.id) ? Colors.green.shade100 : Colors.blue.shade100,
-              child: Padding(
-                padding: const EdgeInsets.all(0.0),
-                child: InkWell(
-                  onTap: ((checkBoxIcon == Icons.check_box) || (checkBoxIcon == Icons.check_box_outline_blank))
-                      ? () async {
-                          bool newPresent = false;
-                          if (checkBoxIcon == Icons.check_box_outline_blank) {
-                            newPresent = true;
-                          }
+            Column(
+              children: [
+                Container(
+                  height: 50,
+                  width: 50,
+                  color: (player.id == activeUser.id) ? Colors.green.shade100 : Colors.blue.shade100,
+                  child: Padding(
+                    padding: const EdgeInsets.all(0.0),
+                    child: InkWell(
+                      onTap: ((checkBoxIcon == Icons.check_box) || (checkBoxIcon == Icons.check_box_outline_blank))
+                          ? () async {
+                              bool newPresent = false;
+                              if (checkBoxIcon == Icons.check_box_outline_blank) {
+                                newPresent = true;
+                              }
 
-                          writeAudit(user: activeUser.id, documentName: player.id, action: 'Set Present', newValue: newPresent.toString(), oldValue: player.get('Present').toString());
-                          FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Players').doc(player.id).update({
-                            'Present': newPresent,
-                            'TimePresent': DateTime.now(),
-                          });
-                        }
-                      : null,
-                  child: (_checkInProgress >= 0)
-                      ? const Icon(Icons.refresh, color: Colors.black, size: 60)
-                      : Icon(checkBoxIcon, size: 60, color: ((checkBoxIcon == Icons.check_box) || (checkBoxIcon == Icons.check_box_outline_blank)) ? Colors.black : Colors.red),
+                              writeAudit(user: activeUser.id, documentName: player.id, action: 'Set Present', newValue: newPresent.toString(), oldValue: player.get('Present').toString());
+                              FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Players').doc(player.id).update({
+                                'Present': newPresent,
+                                'TimePresent': DateTime.now(),
+                              });
+                            }
+                          : null,
+                      child: (_checkInProgress >= 0)
+                          ? const Icon(Icons.refresh, color: Colors.black, size: 60)
+                          : Icon(checkBoxIcon, size: 60, color: ((checkBoxIcon == Icons.check_box) || (checkBoxIcon == Icons.check_box_outline_blank)) ? Colors.black : Colors.red),
+                    ),
+                  ),
                 ),
-              ),
+                SizedBox(height: 10,),
+                InkWell(
+                  onTap: (activeUser.admin || (loggedInUser == player.id))
+                      ? () async {
+                    // print('Select Picture');
+                    XFile? pickedFile;
+                    try {
+                      pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
+                    } catch (e) {
+                      if (kDebugMode) {
+                        print('Exception while picking image $e');
+                      }
+                    }
+                    if (pickedFile == null) {
+                      // print('No file picked');
+                      return;
+                    } else {
+                      await uploadPlayerPicture(pickedFile, player.id);
+                      setState(() {
+                        if (kDebugMode) {
+                          print('picture uploaded for player ${player.id}');
+                        }
+                      });
+
+                      // print(pickedFile.path);
+                    }
+                  }
+                      : null,
+                  child: (playerImageCache.containsKey(player.id) && (playerImageCache[player.id] != null) && enableImages)
+                      ? Image.network(
+                    playerImageCache[player.id]!,
+                    width: 100,
+                  )
+                      : Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: activeLadderBackgroundColor, width: 5),
+                      borderRadius: BorderRadius.circular(15.0),
+                      color: activeLadderBackgroundColor.withOpacity(0.1),//withValues(alpha:0.1),
+                    ),
+                    width: 100,
+                    height: 100,
+                    child: Center(
+                        child: Text(
+                          enableImages ? "Please\nupload\npicture" : 'Images\nhidden',
+                          style: nameStyle,
+                        )),
+                  ),
+                ),
+                SizedBox(height: 10),
+                (activeUser.helper || (loggedInUser == player.id))?Container(
+                  height: 50,
+                  width: 50,
+                  color: (player.id == activeUser.id) ? Colors.green.shade100 : Colors.blue.shade100,
+                  child: Padding(
+                    padding: const EdgeInsets.all(0.0),
+                    child: InkWell(
+                      onTap: () {
+                        typeOfCalendarEvent = EventTypes.standard;
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => CalendarPage(fullPlayerList: _players,)));
+                      },
+                      child: const Icon(Icons.edit_calendar, size: 60, color: Colors.green),
+                    ),
+                  ),
+                ):SizedBox(width: 1,),
+              ],
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -297,66 +367,8 @@ class _PlayerHomeState extends State<PlayerHome> {
                 style: nameStyle,
               ),
             ),
-            InkWell(
-              onTap: (activeUser.admin || (loggedInUser == player.id))
-                  ? () async {
-                      // print('Select Picture');
-                      XFile? pickedFile;
-                      try {
-                        pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
-                      } catch (e) {
-                        if (kDebugMode) {
-                          print('Exception while picking image $e');
-                        }
-                      }
-                      if (pickedFile == null) {
-                        // print('No file picked');
-                        return;
-                      } else {
-                        await uploadPlayerPicture(pickedFile, player.id);
-                        setState(() {
-                          print('picture uploaded for player ${player.id}');
-                        });
 
-                        // print(pickedFile.path);
-                      }
-                    }
-                  : null,
-              child: (playerImageCache.containsKey(player.id) && (playerImageCache[player.id] != null) && enableImages)
-                  ? Image.network(
-                      playerImageCache[player.id],
-                      height: 100,
-                    )
-                  : Container(
-                      decoration: BoxDecoration(
-                        border: Border.all(color: activeLadderBackgroundColor, width: 5),
-                        borderRadius: BorderRadius.circular(15.0),
-                        color: activeLadderBackgroundColor.withOpacity(0.1),
-                      ),
-                      width: 100,
-                      height: 100,
-                      child: Center(
-                          child: Text(
-                        enableImages ? "Please\nupload\npicture" : 'Images\nhidden',
-                        style: nameStyle,
-                      )),
-                    ),
-            ),
-            Container(
-              height: 50,
-              width: 50,
-              color: (player.id == activeUser.id) ? Colors.green.shade100 : Colors.blue.shade100,
-              child: Padding(
-                padding: const EdgeInsets.all(0.0),
-                child: InkWell(
-                  onTap: () {
-                    typeOfCalendarEvent = EventTypes.standard;
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => const CalendarPage()));
-                  },
-                  child: const Icon(Icons.edit_calendar, size: 60, color: Colors.green),
-                ),
-              ),
-            ),
+
           ],
         ),
       ),
@@ -374,8 +386,16 @@ class _PlayerHomeState extends State<PlayerHome> {
         _checkInProgress = -1;
       }
     }
+    PlayerList? plAssignment;
+    for (int i=0; i<courtAssignments!.length; i++){
+      if (courtAssignments[i].snapshot.id == player.id){
+        plAssignment = courtAssignments[i];
+        break;
+      }
+    }
 
     int rank = player.get('Rank');
+    // print('buildPlayerLine: $row ${player.id} crt:${plAssignment!.snapshot.id} away: ${plAssignment!.markedAway}');
 
     // print('buildPlayerLine: _clickedOnRank: $_clickedOnRank vs $row admin: ${activeLadderDoc!.get('Admins').split(",").contains(loggedInUser) } ${player.id} vs $loggedInUser OR $loggedInUserIsSuper');
     return Column(
@@ -386,6 +406,7 @@ class _PlayerHomeState extends State<PlayerHome> {
               if (_clickedOnRank != row) {
                 setState(() {
                   _clickedOnRank = row;
+
                 });
               } else {
                 setState(() {
@@ -397,21 +418,19 @@ class _PlayerHomeState extends State<PlayerHome> {
             });
           },
           child: Row(children: [
-            (courtAssignments!=null)? (
             (row == _checkInProgress)
                 ? const Icon(Icons.refresh)
                 : ((player.get('Present') ?? false)
                     ? const Icon(Icons.check_box, color: Colors.black)
-                    : (courtAssignments[row].markedAway ? const Icon(Icons.horizontal_rule, color: Colors.black) : const Icon(Icons.check_box_outline_blank)))):SizedBox(width:10),
-            (courtAssignments==null)?Text(' $rank: ${player.get('Name')}',style:nameStyle ):
+                    : (plAssignment!.markedAway ? const Icon(Icons.horizontal_rule, color: Colors.black) : const Icon(Icons.check_box_outline_blank))),
             Text(
-              ' $rank: ${player.get('Name') ?? 'No Name attr'} ${courtAssignments[row].unassigned ? '(Last)' : ''}',
+              ' $rank: ${player.get('Name') ?? 'No Name attr'} ${plAssignment!.unassigned ? '(Last)' : ''}',
               style: isUserRow ? nameBoldStyle : ((player.get('Helper') ?? false) ? italicNameStyle : nameStyle),
             ),
           ]),
         ),
         // if ((_clickedOnRank == row) && ((player.id == loggedInUser) || activeLadderDoc!.get('Admins').split(",").contains(loggedInUser) || player.get('Helper') || loggedInUserIsSuper))
-        if ((_clickedOnRank == row)&&(courtAssignments!=null)) unfrozenSubLine(player),
+        (_clickedOnRank == row)?unfrozenSubLine(player):SizedBox(height: 1,),
       ],
     );
   }
@@ -419,7 +438,7 @@ class _PlayerHomeState extends State<PlayerHome> {
   _getPlayerImage(String playerEmail) async {
     if (!enableImages) return;
     if (await getPlayerImage(playerEmail)) {
-      print('_getPlayerImage: doing setState for $playerEmail');
+      // print('_getPlayerImage: doing setState for $playerEmail');
       setState(() {});
     }
   }
@@ -509,7 +528,7 @@ class _PlayerHomeState extends State<PlayerHome> {
                     if ((timeNow
                         .difference(nextPlayDate)
                         .inMinutes < 5.0) && (numberOfHelpersPresent == 0)) {
-                      print('mayFreeze: special override, no helpers present, less than 5 minutes to go');
+                      // print('mayFreeze: special override, no helpers present, less than 5 minutes to go');
                       mayFreeze = true;
                     }
                   }
@@ -519,10 +538,10 @@ class _PlayerHomeState extends State<PlayerHome> {
               List<PlayerList>? courtAssignments = determineMovement( activeLadderDoc!, _players );//getCourtAssignmentNumbers(_players);
 
               return Scaffold(
-                backgroundColor: activeLadderBackgroundColor.withOpacity(0.1), //Colors.green[50],
+                backgroundColor: activeLadderBackgroundColor.withOpacity(0.1),//withValues(alpha:0.1), //Colors.green[50],
                 appBar: AppBar(
                   title: Text('${activeLadderDoc!.get('DisplayName') ?? 'No DisplayName attr'}'),
-                  backgroundColor: activeLadderBackgroundColor.withOpacity(0.7), //Colors.green[400],
+                  backgroundColor: activeLadderBackgroundColor.withOpacity(0.7),//withValues(alpha:0.7), //Colors.green[400],
                   elevation: 0.0,
                   automaticallyImplyLeading: true,
                   actions: [
@@ -565,11 +584,12 @@ class _PlayerHomeState extends State<PlayerHome> {
                       ),
                     const SizedBox(width: 10),
                     ( activeUser.mayGetHelperIcon)?
-                    helperIcon(context, activeLadderId,null):SizedBox(width:1),
+                    helperIcon(context, activeLadderId,courtAssignments):SizedBox(width:1),
                     SizedBox(width: 20),
                   ],
                 ),
                 body: SingleChildScrollView(
+                  key: PageStorageKey('playerScrollView'),
                   scrollDirection: Axis.vertical,
                   child: Column(
                     children: [
@@ -582,8 +602,9 @@ class _PlayerHomeState extends State<PlayerHome> {
                               height: 100,
                             ),
                       (courtAssignments!=null)?
-                      headerSummary(_players, courtAssignments):Text('No next date of play configured', style: nameStyle,),
+                      headerSummary(_players, courtAssignments):Text('. . . . . ', style: nameStyle,),
                       ListView.separated(
+                        key: PageStorageKey('playerListView'),
                         scrollDirection: Axis.vertical,
                         shrinkWrap: true,
                         physics: const ScrollPhysics(),

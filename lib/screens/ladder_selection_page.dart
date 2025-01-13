@@ -16,10 +16,11 @@ import '../Utilities/misc.dart';
 import 'ladder_config_page.dart';
 import 'login_page.dart';
 
+dynamic ladderSelectionInstance;
+List<String>? availableLadders;
 
 String activeLadderId = '';
 
-dynamic ladderSelectionPageInstance;
 dynamic urlCache = {};
 Color colorFromString(String colorString) {
   const colorMap = {
@@ -46,19 +47,23 @@ Future<bool> getLadderImage(String ladderId, {bool overrideCache = false}) async
 
   final storage = FirebaseStorage.instance;
   final ref = storage.ref(filename);
-  print('getLadderImage: for $filename');
+  // print('getLadderImage: for $filename');
   try {
     final url = await ref.getDownloadURL();
     // print('URL: $url');
     urlCache[ladderId] = url;
-    print('Image $filename downloaded successfully! $url');
+    // print('Image $filename downloaded successfully! $url');
   } catch (e) {
     if (e is FirebaseException) {
       // print('FirebaseException: ${e.code} - ${e.message}');
     } else if (e is SocketException) {
-      print('SocketException: ${e.message}');
+      if (kDebugMode) {
+        print('SocketException: ${e.message}');
+      }
     } else {
-      print('downloadLadderImage: getData exception: ${e.runtimeType} || ${e.toString()}');
+      if (kDebugMode) {
+        print('downloadLadderImage: getData exception: ${e.runtimeType} || ${e.toString()}');
+      }
     }
 
     return false;
@@ -87,9 +92,15 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
     super.initState();
   }
 
+  @override
+  void dispose(){
+    ladderSelectionInstance = null;
+    super.dispose();
+  }
+
   _getLadderImage(String ladderId) async {
     if (await getLadderImage(ladderId)) {
-      print('_getLadderImage: doing setState for $ladderId');
+      // print('_getLadderImage: doing setState for $ladderId');
       setState(() {});
     }
   }
@@ -99,6 +110,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
 
   @override
   Widget build(BuildContext context) {
+    ladderSelectionInstance = this;
     TextButton makeDoubleConfirmationButton({buttonText, buttonColor = Colors.blue, dialogTitle, dialogQuestion, disabled, onOk}) {
       // print('home.dart build ${FirebaseAuth.instance.currentUser?.email}');
       return TextButton(
@@ -130,7 +142,6 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
 
     // print('ladder_selection_page.build _events: ${_events.length}');
 
-    ladderSelectionPageInstance = this;
     if (loggedInUser.isEmpty) {
       return const Text('LadderPage: but loggedInUser empty');
     }
@@ -162,12 +173,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
           }
 
           loggedInUserDoc = snapshot.data;
-          activeUser.canBeSuper = false;
-          activeUser.superEnabled = false;
-          activeUser.canBeHelper = false;
-          activeUser.helperEnabled = false;
-          activeUser.canBeAdmin = false;
-          activeUser.adminEnabled = false;
+
           try {
             activeUser.canBeSuper = loggedInUserDoc!.get('SuperUser');
           } catch(_){}
@@ -242,7 +248,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                 return const CircularProgressIndicator();
               }
 
-              List<String> availableLadders = _userLadders.split(",");
+              availableLadders = _userLadders.split(",");
               List<QueryDocumentSnapshot<Object?>> availableDocs = List.empty(growable: true);
 
               if (activeUser.canBeSuper) {
@@ -251,7 +257,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                   availableDocs.add(doc);
                 }
               } else {
-                for (String ladder in availableLadders) {
+                for (String ladder in availableLadders!) {
                   for (QueryDocumentSnapshot<Object?> doc in snapshot.data!.docs) {
                     if ((doc.id == ladder) && (!doc.get('SuperDisabled'))) {
                       availableDocs.add(doc);
@@ -265,7 +271,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
               );
               for (int i=0; i<availableDocs.length;i++) {
                 _getLadderImage(availableDocs[i].id);
-                print('DisplayName: ${availableDocs[i].get('DisplayName')}');
+                // print('DisplayName: ${availableDocs[i].get('DisplayName')}');
               }
               // print('urlCache: $urlCache');
               return Scaffold(
@@ -282,7 +288,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                             double newFontSize=appFontSize+ 1.0;
                             if (newFontSize > 40) newFontSize = 20.0;
                             setBaseFont(newFontSize);
-                            print('appFontSize: $appFontSize');
+                            // print('appFontSize: $appFontSize');
                             FirebaseFirestore.instance.collection('Users').doc(loggedInUserDoc!.id).update({
                               'FontSize': appFontSize,
                             });
@@ -339,7 +345,9 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
 
                       double reqSoftwareVersion = availableDocs[row].get('RequiredSoftwareVersion');
                       if (reqSoftwareVersion > softwareVersion) {
-                        print('NEED NEW VERSION OF THE SOFTWARE $reqSoftwareVersion > $softwareVersion');
+                        if (kDebugMode) {
+                          print('NEED NEW VERSION OF THE SOFTWARE $reqSoftwareVersion > $softwareVersion');
+                        }
                         html.window.location.reload();
                       }
 
@@ -348,9 +356,8 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                       activeLadderBackgroundColor = colorFromString(availableDocs[row].get('Color').toLowerCase());
 
                       String message = availableDocs[row].get('Message');
-                      print('message: $row $message');
+                      // print('message: $row $message');
 
-                      bool isAdmin = availableDocs[row].get('Admins').split(',').contains(loggedInUser) || activeUser.amSuper;
                       String nextPlay1 = '';
                       String nextPlay2 = '';
 
@@ -375,19 +382,20 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                           decoration: BoxDecoration(
                             border: Border.all(color: activeLadderBackgroundColor, width: 5),
                             borderRadius: BorderRadius.circular(15.0),
-                            color: activeLadderBackgroundColor.withOpacity(0.1),
+                            color: activeLadderBackgroundColor.withOpacity(0.1),//withValues(alpha:0.1),
                           ),
                           child: Padding(
                             padding: const EdgeInsets.only(left: 8.0, right: 8, top: 2, bottom: 2),
                             child: InkWell(
-                              onTap: (disabled && !isAdmin)
-                                  ? null
-                                  : () {
+                              onTap: (!disabled || activeUser.admin)
+                                  ? () {
                                       activeLadderDoc = availableDocs[row];
                                       activeLadderId = availableDocs[row].id;
                                       activeUser.canBeAdmin = activeLadderDoc!.get('Admins').split(',').contains(activeUser.id);
                                       //print('canBeAdmin: ${activeUser.canBeAdmin} ${activeLadderDoc!.get('Admins').split(',')}');
-                                      activeUser.adminEnabled = false;
+                                      if (!activeUser.canBeAdmin) {
+                                        activeUser.adminEnabled = false;
+                                      }
 
                                       String colorString = '';
                                       try {
@@ -401,7 +409,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                                       } else {
                                         Navigator.push(context, MaterialPageRoute(builder: (context) => const PlayerHome()));
                                       }
-                                    },
+                                    }:null,
                               child: Column(
                                 children: [
                                   Text(' ${availableDocs[row].get('DisplayName')}', textAlign: TextAlign.start, style: disabled ? nameStrikeThruStyle : nameBigStyle),
@@ -419,7 +427,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                                     decoration: BoxDecoration(
                                       border: Border.all(color: activeLadderBackgroundColor, width: 5),
                                       borderRadius: BorderRadius.circular(15.0),
-                                      color: activeLadderBackgroundColor.withOpacity(0.1),
+                                      color: activeLadderBackgroundColor.withOpacity(0.1),//withValues(alpha:0.1),
                                     ),
                                     child: Padding(
                                       padding: const EdgeInsets.all(8.0),

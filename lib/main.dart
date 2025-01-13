@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:social_sport_ladder/screens/ladder_selection_page.dart';
 import 'package:social_sport_ladder/screens/login_page.dart';
@@ -16,7 +17,14 @@ void main() async {
   // if (html.window.navigator.serviceWorker != null) {
   //   html.window.navigator.serviceWorker!.register('/flutter_service_worker.js');
   // }
-  await Firebase.initializeApp(options: myFirebaseOptions);
+  try {
+    await Firebase.initializeApp(options: myFirebaseOptions);
+  } catch(e){
+    if (kDebugMode) {
+      print('Firebase.initializeApp ERROR: $e');
+    }
+    return;
+  }
   runApp(
       const MyApp()
   );
@@ -33,7 +41,9 @@ class MyApp extends StatelessWidget {
       if (FirebaseAuth.instance.currentUser!.email != null ){
         loggedInUser = FirebaseAuth.instance.currentUser!.email!.toLowerCase();
         activeUser.id = loggedInUser;
-        print('logged in already as: ${activeUser.id}');
+        if (kDebugMode) {
+          print('logged in already as: ${activeUser.id}');
+        }
       }
     }
     // print('MyApp build: with email: $loggedInUser');

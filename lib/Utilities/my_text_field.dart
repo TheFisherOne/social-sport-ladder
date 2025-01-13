@@ -12,7 +12,7 @@ class MyTextField extends StatefulWidget {
   final void Function(String entry)? onIconClicked;
   final String? initialValue;
   final TextInputType? keyboardType;
-  final clearEntryOnLostFocus;
+  final bool clearEntryOnLostFocus;
 
   const MyTextField({
     super.key,
@@ -45,6 +45,8 @@ class _MyTextFieldState extends State<MyTextField> {
       lastSavedValue = widget.initialValue;
     }
       _focusNode.addListener(() {
+        // print('_focusNode: ${_focusNode.hasFocus}');
+        // if (_focusNode.hasFocus) return;
         setState(() {
           if (widget.clearEntryOnLostFocus) {
             if (widget.initialValue != null) {
@@ -52,8 +54,9 @@ class _MyTextFieldState extends State<MyTextField> {
             } else {
               widget.controller.text = '';
             }
+            errorString = null;
           }
-          errorString = null;
+
         });
       });
 
@@ -79,6 +82,7 @@ class _MyTextFieldState extends State<MyTextField> {
           controller: widget.controller,
           obscureText: widget.obscureText,
           inputFormatters: widget.inputFormatters,
+          enabled: widget.entryOK!=null,
           style: nameStyle,
           keyboardType: widget.keyboardType,
           onChanged: (String entry) {

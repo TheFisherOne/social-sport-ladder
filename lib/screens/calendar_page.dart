@@ -1,15 +1,15 @@
-// Copyright 2019 Aleksander Woźniak
-// SPDX-License-Identifier: Apache-2.0
-
+import 'dart:html' as html;
 import 'dart:collection';
 import 'package:convert/convert.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:social_sport_ladder/constants/constants.dart';
 import 'package:social_sport_ladder/screens/ladder_config_page.dart';
 import 'package:social_sport_ladder/screens/player_home.dart';
+import 'package:social_sport_ladder/sports/score_tennis_rg.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 import 'audit_page.dart';
@@ -84,26 +84,6 @@ bool isVacationTimeOk(DocumentSnapshot<Object?> ladderDoc){
   return true;
 }
 
-double parse5CharTimeToDouble(String dateStr){
-  //18:45 returns 18.45, invalid returns -1
-  if (dateStr.isEmpty) return -2;
-  if (dateStr.length < 5) return -1;
-  int hour = -1;
-  int min = -1;
-  if (dateStr.substring(2,3) !=':') return -1;
-
-  try {
-    hour = int.parse(dateStr.substring(0, 2));
-    // print(hour);
-    min = int.parse(dateStr.substring(3, 5));
-    // print(min);
-  } catch (_) {
-    return -1;
-  }
-  if ((hour < 0) || (hour > 23) || (min < 0) || (min > 59)) return -1;
-  return hour + (min/100.0);
-}
-
 enum EventTypes { standard, playOn, special }
 
 EventTypes typeOfCalendarEvent = EventTypes.standard;
@@ -117,8 +97,10 @@ int getHashCode(DateTime key) {
 
 class Event {
   final String title;
+  Reference? fileRef;
+  DocumentSnapshot? scoreDoc;
 
-  const Event(this.title);
+  Event(this.title);
 
   @override
   String toString() => title;
@@ -259,7 +241,11 @@ class EventsList {
 }
 
 class CalendarPage extends StatefulWidget {
-  const CalendarPage({super.key});
+  final List<QueryDocumentSnapshot>? fullPlayerList;
+
+  const CalendarPage({super.key,
+  this.fullPlayerList,
+  });
 
   @override
   CalendarPageState createState() => CalendarPageState();
@@ -296,6 +282,12 @@ class CalendarPageState extends State<CalendarPage> {
        _lastPlayOnTime = tmpStr.substring(9,14);
      }
     _selectedEvents = ValueNotifier(_getEventsForDay(_selectedDay!));
+    if (typeOfCalendarEvent == EventTypes.playOn) {
+      listAllFiles();
+    }
+    if (typeOfCalendarEvent == EventTypes.standard) {
+      listScoreDocs();
+    }
   }
 
   @override
@@ -347,8 +339,52 @@ class CalendarPageState extends State<CalendarPage> {
 
   DocumentSnapshot? _playerDoc;
 
-  final TextEditingController _specialTextFieldController = TextEditingController();
 
+  final TextEditingController _specialTextFieldController = TextEditingController();
+  final List< Reference> _fileList = [];
+  Future<void> listAllFiles() async {
+
+    String folderPath = '${activeLadderDoc!.get('DisplayName')}/History/'.replaceAll(' ', '_');
+    // print('listAllFiles: $folderPath');
+    final storageRef = FirebaseStorage.instance.ref().child(folderPath); // Replace 'your-directory-path/' with the path to your directory
+
+    try {
+      final ListResult result = await storageRef.listAll();
+      if (result.items.isEmpty){
+        if (kDebugMode) {
+          print('No files found in $folderPath');
+        }
+        return;
+      }
+
+      for (var ref in result.items) {
+        // print('File: ${ref.name}');
+        _fileList.add(ref);
+      }
+      setState(() {
+        // updated _fileList
+      });
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error listing items for $folderPath: ERROR is: $e');
+      }
+    }
+  }
+  final List< QueryDocumentSnapshot<Map<String, dynamic>>> _scoresList = [];
+  Future<void> listScoreDocs() async {
+    DateTime timeLimit = DateTime.now().subtract(const Duration(days:180));
+    QuerySnapshot<Map<String, dynamic>> scores = await FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Scores')
+        .where('EditedSince',isGreaterThanOrEqualTo: timeLimit)
+        .get();
+    // print('listScoreDocs: found ${scores.docs.length} score docs');
+    for (var doc in scores.docs) {
+      _scoresList.add(doc);
+      // print('doc: ${doc.id} ');
+    }
+    setState(() {
+
+    });
+  }
   Future<void> _specialTextInputDialog(BuildContext context) async {
     return showDialog(
       context: context,
@@ -433,9 +469,6 @@ class CalendarPageState extends State<CalendarPage> {
                 TextButton(
                   child: const Text('OK'),
                   onPressed: () {
-                    // double startTime = parse5CharTimeToDouble(_playTextFieldController.text);
-                    //
-                    // if (startTime < 0) return; //error
                     _lastPlayOnTime = '${currentSetting!.hour.toString().padLeft(2,'0')}:${currentSetting!.minute.toString().padLeft(2,'0')}';
                     // print('$_lastPlayOnTime ${_playTextFieldController.text}');
                     setState(() {
@@ -459,6 +492,7 @@ class CalendarPageState extends State<CalendarPage> {
       _focusedDay = DateTime(focusedDay.year, focusedDay.month, focusedDay.day);
     });
     if (typeOfCalendarEvent == EventTypes.playOn) {
+      if (_selectedDay!.compareTo(DateTime.now())<0) return;
       if (!mapContainsDateKey(_playOnEvents.convertToCalendarEvents(), _selectedDay!)) {
         // String eventString = 'play - this is a scheduled day of play';
         _playOnEvents.addEvent(_selectedDay!, Event(_lastPlayOnTime));
@@ -501,13 +535,17 @@ class CalendarPageState extends State<CalendarPage> {
       thisLine = str;
     } else if (eventType == 'misc:'){
       thisLine = str;
+    } else if (eventType == 'FILE:'){
+      thisLine = str;
+    }else if (eventType == 'SCORE') {
+      thisLine = str;
     }
     // print('thisLine:$thisLine');
     return Row(children: [
       Flexible(
         child: Text('$thisLine$clickText', style: nameStyle),
       ),
-      if (typeOfCalendarEvent == EventTypes.playOn)
+      if ((typeOfCalendarEvent == EventTypes.playOn)&&  (!value[index].toString().startsWith('FILE') &&(!value[index].toString().startsWith('SCOR'))))
         IconButton(
             onPressed: () {
               if (value[index].toString().startsWith('play') || value[index].toString().startsWith('AWAY')) {
@@ -524,11 +562,12 @@ class CalendarPageState extends State<CalendarPage> {
               }
             },
             icon: const Icon(Icons.delete)),
-      if ((typeOfCalendarEvent == EventTypes.playOn) && (!value[index].toString().startsWith('misc')))
+      if ((typeOfCalendarEvent == EventTypes.playOn) && (!value[index].toString().startsWith('misc')
+          && (!value[index].toString().startsWith('FILE'))) && (!value[index].toString().startsWith('SCOR')))
         IconButton(
             onPressed: () {
               setState(() {
-                _specialEvents.addEvent(_selectedDay!, const Event('NOTE: SPECIAL'));
+                _specialEvents.addEvent(_selectedDay!, Event('NOTE: SPECIAL'));
               });
             },
             icon: const Icon(Icons.star)),
@@ -628,6 +667,7 @@ class CalendarPageState extends State<CalendarPage> {
                       }
                       // print('_buildEvent: $index ${value[index]} hour: $thisPlayHour $_selectedDay $_clickText');
                     }
+                    //print('before event Click: $typeOfCalendarEvent clickText: $clickText str: ${value[index].toString()}');
                     return Container(
                       margin: const EdgeInsets.symmetric(
                         horizontal: 12.0,
@@ -653,16 +693,37 @@ class CalendarPageState extends State<CalendarPage> {
                                     Icons.square,
                                     color: Colors.blue,
                                   ),
-                        onTap: ((typeOfCalendarEvent == EventTypes.standard) && clickText.isEmpty)?null:() async {
+                        onTap: (((typeOfCalendarEvent == EventTypes.standard) && clickText.isEmpty)&&
+                            !((typeOfCalendarEvent == EventTypes.standard) && (value[index].toString().startsWith('SCORE'))))?null:() async {
+                          //print('event Click: $typeOfCalendarEvent clickText: $clickText str: ${value[index].toString()}');
                           if (typeOfCalendarEvent == EventTypes.standard) {
                             if (value[index].toString().startsWith('play')) {
                               setState(() {
-                                _awayEvents.addEvent(_selectedDay!, const Event(''));
+                                _awayEvents.addEvent(_selectedDay!, Event(''));
                               });
                             } else if (value[index].toString().startsWith('AWAY')) {
                               setState(() {
                                 _awayEvents.removeEvent(_selectedDay!);
                               });
+                            }else if (value[index].toString().startsWith('SCOR')) {
+                              DocumentSnapshot doc = value[index].scoreDoc!;
+                              //print('launch SCORE on ${doc.id}');
+                              // Navigator.push(context, )
+                              String roundStr = doc.id.substring('yyyy.MM.dd_'.length, doc.id.indexOf('_C#'));
+                              String courtStr = doc.id.substring(doc.id.indexOf('_C#')+ '_C#'.length);
+                              int round=1;
+                              int court=1;
+                              try {
+                                round = int.parse(roundStr);
+                                court = int.parse(courtStr);
+                              } catch(e){
+                                if (kDebugMode) {
+                                  print('ERROR: could not parse round and court from doc.id ${doc.id} $roundStr $courtStr');
+                                }
+                              }
+                              var page = ScoreTennisRg(ladderName: activeLadderId, round: round, court: court, fullPlayerList: widget.fullPlayerList,
+                                  activeLadderDoc: activeLadderDoc!, scoreDoc: value[index].scoreDoc!, allowEdit: false,);
+                              Navigator.push(context, MaterialPageRoute(builder: (context) => page));
                             }
                           } else if ((typeOfCalendarEvent == EventTypes.playOn) && (value[index].toString().startsWith('misc'))) {
                             String initialText = value[index].toString();
@@ -677,6 +738,19 @@ class CalendarPageState extends State<CalendarPage> {
 
                             // print('selectedTimeOfDay: $selectedTimeOfDay');
                             _playTextInputDialog(context);
+                          } else if ((typeOfCalendarEvent == EventTypes.playOn) && (value[index].toString().startsWith('FILE'))) {
+                            Reference ref = value[index].fileRef!;
+                            final url = await ref.getDownloadURL();
+
+                            html.AnchorElement(
+                              href: url,
+                            )..setAttribute('download', value[index].toString())
+                            ..click();
+
+                            // _specialTextFieldController.text = url;
+                            // if (!context.mounted) return;
+
+                            // _specialTextInputDialog(context);
                           }
                         },
                         title: _buildEvent(value, index, clickText),
@@ -693,6 +767,7 @@ class CalendarPageState extends State<CalendarPage> {
   @override
   Widget build(BuildContext context) {
     currentCalendarPage = this;
+
     if (typeOfCalendarEvent == EventTypes.standard) {
       return StreamBuilder<DocumentSnapshot>(
           stream: FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Players').doc(clickedOnPlayerDoc!.id).snapshots(),
@@ -741,6 +816,18 @@ class CalendarPageState extends State<CalendarPage> {
                 }
               }
             });
+
+            // print('_scoresList.length: ${_scoresList.length}');
+            for (int i = 0; i < _scoresList.length; i++) {
+              QueryDocumentSnapshot<Map<String, dynamic>> doc = _scoresList[i];
+              // print('found score doc[$i]: ${doc.id}');
+              DateTime fileDate = DateFormat('yyyy.MM.dd').parse(doc.id);
+              kEvents[fileDate] = kEvents[fileDate] ?? [];
+              Event newEvent = Event('SCORE ${doc.id}');
+              newEvent.scoreDoc = doc;
+              kEvents[fileDate]!.add(newEvent);
+            }
+
             _selectedEvents.value = List.from(_getEventsForDay(_selectedDay!));
 
             return calendarScaffold();
@@ -760,6 +847,29 @@ class CalendarPageState extends State<CalendarPage> {
         kEvents[k] = kEvents[k] ?? [];
         kEvents[k]!.add(v[0]);
       });
+      // Event tempEvent = Event('FILE: Place Holder');
+      // DateTime tempDate = DateTime(2025,1,1,11);
+      // kEvents[tempDate] =kEvents[tempDate] ??[];
+      // kEvents[tempDate]!.add(tempEvent);
+
+
+        //print('list files found: ${_fileList.length}');
+        for (int i = 0; i < _fileList.length; i++) {
+          String fp = _fileList[i].fullPath;
+          String d = fp.substring(fp.length - 16, fp.length - 6);
+          DateTime fileDate = DateFormat('yyyy.MM.dd').parse(d);
+          int underscore1 = fp.lastIndexOf('_');
+          int underscore2 = fp.lastIndexOf('_', underscore1 - 1);
+          String title = fp.substring(underscore2 + 1);
+          // print('fileList[$i]: ${_fileList[i].fullPath} Date:$d Title: $title');
+          kEvents[fileDate] = kEvents[fileDate] ?? [];
+          Event newEvent = Event('FILE: $title');
+          newEvent.fileRef = _fileList[i];
+          kEvents[fileDate]!.add(newEvent);
+        }
+
+
+
 
       _selectedEvents.value = List.from(_getEventsForDay(_selectedDay!));
       return calendarScaffold();

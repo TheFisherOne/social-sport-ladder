@@ -74,6 +74,32 @@ class _SuperAdminState extends State<SuperAdmin> {
           }
         }
       }
+      // now combine emails from 'LaddersThatCanView
+      for (int ladderIndex = 0; ladderIndex < snapshotLadders.docs.length; ladderIndex++) {
+        String ladderName = snapshotLadders.docs[ladderIndex].id;
+        // print('LaddersThatCanView: $ladderName  ${snapshotLadders.docs[ladderIndex].get('LaddersThatCanView')}');
+        List<String> friendLadders = snapshotLadders.docs[ladderIndex].get('LaddersThatCanView').split('|');
+        for (int friend=0; friend<friendLadders.length; friend++){
+          String friendLadder = friendLadders[friend];
+          if (friendLadder.isEmpty) continue;
+
+
+          CollectionReference playersRef = FirebaseFirestore.instance.collection('Ladder').doc(friendLadder).collection('Players');
+          QuerySnapshot ladderSnapshot = await playersRef.get();
+          for (int playerIndex = 0; playerIndex < ladderSnapshot.docs.length; playerIndex++) {
+            String user = ladderSnapshot.docs[playerIndex].id;
+            // print('adding user $user from $friendLadder to $ladderName');
+            if (emailLadders.containsKey(user)) {
+              String currentLadders = emailLadders[user];
+              if (!currentLadders.split(',').contains(ladderName)) {
+                emailLadders[user] = '$currentLadders,$ladderName';
+              }
+            } else {
+              emailLadders[user] = ladderName;
+            }
+          }
+        }
+      }
       // emailLadders.keys.forEach((k)=> print(' k:$k l:${emailLadders[k]}'));
 
       for (int index = 0; index < globalUserSnapshot.docs.length; index++) {
@@ -122,6 +148,7 @@ class _SuperAdminState extends State<SuperAdmin> {
       'Color': 'brown',
       'SportDescriptor': '',
       'FrozenDate': '',
+      'CurrentRound': 1,
     });
   }
 
@@ -261,30 +288,35 @@ class _SuperAdminState extends State<SuperAdmin> {
                   style: nameStyle,
                 ),
                 IconButton(
-                    onPressed: null,
-                    // true?null:() {
-                    //   FirebaseFirestore.instance.collection('Ladder').get().then((QuerySnapshot ladder) {
-                    //     for (var doc in ladder.docs) {
-                    //       // FirebaseFirestore.instance.collection('Ladder').doc(doc.id).update({
-                    //       //   'DaysSpecial': '',
-                    //       // });
-                    //       FirebaseFirestore.instance.collection('Ladder/${doc.id}/Players').get().then((QuerySnapshot player) {
-                    //         for (var subDoc in player.docs) {
-                    //           // print('Ladder: ${doc.id} and Player: ${subDoc.id}');
-                    //           FirebaseFirestore.instance.collection('Ladder').doc(doc.id).collection('Players').doc(subDoc.id)
-                    //           .update({
-                    //             // 'TotalScore':0,
-                    //             // 'StartingOrder': 0,
-                    //             // 'Score1': FieldValue.delete(),
-                    //             // 'Score2': FieldValue.delete(),
-                    //             'ScoreConfirmed': FieldValue.delete(),
-                    //             'ScoresConfirmed':false,
-                    //           });
-                    //         }
-                    //       });
-                    //     }
-                    //   });
-                    // },
+                    onPressed:
+                    true?null:() {
+                      FirebaseFirestore.instance.collection('Ladder').get().then((QuerySnapshot ladder) {
+                        for (var doc in ladder.docs) {
+                          FirebaseFirestore.instance.collection('Ladder').doc(doc.id).update({
+                            // 'CurrentRound': 1,
+                            // 'RequiredSoftwareVersion': softwareVersion,
+                            'LaddersThatCanView': '',
+                            'HigherLadder':'',
+                            'LowerLadder':'',
+                          });
+
+                          // FirebaseFirestore.instance.collection('Ladder/${doc.id}/Players').get().then((QuerySnapshot player) {
+                          //   for (var subDoc in player.docs) {
+                          //     // print('Ladder: ${doc.id} and Player: ${subDoc.id}');
+                          //     FirebaseFirestore.instance.collection('Ladder').doc(doc.id).collection('Players').doc(subDoc.id)
+                          //     .update({
+                          //       // 'TotalScore':0,
+                          //       // 'StartingOrder': 0,
+                          //       // 'Score1': FieldValue.delete(),
+                          //       // 'Score2': FieldValue.delete(),
+                          //       // 'LaddersThatCanView': FieldValue.delete(),
+                          //
+                          //     });
+                          //   }
+                          // });
+                        }
+                      });
+                    },
                     icon: Icon(Icons.check)),
                 ],),
               ],

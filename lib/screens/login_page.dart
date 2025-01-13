@@ -27,6 +27,8 @@ class LoginPage extends StatefulWidget {
   State<LoginPage> createState() => LoginPageState();
 }
 
+
+
 class LoginPageState extends State<LoginPage> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final TextEditingController _emailController = TextEditingController();
@@ -36,6 +38,13 @@ class LoginPageState extends State<LoginPage> {
   );
   String _loginErrorString = '';
   String _passwordResetError = '';
+
+  @override
+  void dispose(){
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
 
   void _sendPasswordReset() {
     String email = _emailController.text;
@@ -91,7 +100,7 @@ class LoginPageState extends State<LoginPage> {
         // print('_signInWithEmailAndPassword: email: ${userCredential.user!.email!.toLowerCase()} ');
         loggedInUser = userCredential.user!.email!.toLowerCase();
         activeUser.id = loggedInUser;
-        print('logged in with email as: ${activeUser.id}');
+        // print('logged in with email as: ${activeUser.id}');
 
         _emailController.text = '';
         _passwordController.text = '';
@@ -160,7 +169,7 @@ class LoginPageState extends State<LoginPage> {
         // print('_signInWithGoogle: got email ${userCredential.user!.email!}');
         loggedInUser = userCredential.user!.email!.toLowerCase();
         activeUser.id = loggedInUser;
-        print('logged with google as: ${activeUser.id}');
+        // print('logged with google as: ${activeUser.id}');
         nav.push(MaterialPageRoute(builder: (context) => const LadderSelectionPage()));
 
         return;
@@ -203,77 +212,80 @@ class LoginPageState extends State<LoginPage> {
           title: const Text('Login:'),
           automaticallyImplyLeading: false,
         ),
-        body: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.start,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              MyTextField(
-                labelText: 'Email',
-                controller: _emailController,
-                clearEntryOnLostFocus: false,
-                // initialValue: '',
-                helperText: 'the email your administrator used to register you',
-                inputFormatters: [LowerCaseTextInputFormatter()],
-                entryOK: (String? val) {
-                  setState(() {
-                    // refresh display to update reset message
-                  });
-                  if (val!.isValidEmail()) {
+        body: SingleChildScrollView(
+          scrollDirection: Axis.vertical,
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                MyTextField(
+                  labelText: 'Email',
+                  controller: _emailController,
+                  clearEntryOnLostFocus: false,
+                  // initialValue: '',
+                  helperText: 'the email your administrator used to register you',
+                  inputFormatters: [LowerCaseTextInputFormatter()],
+                  entryOK: (String? val) {
+                    setState(() {
+                      // refresh display to update reset message
+                    });
+                    if (val!.isValidEmail()) {
+                      return null;
+                    } else {
+                      return 'Invalid email format';
+                    }
+                  },
+                ),
+                const SizedBox(height: 20),
+                MyTextField(
+                  labelText: 'Password',
+                  obscureText: true,
+                  clearEntryOnLostFocus: false,
+                  // initialValue: '',
+                  helperText: 'Please enter your password for this app if you don''t know your password fill in email and press Reset button',
+                  controller: _passwordController,
+                  entryOK: (String? val) {
+                    setState(() {
+                      // to update buttons
+                    });
+                    if (_passwordController.text.length < 6) {
+                      return 'must be at least 6 characters long';
+                    }
                     return null;
-                  } else {
-                    return 'Invalid email format';
-                  }
-                },
-              ),
-              const SizedBox(height: 20),
-              MyTextField(
-                labelText: 'Password',
-                obscureText: true,
-                clearEntryOnLostFocus: false,
-                // initialValue: '',
-                helperText: 'Please enter your password for this app if you don''t know your password fill in email and press Reset button',
-                controller: _passwordController,
-                entryOK: (String? val) {
-                  setState(() {
-                    // to update buttons
-                  });
-                  if (_passwordController.text.length < 6) {
-                    return 'must be at least 6 characters long';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 20),
-              (_emailController.text.isValidEmail() && _passwordController.text.length>=6)?
-              RoundedButton(
-                onTap: _signInWithEmailAndPassword,
-                text: 'Sign in with Email',
-              ):Text('Please enter a valid ${_emailController.text.isValidEmail()?'password':'email'} to login', style: nameStyle),
-              const SizedBox(height: 20),
-              (_emailController.text.isValidEmail())
-                  ? RoundedButton(
-                      onTap: (emailErrorText != null) || (_emailController.text.isEmpty) ? null : _sendPasswordReset,
-                      text: 'Send Password Reset Email',
-                    )
-                  : Text('Enter email if you have forgotten your password', style: nameStyle),
-              const SizedBox(height: 20),
-              Text(
-                _passwordResetError,
-                style: nameStyle,
-              ),
-              const SizedBox(height: 20),
-              SignInButton(
-                Buttons.google,
-                onPressed: _signInWithGoogle,
-              ),
-              const SizedBox(height: 20),
-              // SignInButton(Buttons.facebook,
-              //   onPressed: _signInWithFacebook,),
-              // const SizedBox(height: 20),
-              Text(_loginErrorString, style: errorNameStyle),
-            ],
+                  },
+                ),
+                const SizedBox(height: 20),
+                (_emailController.text.isValidEmail() && _passwordController.text.length>=6)?
+                RoundedButton(
+                  onTap: _signInWithEmailAndPassword,
+                  text: 'Sign in with Email',
+                ):Text('Please enter a valid ${_emailController.text.isValidEmail()?'password':'email'} to login', style: nameStyle),
+                const SizedBox(height: 20),
+                (_emailController.text.isValidEmail())
+                    ? RoundedButton(
+                        onTap: (emailErrorText != null) || (_emailController.text.isEmpty) ? null : _sendPasswordReset,
+                        text: 'Send Password Reset Email',
+                      )
+                    : Text('Enter email if you have forgotten your password', style: nameStyle),
+                const SizedBox(height: 20),
+                Text(
+                  _passwordResetError,
+                  style: nameStyle,
+                ),
+                const SizedBox(height: 20),
+                SignInButton(
+                  Buttons.google,
+                  onPressed: _signInWithGoogle,
+                ),
+                const SizedBox(height: 20),
+                // SignInButton(Buttons.facebook,
+                //   onPressed: _signInWithFacebook,),
+                // const SizedBox(height: 20),
+                Text(_loginErrorString, style: errorNameStyle),
+              ],
+            ),
           ),
         ));
   }

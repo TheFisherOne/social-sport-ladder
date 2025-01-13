@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:social_sport_ladder/Utilities/string_validators.dart';
 import 'package:social_sport_ladder/constants/constants.dart';
 import 'package:social_sport_ladder/screens/ladder_config_page.dart';
@@ -10,7 +11,190 @@ import '../Utilities/my_text_field.dart';
 import 'audit_page.dart';
 import 'ladder_selection_page.dart';
 
+movePlayerDown( String fromLadder, String toLadder) async {
+  // 1) create new Player in toLadder at rank 1
+  // 2) copy player data from the fromLadder
+  // 3) move all other players in toLadder down 1
+  // 3) deleteplayer from the fromLadder
+  // 4) assume that the global user Ladders fields do not
 
+  CollectionReference toPlayerRef = FirebaseFirestore.instance.collection('Ladder').doc(toLadder).collection('Players');
+  CollectionReference fromPlayerRef = FirebaseFirestore.instance.collection('Ladder').doc(fromLadder).collection('Players');
+  await FirebaseFirestore.instance.runTransaction((transaction) async {
+    QuerySnapshot? fromPlayerDocs = await fromPlayerRef.get();
+    // get the last player
+    int highestRank=0;
+    QueryDocumentSnapshot? highestPlayerDoc;
+    for (var doc in fromPlayerDocs.docs){
+      if (doc.get('Rank')> highestRank){
+        highestRank = doc.get('Rank');
+        highestPlayerDoc = doc;
+      }
+    }
+    QuerySnapshot toPlayerDocs = await toPlayerRef.get();
+    List<int> toPlayerRanks =[];
+    for (int i=0; i<toPlayerDocs.docs.length; i++){
+      QueryDocumentSnapshot doc = toPlayerDocs.docs[i];
+      toPlayerRanks.add(doc.get('Rank')+1);
+      if (doc.get('Name') == highestPlayerDoc!.get('Name')) {
+        if (kDebugMode) {
+          print('ERROR: trying to movePlayerDown ${highestPlayerDoc.get('Name')} when player already in toLadder $toLadder');
+        }
+        return;
+      }
+    }
+
+    DocumentReference fromUserRef = FirebaseFirestore.instance.collection('Users').doc(highestPlayerDoc!.id);
+    DocumentSnapshot? userDoc = await fromUserRef.get();
+    String laddersStr = userDoc.get('Ladders');
+    String newLaddersStr = laddersStr.toString();
+    if (laddersStr.isEmpty){
+      newLaddersStr = '$fromLadder|$toLadder';
+    } else {
+      List<String> ladders = laddersStr.split(',');
+      if (!ladders.contains(fromLadder)){
+        newLaddersStr +=',$fromLadder';
+      }
+      if (!ladders.contains(toLadder)){
+        newLaddersStr +=',$toLadder';
+      }
+    }
+
+
+    // now start writing/updating after all of the reads have happened
+    if (newLaddersStr != laddersStr){
+      transaction.update(FirebaseFirestore.instance.collection('Users').doc(highestPlayerDoc.id),{
+        'Ladders': newLaddersStr,
+      });
+    }
+
+    // increment the ranks
+    for (int i=0; i<toPlayerDocs.docs.length; i++){
+      QueryDocumentSnapshot doc = toPlayerDocs.docs[i];
+      // print('incrementing Ranks of ${doc.id} from ${toPlayerRanks[i]}');
+      transaction.update(FirebaseFirestore.instance.collection('Ladder').doc(toLadder).collection('Players').doc(doc.id), {
+        'Rank': toPlayerRanks[i],
+      });
+    }
+    // add in the new Player
+    // print('creating copy of user ${highestPlayerDoc.id} in $toLadder');
+    transaction.set(FirebaseFirestore.instance.collection('Ladder').doc(toLadder).collection('Players').doc(highestPlayerDoc.id),{
+      'Helper': highestPlayerDoc.get('Helper'),
+      'Name': highestPlayerDoc.get('Name'),
+      'Present': false,
+      'Rank': 1,
+      'ScoreLastUpdatedBy': '',
+      'TimePresent': DateTime.now(),
+      'WillPlayInput': 0,
+      'DaysAway': highestPlayerDoc.get('DaysAway'),
+      'StartingOrder': 0,
+      'TotalScore': 0,
+      'ScoresConfirmed': false,
+    });
+
+    // now delete it from the fromLadder
+    // print('deleting user ${highestPlayerDoc.id} from ladder $fromLadder should be at end anyway');
+    transaction.delete(FirebaseFirestore.instance.collection('Ladder').doc(fromLadder).collection('Players').doc(highestPlayerDoc.id));
+
+
+    transactionAudit(
+      transaction: transaction,
+      user: activeUser.id,
+      documentName: highestPlayerDoc.id,
+      action: 'Move player down to other ladder',
+      newValue: toLadder,
+      oldValue: fromLadder
+    );
+  });
+  return;
+}
+movePlayerUp( String fromLadder, String toLadder) async {
+
+  CollectionReference toPlayerRef = FirebaseFirestore.instance.collection('Ladder').doc(toLadder).collection('Players');
+  CollectionReference fromPlayerRef = FirebaseFirestore.instance.collection('Ladder').doc(fromLadder).collection('Players');
+  await FirebaseFirestore.instance.runTransaction((transaction) async {
+    QuerySnapshot toPlayerDocs = await toPlayerRef.get();
+    // get the last player
+    int highestRank=0;
+    for (var doc in toPlayerDocs.docs){
+      if (doc.get('Rank')> highestRank){
+        highestRank = doc.get('Rank');
+      }
+    }
+    QuerySnapshot fromPlayerDocs = await fromPlayerRef.get();
+    QueryDocumentSnapshot? fromPlayerDoc;
+    List<int> fromPlayerRanks =[];
+    for (int i=0; i<fromPlayerDocs.docs.length; i++){
+      QueryDocumentSnapshot doc = fromPlayerDocs.docs[i];
+      if (doc.get('Rank')==1){
+        fromPlayerDoc = doc;
+      }
+      fromPlayerRanks.add(doc.get('Rank')-1);
+
+    }
+    DocumentReference fromUserRef = FirebaseFirestore.instance.collection('Users').doc(fromPlayerDoc!.id);
+    DocumentSnapshot? userDoc = await fromUserRef.get();
+    String laddersStr = userDoc.get('Ladders');
+    String newLaddersStr = laddersStr.toString();
+    if (laddersStr.isEmpty){
+      newLaddersStr = '$fromLadder|$toLadder';
+    } else {
+      List<String> ladders = laddersStr.split(',');
+      if (!ladders.contains(fromLadder)){
+        newLaddersStr +=',$fromLadder';
+      }
+      if (!ladders.contains(toLadder)){
+        newLaddersStr +=',$toLadder';
+      }
+    }
+
+
+    // now start writing/updating after all of the reads have happened
+    if (newLaddersStr != laddersStr){
+      transaction.update(FirebaseFirestore.instance.collection('Users').doc(fromPlayerDoc.id),{
+      'Ladders': newLaddersStr,
+          });
+    }
+    // decrement the ranks
+    for (int i=0; i<fromPlayerDocs.docs.length; i++){
+      QueryDocumentSnapshot doc = fromPlayerDocs.docs[i];
+      // print('decrementing Ranks of ${doc.id} to ${fromPlayerRanks[i]}');
+      transaction.update(FirebaseFirestore.instance.collection('Ladder').doc(fromLadder).collection('Players').doc(doc.id), {
+        'Rank': fromPlayerRanks[i],
+      });
+    }
+    // add in the new Player
+    // print('creating copy of user ${fromPlayerDoc.id} in $toLadder');
+    transaction.set(FirebaseFirestore.instance.collection('Ladder').doc(toLadder).collection('Players').doc(fromPlayerDoc.id),{
+      'Helper': fromPlayerDoc.get('Helper'),
+      'Name': fromPlayerDoc.get('Name'),
+      'Present': false,
+      'Rank': highestRank + 1,
+      'ScoreLastUpdatedBy': '',
+      'TimePresent': DateTime.now(),
+      'WillPlayInput': 0,
+      'DaysAway': fromPlayerDoc.get('DaysAway'),
+      'StartingOrder': 0,
+      'TotalScore': 0,
+      'ScoresConfirmed': false,
+    });
+
+    // now delete it from the fromLadder
+    // print('deleting user ${fromPlayerDoc.id} from ladder $fromLadder after shuffling other ranks');
+    transaction.delete(FirebaseFirestore.instance.collection('Ladder').doc(fromLadder).collection('Players').doc(fromPlayerDoc.id));
+
+
+    transactionAudit(
+        transaction: transaction,
+        user: activeUser.id,
+        documentName: fromPlayerDoc.id,
+        action: 'Move player UP to other ladder',
+        newValue: toLadder,
+        oldValue: fromLadder
+    );
+  });
+  return;
+}
 class PlayerConfigPage extends StatefulWidget {
   const PlayerConfigPage({super.key});
 
@@ -24,7 +208,7 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
   String _errorText = '';
 
   List<QueryDocumentSnapshot<Object?>> _players = List.empty();
-
+  final TextEditingController _rankController = TextEditingController();
   @override
   void initState() {
     super.initState();
@@ -32,45 +216,55 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
   }
 
   refresh() => setState(() {});
-  void addPlayer(BuildContext context, String newPlayerName) {
-    DocumentReference globalUserRef = FirebaseFirestore.instance.collection('Users').doc(newPlayerName);
 
-    FirebaseFirestore.instance.runTransaction((transaction) async {
+
+  void addPlayer(BuildContext context, String newPlayerEmail) async {
+    DocumentReference globalUserRef = FirebaseFirestore.instance.collection('Users').doc(newPlayerEmail);
+    String displayName='New Player';
+    DocumentReference ladderRef = FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId);
+
+    await FirebaseFirestore.instance.runTransaction((transaction) async {
       var globalUserDoc = await globalUserRef.get();
+      var ladderDoc = await ladderRef.get();
+      String viewLadders = ladderDoc.get('LaddersThatCanView');
+      if (viewLadders.isEmpty){
+        viewLadders = activeLadderId;
+      } else {
+        viewLadders = '$activeLadderId,$viewLadders';
+      }
 
       if (globalUserDoc.exists) {
+        try{
+          displayName = globalUserDoc.get('DisplayName');
+        } catch(_){}
+
+        List<String> newLadderList=[];
+        List<String> laddersToAdd = viewLadders.split(',');
         String ladderStr = globalUserDoc.get('Ladders');
-        var ladders = ladderStr.split(',');
-        // print('addPlayer: found entered user $newPlayerName with Ladders: $ladders');
-        bool found = false;
-        for (var ladder in ladders) {
-          if (ladder == activeLadderId) {
-            found = true;
-            break;
+        if (ladderStr.isNotEmpty){
+          newLadderList = ladderStr.split(',');
+        }
+        for (int i=0; i<laddersToAdd.length; i++){
+          if (!newLadderList.contains(laddersToAdd[i])){
+            newLadderList.add(laddersToAdd[i]);
           }
         }
-        if (!found) {
-          if (ladderStr.isEmpty) {
-            transaction.update(FirebaseFirestore.instance.collection('Users').doc(newPlayerName), {
-              'Ladders': activeLadderId,
+
+        transaction.update(FirebaseFirestore.instance.collection('Users').doc(newPlayerEmail), {
+              'Ladders': newLadderList.join(','),
             });
-          } else {
-            transaction.update(FirebaseFirestore.instance.collection('Users').doc(newPlayerName), {
-              'Ladders': '$ladderStr,$activeLadderId',
-            });
-          }
-        }
+
       } else {
         // print('addPlayer: have to create new user $newPlayerName');
-        transaction.set(FirebaseFirestore.instance.collection('Users').doc(newPlayerName), {
-          'Ladders': activeLadderId,
+        transaction.set(FirebaseFirestore.instance.collection('Users').doc(newPlayerEmail), {
+          'Ladders': viewLadders,
         });
       }
 
-      // print('addPlayer: $activeLadderId/$newPlayerName');
-      transaction.set(FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Players').doc(newPlayerName), {
+      // print('addPlayer: $activeLadderId/$newPlayerEmail/$displayName');
+      transaction.set(FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Players').doc(newPlayerEmail), {
         'Helper': false,
-        'Name': 'New Player',
+        'Name': displayName,
         'Present': false,
         'Rank': _players.length + 1,
         'ScoreLastUpdatedBy': '',
@@ -84,42 +278,51 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
       transactionAudit(
         transaction: transaction,
         user: activeUser.id,
-        documentName: newPlayerName,
+        documentName: newPlayerEmail,
         action: 'CreateUser',
         newValue: 'Create',
       );
     });
-    print('addPlayer, calling firebase to create user with email and password, $newPlayerName');
-    FirebaseAuth.instance.createUserWithEmailAndPassword(email: newPlayerName, password: '123456').then((userCredential) {
-      print('addPlayer, create user with email and password, $newPlayerName returned without error');
-      final _ = showDialog<bool>( context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-              title: Text('WARNING'),
-              content: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('you are now logged in as new user:$newPlayerName\n'
-                        'but you can continue to add new players\n'
-                        'but you will have to Log Out once you leave this page', style: nameStyle),
-                  ]
-              ));
-        },
-      );
-      setState(() {
-        _errorText = 'you are now logged in as new user:$newPlayerName';
-      });
+    // print('addPlayer, calling firebase to create user with email and password, $newPlayerName');
+    // final navigator = Navigator.of(context);
+    await FirebaseAuth.instance.createUserWithEmailAndPassword(email: newPlayerEmail, password: '123456').then((userCredential) {
+      // print('addPlayer, create user with email and password, $newPlayerName returned without error');
+      if (!context.mounted) return;
+
+        final _ = showDialog<bool>(context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+                title: Text('WARNING'),
+                content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('you are now logged in as new user:$newPlayerEmail\n'
+                          'but you can continue to add new players\n'
+                          'but you will have to Log Out once you leave this page', style: nameStyle),
+                    ]
+                ));
+          },
+        );
+        setState(() {
+          _errorText = 'you are now logged in as new user:$newPlayerEmail';
+        });
+
     }).catchError((e) {
       if (e.code == 'email-already-in-use') {
-        print('addPlayer, create user ALREADY IN USE, $newPlayerName');
+        if (kDebugMode) {
+          print('addPlayer, create user ALREADY IN USE, $newPlayerEmail');
+        }
       } else {
-        print('addPlayer, error during registration of $newPlayerName $e');
+        if (kDebugMode) {
+          print('addPlayer, error during registration of $newPlayerEmail $e');
+        }
         setState(() {
-          _errorText = 'error during registration of $newPlayerName $e';
+          _errorText = 'error during registration of $newPlayerEmail $e';
         });
       }
     });
+    return;
   }
 
   void deletePlayer(String playerId, int newRank) {
@@ -187,7 +390,7 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
   }
 
   void changeRank(String playerId, int oldRank, int newRank) {
-    // print('in changeRank');
+    // print('in changeRank $playerId $oldRank to $newRank');
     if (newRank <= 0) return;
     if (newRank > _players.length) return;
 
@@ -212,16 +415,19 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
         if (newRank < oldRank) {
           if (oldRanks[index] < newRank) continue;
           if (oldRanks[index] > oldRank) continue;
+          // print('changing $index ${emails[index]} from ${oldRanks[index]} to PLUS 1');
           transaction.update(FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Players').doc(emails[index]), {
             'Rank': oldRanks[index] + 1,
           });
         } else if (newRank > oldRank) {
           if (oldRanks[index] < oldRank) continue;
           if (oldRanks[index] > newRank) continue;
+          // print('changing $index ${emails[index]} from ${oldRanks[index]} to less 1');
           transaction.update(FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Players').doc(emails[index]), {
             'Rank': oldRanks[index] - 1,
           });
         }
+        // print('changing final $playerId to $newRank');
         transaction.update(FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Players').doc(playerId), {
           'Rank': newRank,
         });
@@ -300,19 +506,53 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
                     textAlign: TextAlign.left,
                   ),
                   Expanded(
-                    child: TextFormField(
+                    child: MyTextField(
+                      labelText: 'New Rank',
+                      controller: _rankController,
+                      clearEntryOnLostFocus: false,
                       initialValue: playerDoc.get('Rank').toString(),
-                      style: nameStyle,
-                      onChanged: (val) {
+                      helperText: 'what rank you would like to set this to',
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      entryOK: (String? val){
+                        int newRank = -1;
+                        // int oldRank = playerDoc.get('Rank');
+                        try {
+                          newRank = int.parse(_rankController.text);
+                        } catch (_) {}
+                        if (newRank<=0) {
+                          return 'Invalid Rank';
+                        }
+                        if (newRank> _players.length){
+                          return 'New Rank too high';
+                        }
+                        return null;
+                      },
+                      onIconClicked: (str) {
                         int newRank = -1;
                         int oldRank = playerDoc.get('Rank');
                         try {
-                          newRank = int.parse(val);
+                          newRank = int.parse(_rankController.text);
                         } catch (_) {}
-                        changeRank(playerDoc.id, oldRank, newRank);
+                        if (newRank>0) {
+                          changeRank(playerDoc.id, oldRank, newRank);
+                        }
                       },
                     ),
                   ),
+                  // Expanded(
+                  //   child: TextFormField(
+                  //     initialValue: playerDoc.get('Rank').toString(),
+                  //     style: nameStyle,
+                  //     onChanged: (val) {
+                  //       int newRank = -1;
+                  //       int oldRank = playerDoc.get('Rank');
+                  //       try {
+                  //         newRank = int.parse(val);
+                  //       } catch (_) {}
+                  //       changeRank(playerDoc.id, oldRank, newRank);
+                  //     },
+                  //   ),
+                  // ),
                 ],
               ),
               const SizedBox(height: 5),
@@ -341,6 +581,10 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
                   // print('ready to update');
                   FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Players').doc(playerDoc.id).update({
                     'Name': newValue,
+                  });
+                  //remember the last name used for each email to make it easier to add an existing player to a new ladder
+                  FirebaseFirestore.instance.collection('Users').doc(playerDoc.id).update({
+                    'DisplayName': newValue,
                   });
                 },
                 initialValue: '',
@@ -462,6 +706,7 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
               // automaticallyImplyLeading: false,
             ),
             body: SingleChildScrollView(
+              key: PageStorageKey('playerScrollView'),
               scrollDirection: Axis.vertical,
               child: Column(
                 children: [
@@ -471,6 +716,7 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
                   ),
                   sortAdjustRow(),
                   ListView.separated(
+                    key: PageStorageKey('playerListView'),
                     scrollDirection: Axis.vertical,
                     shrinkWrap: true,
                     physics: const ScrollPhysics(),
