@@ -10,6 +10,7 @@ import 'package:social_sport_ladder/screens/player_home.dart';
 import '../Utilities/helper_icon.dart';
 import '../Utilities/rounded_button.dart';
 import '../constants/constants.dart';
+import '../help/help_pages.dart';
 import 'audit_page.dart';
 import 'calendar_page.dart';
 import 'ladder_selection_page.dart';
@@ -158,6 +159,11 @@ class _ConfigPageState extends State<ConfigPage> {
               backgroundColor: Colors.brown[400],
               elevation: 0.0,
               actions: [
+                IconButton(
+                    onPressed: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => HelpLoginPage(page:HelpPage.admin)));
+                    },
+                    icon: Icon(Icons.help, color: Colors.green,)),
                 if (isAdmin)
                   Padding(
                     padding: const EdgeInsets.all(0.0),
@@ -296,7 +302,7 @@ class _ConfigPageState extends State<ConfigPage> {
                     ),
                     MyTextField(
                       labelText: 'Vacation Stop Time',
-                      helperText: 'Time of the day, player can no longer mark as away',
+                      helperText: 'Time of the day, player can no longer mark as away hundreds is days',
                       controller: _vacationController,
                       keyboardType: const TextInputType.numberWithOptions(signed: false),
                       entryOK: (entry) {
@@ -306,8 +312,8 @@ class _ConfigPageState extends State<ConfigPage> {
                         } catch (e) {
                           return 'Invalid number entered';
                         }
-                        if ((number.floor() < 0) || (number.floor() > 48)) {
-                          return 'hour must be between 0 and 48';
+                        if (number.floor() < 0) {
+                          return 'hour must be 0 or greater';
                         }
                         double minutes = ((number - number.floor()) * 100.0).round() / 100.0;
                         List<double> allowedMinutes = [0.00, 0.15, 0.30, 0.45];
@@ -846,7 +852,7 @@ class _ConfigPageState extends State<ConfigPage> {
                                 );
                               }).toList(),
                               icon: const Icon(Icons.menu),
-                              iconSize: 30,
+                              iconSize: appFontSize+10,
                               dropdownColor: tertiaryColor,
                               onChanged: (value) {
                                 // print('ladder_config_page set Disabled to $value');

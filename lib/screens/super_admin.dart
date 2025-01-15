@@ -289,15 +289,15 @@ class _SuperAdminState extends State<SuperAdmin> {
                 ),
                 IconButton(
                     onPressed:
-                    true?null:() {
+                    false?null:() {
                       FirebaseFirestore.instance.collection('Ladder').get().then((QuerySnapshot ladder) {
                         for (var doc in ladder.docs) {
                           FirebaseFirestore.instance.collection('Ladder').doc(doc.id).update({
                             // 'CurrentRound': 1,
-                            // 'RequiredSoftwareVersion': softwareVersion,
-                            'LaddersThatCanView': '',
-                            'HigherLadder':'',
-                            'LowerLadder':'',
+                            'RequiredSoftwareVersion': softwareVersion,
+                            // 'LaddersThatCanView': '',
+                            // 'HigherLadder':'',
+                            // 'LowerLadder':'',
                           });
 
                           // FirebaseFirestore.instance.collection('Ladder/${doc.id}/Players').get().then((QuerySnapshot player) {

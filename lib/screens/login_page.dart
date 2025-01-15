@@ -3,10 +3,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:pdfx/pdfx.dart';
 import 'package:sign_in_button/sign_in_button.dart';
 import 'package:social_sport_ladder/Utilities/my_text_field.dart';
 import 'package:social_sport_ladder/Utilities/rounded_button.dart';
 import 'package:social_sport_ladder/Utilities/string_validators.dart';
+import 'package:social_sport_ladder/help/help_pages.dart';
 
 import '../Utilities/helper_icon.dart';
 import '../constants/constants.dart';
@@ -15,7 +17,6 @@ import 'ladder_selection_page.dart';
 
 String loggedInUser = "";
 DocumentSnapshot<Object?>? loggedInUserDoc;
-
 
 // this is used to trigger a signOut from another module
 LoginPageState? globalHomePage;
@@ -27,12 +28,13 @@ class LoginPage extends StatefulWidget {
   State<LoginPage> createState() => LoginPageState();
 }
 
-
-
 class LoginPageState extends State<LoginPage> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final pdfPinchController = PdfControllerPinch(
+    document: PdfDocument.openAsset('assets/Users Manual - Social Sport Ladder - Login Page.pdf'),
+  );
   final GoogleSignIn _googleSignIn = GoogleSignIn(
     clientId: googleClientId,
   );
@@ -40,7 +42,7 @@ class LoginPageState extends State<LoginPage> {
   String _passwordResetError = '';
 
   @override
-  void dispose(){
+  void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -211,6 +213,13 @@ class LoginPageState extends State<LoginPage> {
           foregroundColor: Colors.white,
           title: const Text('Login:'),
           automaticallyImplyLeading: false,
+          actions: [
+            IconButton(
+                onPressed: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => HelpLoginPage(page:HelpPage.login)));
+                },
+                icon: Icon(Icons.help, color: Colors.green,)),
+          ],
         ),
         body: SingleChildScrollView(
           scrollDirection: Axis.vertical,
@@ -244,7 +253,7 @@ class LoginPageState extends State<LoginPage> {
                   obscureText: true,
                   clearEntryOnLostFocus: false,
                   // initialValue: '',
-                  helperText: 'Please enter your password for this app if you don''t know your password fill in email and press Reset button',
+                  helperText: 'Please enter your password for this app if you don' 't know your password fill in email and press Reset button',
                   controller: _passwordController,
                   entryOK: (String? val) {
                     setState(() {
@@ -257,11 +266,12 @@ class LoginPageState extends State<LoginPage> {
                   },
                 ),
                 const SizedBox(height: 20),
-                (_emailController.text.isValidEmail() && _passwordController.text.length>=6)?
-                RoundedButton(
-                  onTap: _signInWithEmailAndPassword,
-                  text: 'Sign in with Email',
-                ):Text('Please enter a valid ${_emailController.text.isValidEmail()?'password':'email'} to login', style: nameStyle),
+                (_emailController.text.isValidEmail() && _passwordController.text.length >= 6)
+                    ? RoundedButton(
+                        onTap: _signInWithEmailAndPassword,
+                        text: 'Sign in with Email',
+                      )
+                    : Text('Please enter a valid ${_emailController.text.isValidEmail() ? 'password' : 'email'} to login', style: nameStyle),
                 const SizedBox(height: 20),
                 (_emailController.text.isValidEmail())
                     ? RoundedButton(

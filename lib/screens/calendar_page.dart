@@ -12,6 +12,7 @@ import 'package:social_sport_ladder/screens/player_home.dart';
 import 'package:social_sport_ladder/sports/score_tennis_rg.dart';
 import 'package:table_calendar/table_calendar.dart';
 
+import '../help/help_pages.dart';
 import 'audit_page.dart';
 import 'ladder_selection_page.dart';
 import 'login_page.dart';
@@ -579,12 +580,19 @@ class CalendarPageState extends State<CalendarPage> {
     TextStyle headerStyle = nameBigStyle;
     // print('calendarScaffold on calendar_page: $loggedInUser $_playerDoc');
   if ((_playerDoc!= null) &&(loggedInUser!=_playerDoc!.id)){
-    title = '$title for "${_playerDoc!.get('Name')}"';
+    title = '${_playerDoc!.get('Name')}';
     headerStyle = nameBigRedStyle;
   }
     return Scaffold(
         appBar: AppBar(
-          title: Text(title, style: headerStyle),
+          title: Text( title, style: headerStyle, ),
+          actions: [
+            IconButton(
+                onPressed: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => HelpLoginPage(page:HelpPage.playerCalendar)));
+                },
+                icon: Icon(Icons.help, color: Colors.green,)),
+          ],
         ),
         body: Column(children: [
           TableCalendar(

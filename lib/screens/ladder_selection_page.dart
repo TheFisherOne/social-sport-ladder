@@ -13,6 +13,7 @@ import 'package:social_sport_ladder/screens/score_base.dart';
 import 'package:social_sport_ladder/screens/super_admin.dart';
 import '../Utilities/helper_icon.dart';
 import '../Utilities/misc.dart';
+import '../help/help_pages.dart';
 import 'ladder_config_page.dart';
 import 'login_page.dart';
 
@@ -284,6 +285,11 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                   actions: [
                     IconButton(
                         onPressed: () {
+                          Navigator.push(context, MaterialPageRoute(builder: (context) => HelpLoginPage(page:HelpPage.pickLadder)));
+                        },
+                        icon: Icon(Icons.help, color: Colors.green,)),
+                    IconButton(
+                        onPressed: () {
                           setState(() {
                             double newFontSize=appFontSize+ 1.0;
                             if (newFontSize > 40) newFontSize = 20.0;
@@ -387,7 +393,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                           child: Padding(
                             padding: const EdgeInsets.only(left: 8.0, right: 8, top: 2, bottom: 2),
                             child: InkWell(
-                              onTap: (!disabled || activeUser.admin)
+                              onTap: (!disabled || availableDocs[row].get('Admins').split(',').contains(loggedInUser) || activeUser.canBeSuper)
                                   ? () {
                                       activeLadderDoc = availableDocs[row];
                                       activeLadderId = availableDocs[row].id;

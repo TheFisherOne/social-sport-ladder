@@ -11,6 +11,7 @@ import '../Utilities/location.dart';
 import '../Utilities/player_image.dart';
 import '../constants/constants.dart';
 // import '../sports/score_tennis_rg.dart';
+import '../help/help_pages.dart';
 import '../sports/sport_tennis_rg.dart';
 import 'audit_page.dart';
 import 'calendar_page.dart';
@@ -376,7 +377,7 @@ class _PlayerHomeState extends State<PlayerHome> {
   }
 
   Widget buildPlayerLine(int row, List<PlayerList>? courtAssignments) {
-    if (_players == null || row >= _players!.length) return Text('ERROR loading Player for row $row');
+    if (_players == null || row >= _players!.length) return Text('ERROR loading Player for row $row', style: nameStyle,);
 
     QueryDocumentSnapshot player = _players![row];
     final isUserRow = (player.id == activeUser.id);
@@ -545,6 +546,11 @@ class _PlayerHomeState extends State<PlayerHome> {
                   elevation: 0.0,
                   automaticallyImplyLeading: true,
                   actions: [
+                    IconButton(
+                        onPressed: () {
+                          Navigator.push(context, MaterialPageRoute(builder: (context) => HelpLoginPage(page:HelpPage.player)));
+                        },
+                        icon: Icon(Icons.help, color: Colors.green,)),
                     activeUser.admin
                         ? Padding(
                             padding: const EdgeInsets.all(5.0),
@@ -603,6 +609,7 @@ class _PlayerHomeState extends State<PlayerHome> {
                             ),
                       (courtAssignments!=null)?
                       headerSummary(_players, courtAssignments):Text('. . . . . ', style: nameStyle,),
+                      (courtAssignments!=null)?
                       ListView.separated(
                         key: PageStorageKey('playerListView'),
                         scrollDirection: Axis.vertical,
@@ -617,7 +624,7 @@ class _PlayerHomeState extends State<PlayerHome> {
                           }
                           return buildPlayerLine(row, courtAssignments);
                         },
-                      ),
+                      ):Text('Administrator to configure next date of play', style: nameStyle,),
                     ],
                   ),
                 ),

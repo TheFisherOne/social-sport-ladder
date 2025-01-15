@@ -36,6 +36,7 @@ class _MyTextFieldState extends State<MyTextField> {
   final FocusNode _focusNode = FocusNode();
   String? errorString;
   String? lastSavedValue;
+  bool _obscurePassword = true;
 
   @override
   initState() {
@@ -80,7 +81,7 @@ class _MyTextFieldState extends State<MyTextField> {
         child: TextField(
           focusNode: _focusNode,
           controller: widget.controller,
-          obscureText: widget.obscureText,
+          obscureText: widget.obscureText && _obscurePassword,
           inputFormatters: widget.inputFormatters,
           enabled: widget.entryOK!=null,
           style: nameStyle,
@@ -148,7 +149,14 @@ class _MyTextFieldState extends State<MyTextField> {
                 )),
             fillColor: tertiaryColor,
             filled: true,
-            suffixIcon:  ((widget.onIconClicked==null)||(errorString!='Not Saved'))?null:
+            suffixIcon:  ((widget.onIconClicked==null)||(errorString!='Not Saved'))?(widget.obscureText?
+                IconButton(onPressed: (){
+                  setState(() {
+                    _obscurePassword = !_obscurePassword;
+                  });
+                }, icon: Icon(_obscurePassword? Icons.visibility_off:Icons.visibility,),
+                )
+                :null):
             IconButton(
               onPressed: () {
                 // print('clicked Icon for ${widget.labelText} with str=${widget.controller.text}');
