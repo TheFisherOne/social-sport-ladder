@@ -289,31 +289,32 @@ class _SuperAdminState extends State<SuperAdmin> {
                 ),
                 IconButton(
                     onPressed:
-                    false?null:() {
+                    true?null:() {
                       FirebaseFirestore.instance.collection('Ladder').get().then((QuerySnapshot ladder) {
                         for (var doc in ladder.docs) {
-                          FirebaseFirestore.instance.collection('Ladder').doc(doc.id).update({
-                            // 'CurrentRound': 1,
-                            'RequiredSoftwareVersion': softwareVersion,
-                            // 'LaddersThatCanView': '',
-                            // 'HigherLadder':'',
-                            // 'LowerLadder':'',
-                          });
-
-                          // FirebaseFirestore.instance.collection('Ladder/${doc.id}/Players').get().then((QuerySnapshot player) {
-                          //   for (var subDoc in player.docs) {
-                          //     // print('Ladder: ${doc.id} and Player: ${subDoc.id}');
-                          //     FirebaseFirestore.instance.collection('Ladder').doc(doc.id).collection('Players').doc(subDoc.id)
-                          //     .update({
-                          //       // 'TotalScore':0,
-                          //       // 'StartingOrder': 0,
-                          //       // 'Score1': FieldValue.delete(),
-                          //       // 'Score2': FieldValue.delete(),
-                          //       // 'LaddersThatCanView': FieldValue.delete(),
-                          //
-                          //     });
-                          //   }
+                          // FirebaseFirestore.instance.collection('Ladder').doc(doc.id).update({
+                          //   // 'CurrentRound': 1,
+                          //   'RequiredSoftwareVersion': softwareVersion,
+                          //   // 'LaddersThatCanView': '',
+                          //   // 'HigherLadder':'',
+                          //   // 'LowerLadder':'',
                           // });
+
+                          FirebaseFirestore.instance.collection('Ladder/${doc.id}/Players').get().then((QuerySnapshot player) {
+                            for (var subDoc in player.docs) {
+                              // print('Ladder: ${doc.id} and Player: ${subDoc.id}');
+                              FirebaseFirestore.instance.collection('Ladder').doc(doc.id).collection('Players').doc(subDoc.id)
+                              .update({
+                                'WaitListRank': 0,
+                                // 'TotalScore':0,
+                                // 'StartingOrder': 0,
+                                // 'Score1': FieldValue.delete(),
+                                // 'Score2': FieldValue.delete(),
+                                // 'LaddersThatCanView': FieldValue.delete(),
+
+                              });
+                            }
+                          });
                         }
                       });
                     },

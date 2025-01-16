@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
 import 'package:location/location.dart';
 import 'package:social_sport_ladder/screens/ladder_config_page.dart';
 import 'package:social_sport_ladder/screens/score_base.dart';
@@ -106,6 +107,8 @@ Widget headerSummary(List<QueryDocumentSnapshot>? players, List<PlayerList> assi
   if (PlayerList.numUnassigned > 0) {
     unAssignedStr = '(${PlayerList.numUnassigned})';
   }
+  // print('headerSummary: num: ${PlayerList.numCourts} 4: ${PlayerList.numCourtsOf4} 5: ${PlayerList.numCourtsOf5} 6: ${PlayerList.numCourtsOf6} players:${PlayerList.numPresent}');
+  // print('headerSummary: ${PlayerList.numCourts}, ${PlayerList.numCourtsOf4}+${PlayerList.numCourtsOf5}+${PlayerList.numCourtsOf6}');
   return InkWell(
     onTap: () {
       headerSummarySelected = !headerSummarySelected;
@@ -116,8 +119,12 @@ Widget headerSummary(List<QueryDocumentSnapshot>? players, List<PlayerList> assi
             children: [
               Text('Present: ${PlayerList.numPresent} out of ${PlayerList.numExpected} expected', style: nameStyle),
               Text('Courts of 4=${PlayerList.numCourtsOf4}  Courts of 5=${PlayerList.numCourtsOf5}', style: nameStyle),
-              (PlayerList.numCourts == (PlayerList.numCourtsOf4+PlayerList.numCourtsOf5))?
+              if (PlayerList.numCourtsOf6>0)
+              Text('Courts of 6=${PlayerList.numCourtsOf6}', style: nameStyle),
+
+              (PlayerList.numCourts == (PlayerList.numCourtsOf4+PlayerList.numCourtsOf5+PlayerList.numCourtsOf6))?
               Text('Courts available ${PlayerList.numCourts}', style: nameStyle):SizedBox(height: 1,),
+
               if ((PlayerList.numUnassigned > 0) && (PlayerList.numCourtsOf5 == PlayerList.numCourts) && (PlayerList.numCourts == PlayerList.totalCourtsAvailable))
                 Text(
                   'Players not on court ${PlayerList.numUnassigned}:marked (Last)\nall available courts are full',
@@ -131,7 +138,7 @@ Widget headerSummary(List<QueryDocumentSnapshot>? players, List<PlayerList> assi
             ],
           )
         : Text(
-            '${PlayerList.numPresent}/${PlayerList.numExpected} 4=${PlayerList.numCourtsOf4} 5=${PlayerList.numCourtsOf5} $unAssignedStr',
+            '${PlayerList.numPresent}/${PlayerList.numExpected} 4=${PlayerList.numCourtsOf4} 5=${PlayerList.numCourtsOf5} ${(PlayerList.numCourtsOf6>0)?'6=${PlayerList.numCourtsOf6}':''} $unAssignedStr',
             style: nameStyle,
           ),
   );
@@ -187,6 +194,14 @@ class _PlayerHomeState extends State<PlayerHome> {
     DateTime timeNow = DateTime.now();
     if (nextPlayDate == null) return (Icons.cancel_outlined, 'no start time specified for next day of play');
 
+    String nextPlayDateStr = DateFormat('yyyy.MM.dd').format(nextPlayDate);
+
+    List<String> awayList = player.get('DaysAway').split('|');
+    if (awayList.contains(nextPlayDateStr)) {
+      return (Icons.airplanemode_active, 'You have marked yourself as away for $nextPlayDateStr');
+    }
+
+
     // print(' ${dayOfPlay.substring(0, 8)} != ${DateFormat('yyyyMMdd').format(DateTime.now())}');
     if ((timeNow.year != nextPlayDate.year) || (timeNow.month != nextPlayDate.month) || (timeNow.day != nextPlayDate.day)) {
       return (Icons.access_time, 'It is not yet the day of the ladder $nextPlayDate');
@@ -203,7 +218,15 @@ class _PlayerHomeState extends State<PlayerHome> {
 
       if (player.get('Present')) return (Icons.check_box, 'Checked in and ready to play');
       if (player.id == activeUser.id) {
-        return (Icons.check_box_outline_blank, 'Ready to check in if you are going to play');
+        if (player.get('WaitListRank')>0){
+          if (player.get('WaitListRank') <= activeLadderDoc!.get('NumberFromWaitList')){
+            return (Icons.check_box_outline_blank, 'Ready to check in from wait list if you are going to play');
+          } else {
+            return (Icons.edit_off, 'You are on the wait list and not enabled to play this week');
+          }
+        } else {
+          return (Icons.check_box_outline_blank, 'Ready to check in if you are going to play');
+        }
       } else if (activeUser.helper) {
         return (Icons.check_box_outline_blank, 'Helper checkin');
       }
@@ -398,6 +421,12 @@ class _PlayerHomeState extends State<PlayerHome> {
     int rank = player.get('Rank');
     // print('buildPlayerLine: $row ${player.id} crt:${plAssignment!.snapshot.id} away: ${plAssignment!.markedAway}');
 
+    Icon icon;
+    if (row == _checkInProgress) icon = Icon(Icons.refresh, color:Colors.green);
+    else if (player.get('Present') ) icon = Icon(Icons.check_box, color: Colors.black);
+    else if (plAssignment!.markedAway) icon = const Icon(Icons.horizontal_rule, color: Colors.black);
+    else icon = Icon(Icons.check_box_outline_blank, color:Colors.black);
+
     // print('buildPlayerLine: _clickedOnRank: $_clickedOnRank vs $row admin: ${activeLadderDoc!.get('Admins').split(",").contains(loggedInUser) } ${player.id} vs $loggedInUser OR $loggedInUserIsSuper');
     return Column(
       children: [
@@ -419,13 +448,14 @@ class _PlayerHomeState extends State<PlayerHome> {
             });
           },
           child: Row(children: [
-            (row == _checkInProgress)
-                ? const Icon(Icons.refresh)
-                : ((player.get('Present') ?? false)
-                    ? const Icon(Icons.check_box, color: Colors.black)
-                    : (plAssignment!.markedAway ? const Icon(Icons.horizontal_rule, color: Colors.black) : const Icon(Icons.check_box_outline_blank))),
+            icon,
+            // (row == _checkInProgress)
+            //     ? const Icon(Icons.refresh)
+            //     : ((player.get('Present') ?? false)
+            //         ? const Icon(Icons.check_box, color: Colors.black)
+            //         : (plAssignment!.markedAway ? const Icon(Icons.horizontal_rule, color: Colors.black) : const Icon(Icons.check_box_outline_blank))),
             Text(
-              ' $rank: ${player.get('Name') ?? 'No Name attr'} ${plAssignment!.unassigned ? '(Last)' : ''}',
+              ' $rank${(player.get('WaitListRank')>0)?"w${player.get('WaitListRank')}":""}: ${player.get('Name')} ${plAssignment!.unassigned ? '(Last)' : ''}',
               style: isUserRow ? nameBoldStyle : ((player.get('Helper') ?? false) ? italicNameStyle : nameStyle),
             ),
           ]),
@@ -501,7 +531,9 @@ class _PlayerHomeState extends State<PlayerHome> {
                 if (player.id == loggedInUser) {
                   loggedInPlayerDoc = player;
                   activeUser.canBeHelper = loggedInPlayerDoc!.get('Helper');
-                  activeUser.helperEnabled = false;
+                  if (!activeUser.canBeHelper) {
+                    activeUser.helperEnabled = false;
+                  }
                 }
                 if (player.get('Present')) {
                   numberOfPlayersPresent++;

@@ -20,6 +20,7 @@ class PlayerList {
   static int numCourts = 0;
   static int numCourtsOf4 = 0;
   static int numCourtsOf5 = 0;
+  static int numCourtsOf6 = 0;
   static int numPresent = 0;
   static int numAway = 0;
   static int numUnassigned = 0;
@@ -57,6 +58,10 @@ class PlayerList {
 
   int get startingOrder {
     return snapshot.get('StartingOrder');
+  }
+
+  int get waitListRank {
+    return snapshot.get('WaitListRank');
   }
 
   Timestamp get timePresent {
@@ -121,51 +126,80 @@ List<PlayerList>? sportTennisRGDetermineMovement(List<QueryDocumentSnapshot>? pl
       PlayerList.numPresent++;
     }
     pl.markedAway = false;
+    pl.unassigned = false;
     // print('checking AWAY: ${pl.snapshot.id} next:${PlayerList.nextPlayString} daysAway:${pl.daysAway}. split:${pl.daysAway.split('|')}.');
     if (pl.daysAway.split('|').contains(PlayerList.nextPlayString)) {
       pl.markedAway = true;
       PlayerList.numAway++;
       // print('will be away: $i id:${pl.snapshot.id} Name:${pl.snapshot.get('Name')} ${pl.snapshot.get('DaysAway').split('|')} == ${PlayerList.nextPlayString}');
     } else {
-      PlayerList.numExpected++;
+      if (pl.waitListRank > 0){
+        if (pl.waitListRank <= activeLadderDoc!.get('NumberFromWaitList')){
+          PlayerList.numExpected++;
+        }
+      } else {
+        PlayerList.numExpected++;
+      }
     }
   }
   PlayerList.numCourts = 0;
   PlayerList.numCourtsOf4 = 0;
   PlayerList.numCourtsOf5 = 0;
+  PlayerList.numCourtsOf6 = 0;
 
-  PlayerList.numCourts = PlayerList.numPresent ~/ 4;
-  if (PlayerList.numCourts > PlayerList.totalCourtsAvailable) {
-    PlayerList.numCourts = PlayerList.totalCourtsAvailable;
-    PlayerList.usedCourtNames = PlayerList.usedCourtNames.sublist(0, PlayerList.numCourts);
-  }
+  if ((getSportDescriptor(1) == 'rg_singles') && [6,11,16].contains(PlayerList.numPresent)){
+    if (PlayerList.numPresent == 6){
+      PlayerList.numCourts=1;
+      PlayerList.numCourtsOf6=1;
+    }
+    if (PlayerList.numPresent == 11){
+      PlayerList.numCourts=2;
+      PlayerList.numCourtsOf6=1;
+      PlayerList.numCourtsOf5=1;
+    }
+    if (PlayerList.numPresent == 16){
+      PlayerList.numCourts=3;
+      PlayerList.numCourtsOf6=1;
+      PlayerList.numCourtsOf5=2;
+    }
 
-  PlayerList.numCourtsOf4 = PlayerList.numCourts;
-  PlayerList.numCourtsOf5 = 0;
 
-  // this changes courtsOf4 to courtsOf5 until we run out of courts or we have all assigned
-  while ((PlayerList.numCourtsOf4 > 0) && ((PlayerList.numPresent - 4 * PlayerList.numCourtsOf4 - 5 * PlayerList.numCourtsOf5) > 0)) {
-    PlayerList.numCourtsOf4--;
-    PlayerList.numCourtsOf5++;
+  } else {
+    PlayerList.numCourts = PlayerList.numPresent ~/ 4;
+    if (PlayerList.numCourts > PlayerList.totalCourtsAvailable) {
+      PlayerList.numCourts = PlayerList.totalCourtsAvailable;
+      PlayerList.usedCourtNames = PlayerList.usedCourtNames.sublist(0, PlayerList.numCourts);
+    }
+
+    PlayerList.numCourtsOf4 = PlayerList.numCourts;
+    PlayerList.numCourtsOf5 = 0;
+
+    // this changes courtsOf4 to courtsOf5 until we run out of courts or we have all assigned
+    while ((PlayerList.numCourtsOf4 > 0) && ((PlayerList.numPresent - 4 * PlayerList.numCourtsOf4 - 5 * PlayerList.numCourtsOf5) > 0)) {
+      PlayerList.numCourtsOf4--;
+      PlayerList.numCourtsOf5++;
+    }
   }
   //print('Courts of 4:${PlayerList.numCourtsOf4} 5:${PlayerList.numCourtsOf5} =:${PlayerList.numCourts}');
 
   // now if we could not assign everyone figure out who has to be skipped/not assigned to a court
   PlayerList.numUnassigned = 0;
   List<PlayerList> unassignedPlayer = List.empty(growable: true);
-  int unassignedCount = PlayerList.numPresent - 4 * PlayerList.numCourtsOf4 - 5 * PlayerList.numCourtsOf5;
+  int unassignedCount = PlayerList.numPresent - 4 * PlayerList.numCourtsOf4 - 5 * PlayerList.numCourtsOf5 - 6*PlayerList.numCourtsOf6;
   while (unassignedCount > 0) {
     PlayerList? latestPlayer;
     Timestamp latestTime = Timestamp(1, 0);
     for (var i = 0; i < startingList.length; i++) {
       var pl = startingList[i];
-      if (!unassignedPlayer.contains(pl)) {
-        // skip over players we have already marked as unassigned
-        Timestamp thisTime = pl.timePresent;
-        // print('compare ${thisTime.toDate()} > ${latestTime.toDate()} ${thisTime.compareTo(latestTime)}');
-        if (thisTime.compareTo(latestTime) > 0) {
-          latestTime = thisTime;
-          latestPlayer = pl;
+      if (pl.present) {
+        if (!unassignedPlayer.contains(pl)) {
+          // skip over players we have already marked as unassigned
+          Timestamp thisTime = pl.timePresent;
+          // print('compare ${thisTime.toDate()} > ${latestTime.toDate()} ${thisTime.compareTo(latestTime)}');
+          if (thisTime.compareTo(latestTime) > 0) {
+            latestTime = thisTime;
+            latestPlayer = pl;
+          }
         }
       }
     }
@@ -173,7 +207,7 @@ List<PlayerList>? sportTennisRGDetermineMovement(List<QueryDocumentSnapshot>? pl
     unassignedPlayer.add(latestPlayer);
     latestPlayer.unassigned = true;
     PlayerList.numUnassigned++;
-    // print('marked player: ${latestPlayer.snapshot.id} as unassigned to a court with checkin Time: $latestTime');
+    //print('marked player: ${latestPlayer.snapshot.id} as unassigned to a court with checkin Time: $latestTime');
     unassignedCount--;
   }
 
@@ -199,8 +233,14 @@ List<PlayerList>? sportTennisRGDetermineMovement(List<QueryDocumentSnapshot>? pl
       startingList[i].newRank = 0;
       presentList.add(startingList[i]);
     } else {
-      startingList[i].newRank = startingList[i].rank + 1;
-      notPresentList.add(startingList[i]);
+      // special case: if you are on waiting list and marked yourself as away you do not move down at all
+      if ((startingList[i].snapshot.get('WaitListRank') > 0)&&(startingList[i].daysAwayIncludes(dateStr))){
+        startingList[i].newRank = startingList[i].rank;
+        notPresentList.add(startingList[i]);
+      } else {
+        startingList[i].newRank = startingList[i].rank + 1;
+        notPresentList.add(startingList[i]);
+      }
     }
   }
   if (presentList.length < 4) return startingList;
@@ -220,6 +260,9 @@ List<PlayerList>? sportTennisRGDetermineMovement(List<QueryDocumentSnapshot>? pl
     afterDownOne.last.afterDownOne = i + 1;
     // print('i:$i P: ${afterDownOne.last.present.toString().padRight(5)} R:${afterDownOne.last.rank} current: ${afterDownOne.last.currentRank}');
   }
+
+  // this moves down players that are not present 1 spot unless they marked as away
+  // (unless they were on the waiting list and not allowed to play)
   List<PlayerList> afterDownTwo;
   if(getSportDescriptor(0)=='pickleballRG'){
     afterDownTwo = afterDownOne;
@@ -229,13 +272,17 @@ List<PlayerList>? sportTennisRGDetermineMovement(List<QueryDocumentSnapshot>? pl
     startingList = afterDownOne.toList();
 
     for (int i = 0; i < players.length; i++) {
-      if (startingList[i].present || (startingList[i].daysAwayIncludes(dateStr))) {
+      // moving down a second spot does not apply to players that are present, or marked themselves as away, or weren't allowed to play off the waiting list
+      if (startingList[i].present || (startingList[i].daysAwayIncludes(dateStr)) ||
+          (startingList[i].snapshot.get('WaitListRank') > activeLadderDoc!.get('NumberFromWaitList'))) {
+        // print('afterDownTwo, not moving ${startingList[i].snapshot.get('Name')}:${startingList[i].present} ${(startingList[i].daysAwayIncludes(dateStr))} ${(startingList[i].snapshot.get('WaitListRank') > activeLadderDoc!.get('NumberFromWaitList'))} ');
         startingList[i].newRank = 0;
         presentList.add(startingList[i]);
       } else {
         startingList[i].newRank = startingList[i].currentRank + 1;
         notPresentList.add(startingList[i]);
       }
+
     }
     // print('afterDownTwo P len:${presentList.length} NP len: ${notPresentList.length} $dateStr');
 
@@ -252,13 +299,12 @@ List<PlayerList>? sportTennisRGDetermineMovement(List<QueryDocumentSnapshot>? pl
       }
       afterDownTwo.last.currentRank = i + 1;
       afterDownTwo.last.afterDownTwo = i + 1;
-      // print('i:$i P: ${afterDownTwo.last.present.toString().padRight(5)} WP: ${startingList[i].daysAwayIncludes(dateStr)} '
-      //     'R:${afterDownTwo.last.rank} current: ${afterDownTwo.last.currentRank}'
-      //     ' PLlen: ${presentList.length} NPlen: ${notPresentList.length}');
+      // if (i<12){
+      //   var sl=afterDownTwo[i];
+      //   print('afterDownTwo: $i ${sl.snapshot.get('Name')} ${sl.startingRank} ${sl.afterDownOne} ${sl.afterDownTwo}');
+      // }
     }
-    // for (int i=0; i<afterDownTwo.length;i++){
-    //   print('Start: ${afterDownTwo[i].rank} A1:${afterDownTwo[i].afterDownOne}  A2: ${afterDownTwo[i].afterDownTwo} R: ${i+1}');
-    // }
+
 
   }
   // now figure out movement due to score
@@ -443,7 +489,40 @@ class CourtAssignmentsRgStandard{
           currentCourt++;
         }
       }
-    } else {
+    } else if ( (getSportDescriptor(1) == 'rg_singles') && (presentPlayers.length==16)){
+      courtsOfFive=2;
+      courtsOfFour=0;
+      numberOnCourt = List.filled(3, 5);
+      numberOnCourt[activeLadderDoc!.get('RandomCourtOf5')%3] = 6;
+      if (numberOnCourt[0]==6){
+        assignedCourtNumber = [
+          1,1,1,1,1,1,
+          2,2,2,2,2,
+          3,3,3,3,3,];
+      } if (numberOnCourt[1]==6) {
+        assignedCourtNumber = [
+          1, 1, 1, 1, 1,
+          2, 2, 2, 2, 2, 2,
+          3, 3, 3, 3, 3,];
+      } else {
+        assignedCourtNumber = [
+          1, 1, 1, 1, 1,
+          2, 2, 2, 2, 2,
+          3, 3, 3, 3, 3, 3,];;
+      }
+      playersOnEachCourt = List.generate(3, (_) => []);
+      int currentCourt = 1;
+      int playersOnCurrentCourt = 0;
+      for (int pl = 0; pl < presentPlayers.length; pl++) {
+        assignedCourtNumber[pl] = currentCourt;
+        playersOnCurrentCourt++;
+        playersOnEachCourt[currentCourt - 1].add(presentPlayers[pl]);
+        if (playersOnCurrentCourt >= numberOnCourt[currentCourt - 1]) {
+          playersOnCurrentCourt = 0;
+          currentCourt++;
+        }
+      }
+    }else {
       courtsOfFive = 0;
       courtsOfFour = totalCourts;
       while (((courtsOfFour * 4 + courtsOfFive * 5) < presentPlayers.length) && (courtsOfFour > 0)) {

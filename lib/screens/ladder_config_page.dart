@@ -99,6 +99,7 @@ class _ConfigPageState extends State<ConfigPage> {
   final TextEditingController _ladderViewController = TextEditingController();
   final TextEditingController _higherLadderController = TextEditingController();
   final TextEditingController _lowerLadderController = TextEditingController();
+  final TextEditingController _waitListController = TextEditingController();
 
   final ScrollController _scrollController = ScrollController();
 
@@ -114,6 +115,7 @@ class _ConfigPageState extends State<ConfigPage> {
     _randomController.dispose();
     _adminsController.dispose();
     _courtsController.dispose();
+    _waitListController.dispose();
     _sportsDescriptorController.dispose();
     super.dispose();
   }
@@ -299,6 +301,41 @@ class _ConfigPageState extends State<ConfigPage> {
                         }
                       },
                       initialValue: activeLadderDoc!.get('Message'),
+                    ),
+                    MyTextField(
+                      labelText: 'Number From Wait List',
+                      helperText: 'The number on the wait list that will be allowed to play',
+                      controller: _waitListController,
+                      keyboardType: const TextInputType.numberWithOptions(signed: false),
+                      entryOK: (entry) {
+                        int number = 0;
+                        try {
+                          number = int.parse(entry);
+                        } catch (e) {
+                          return 'Invalid number entered';
+                        }
+                        if (number.floor() < 0) {
+                          return 'Count must be 0 or greater';
+                        }
+                        return null;
+                      },
+                      onIconClicked: (entry) {
+                        String attrName = 'NumberFromWaitList';
+
+                        String newValueStr = entry.trim().replaceAll(RegExp(r' \s+'), ' ');
+                        String oldValue = activeLadderDoc!.get(attrName).toString();
+                        if (newValueStr != oldValue) {
+                          writeAudit(user: loggedInUser, documentName: 'LadderConfig', action: 'Set $attrName', newValue: newValueStr, oldValue: oldValue);
+                          int number = 0;
+                          try {
+                            number = int.parse(entry);
+                          } catch (_) {}
+                          FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
+                            attrName: number,
+                          });
+                        }
+                      },
+                      initialValue: activeLadderDoc!.get('NumberFromWaitList').toString(),
                     ),
                     MyTextField(
                       labelText: 'Vacation Stop Time',
@@ -658,7 +695,7 @@ class _ConfigPageState extends State<ConfigPage> {
                             ))),
                     MyTextField(
                       labelText: 'Admins',
-                      helperText: 'List of emails separated by commas',
+                      helperText: 'List of emails separated by commas. This assumes the specified email can already login. Add as Player first.',
                       controller: _adminsController,
                       entryOK: (entry) {
                         //print('admins entryOK: "$entry",${entry.length}');
