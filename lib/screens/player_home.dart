@@ -236,7 +236,11 @@ class _PlayerHomeState extends State<PlayerHome> {
       }
     }
 
-    return (Icons.access_time, 'You are logged in as "${loggedInPlayerDoc!.get('Name')}"" you can not change the player "${player.get('Name')}"');
+    String loggedInPlayerName='Guest';
+    if (loggedInPlayerDoc != null){
+      loggedInPlayerName=loggedInPlayerDoc!.get('Name');
+    }
+    return (Icons.access_time, 'You are logged in as "$loggedInPlayerName"" you can not change the player "${player.get('Name')}"');
   }
 
   // double measureDistance(lat1, lon1, lat2, lon2) {
@@ -449,11 +453,6 @@ class _PlayerHomeState extends State<PlayerHome> {
           },
           child: Row(children: [
             icon,
-            // (row == _checkInProgress)
-            //     ? const Icon(Icons.refresh)
-            //     : ((player.get('Present') ?? false)
-            //         ? const Icon(Icons.check_box, color: Colors.black)
-            //         : (plAssignment!.markedAway ? const Icon(Icons.horizontal_rule, color: Colors.black) : const Icon(Icons.check_box_outline_blank))),
             Text(
               ' $rank${(player.get('WaitListRank')>0)?"w${player.get('WaitListRank')}":""}: ${player.get('Name')} ${plAssignment!.unassigned ? '(Last)' : ''}',
               style: isUserRow ? nameBoldStyle : ((player.get('Helper') ?? false) ? italicNameStyle : nameStyle),

@@ -373,12 +373,24 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                       if (nextPlay != null) {
                         int daysAway = daysBetween(DateTime.now(), nextPlay);
                         // print('Row:$row ${availableDocs[row].id} daysAway: $daysAway  nextPlay:  $nextPlay');
-
-                        nextPlay1 = ' ${DateFormat('E yyyy.MM.dd').format(nextPlay)}($daysAway ${daysAway == 1 ? 'day' : 'days'})';
                         String timeToPlay = DateFormat('h:mma').format(nextPlay);
+                        String numDaysAwayStr;
+                        if (daysAway==1) {
+                          numDaysAwayStr = '(Tomorrow) @ $timeToPlay';
+                          nextPlay2 = note;
+                        }
+                        else if (daysAway<0){
+                          numDaysAwayStr = '(next date is in the past!)';
+                          nextPlay2 = '';
+                        } else if (daysAway>1){
+                          numDaysAwayStr = '($daysAway days) @ $timeToPlay';
+                          nextPlay2 = note;
+                        } else {
+                          numDaysAwayStr = '(TODAY)  @ $timeToPlay';
+                          nextPlay2 = note;
+                        }
+                        nextPlay1 = ' ${DateFormat('E yyyy.MM.dd').format(nextPlay)} $numDaysAwayStr';
 
-                        nextPlay1 = '$nextPlay1 @ $timeToPlay';
-                        nextPlay2 = note;
                       } else {
                         nextPlay1 = 'no date of play set by admin';
                       }

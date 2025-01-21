@@ -6,6 +6,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:social_sport_ladder/Utilities/helper_icon.dart';
 import 'package:social_sport_ladder/constants/constants.dart';
 import 'package:social_sport_ladder/screens/ladder_config_page.dart';
 import 'package:social_sport_ladder/screens/player_home.dart';
@@ -43,6 +44,16 @@ bool mapContainsDateKey(var events, DateTime key){
       }
     }
   }
+  DateTime? result;
+  try {
+    result = FixedDateTimeFormatter('YYYY.MM.DD_hh:mm',isUtc: false).decode(daysOfPlayChecked.first);
+  } catch(e){
+    if (kDebugMode) {
+      print('exception: $e from ${daysOfPlayChecked.first}');
+    }
+  }
+  return (result, daysOfPlayChecked.first.substring(16));
+
   for (int i=0; i<daysOfPlayChecked.length; i++) {
     DateTime result;
     try {
@@ -53,7 +64,7 @@ bool mapContainsDateKey(var events, DateTime key){
       }
       continue;
     }
-    if (result.compareTo(DateTime.now())<0){
+    if (result.compareTo(DateTime.now().add(Duration(hours:1, minutes: 30)))<0){
       // if (kDebugMode) {
       //   print('Old start date found $result at offset $i in ${ladderDoc.id} skipping');
       // }
@@ -667,7 +678,7 @@ class CalendarPageState extends State<CalendarPage> {
                     // print('ListView.builder calendar page: nextPlayDate: $nextPlayDate _selectedDay: $_selectedDay');
                     if ((typeOfCalendarEvent == EventTypes.standard) &&
                         (value[index].toString().startsWith('play') || value[index].toString().startsWith('AWAY'))) {
-                      if (isVacationTimeOk(activeLadderDoc!) || ((_selectedDay!= null) && (nextPlayDate != null)&&
+                      if (activeUser.admin||isVacationTimeOk(activeLadderDoc!) || ((_selectedDay!= null) && (nextPlayDate != null)&&
                           ((_selectedDay!.year!= nextPlayDate.year)
                       || (_selectedDay!.month != nextPlayDate.month)
                               ||(_selectedDay!.day!= nextPlayDate.day)))) {

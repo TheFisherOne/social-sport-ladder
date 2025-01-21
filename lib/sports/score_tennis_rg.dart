@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:social_sport_ladder/Utilities/helper_icon.dart';
 import 'package:social_sport_ladder/constants/constants.dart';
 import 'package:social_sport_ladder/screens/ladder_selection_page.dart';
+import 'package:social_sport_ladder/screens/player_home.dart';
 import 'package:social_sport_ladder/screens/score_base.dart';
 import 'package:social_sport_ladder/sports/sport_tennis_rg.dart';
 import '../screens/audit_page.dart';
@@ -408,8 +409,10 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
     }
 
     bool isInPlayerList = false;
+    // print('_playerList: $_playerList');
     for (var doc in widget.fullPlayerList!) {
-      if (_playerList.contains(doc.id)) {
+      if (_playerList.contains(activeUser.id)) {
+        // print('found player ${doc.id}');
         isInPlayerList = true;
       }
     }
@@ -419,6 +422,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
       allowedToEdit = true;
     }
     if (!widget.allowEdit) allowedToEdit = false;
+    // print('allowedToEdit: $allowedToEdit helper: ${activeUser.helper} isInPlayerList: ${isInPlayerList} widget.allowEdit: ${widget.allowEdit}' );
 
     bool colorBlue = false;
     var zeroGame = [4, 3, 2, 1, 0];
@@ -670,42 +674,33 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                 ),
                 Expanded(
                   flex: 1,
-                  child: Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: IconButton(
-                        onPressed: (autoFill4(0) == null)
-                            ? null
-                            : () {
-                                setScoresForGame4(0);
-                              },
-                        icon: Icon((autoFill4(0) == null) ? null : Icons.arrow_upward, size: 30)),
-                  ),
+                  child: IconButton(
+                      onPressed: (autoFill4(0) == null)
+                          ? null
+                          : () {
+                              setScoresForGame4(0);
+                            },
+                      icon: Icon((autoFill4(0) == null) ? null : Icons.arrow_upward, size: 45)),
                 ),
                 Expanded(
                   flex: 1,
-                  child: Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: IconButton(
-                        onPressed: (autoFill4(1) == null)
-                            ? null
-                            : () {
-                                setScoresForGame4(1);
-                              },
-                        icon: Icon((autoFill4(1) == null) ? null : Icons.arrow_upward, size: 30)),
-                  ),
+                  child: IconButton(
+                      onPressed: (autoFill4(1) == null)
+                          ? null
+                          : () {
+                              setScoresForGame4(1);
+                            },
+                      icon: Icon((autoFill4(1) == null) ? null : Icons.arrow_upward, size: 45)),
                 ),
                 Expanded(
                   flex: 1,
-                  child: Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: IconButton(
-                        onPressed: (autoFill4(2) == null)
-                            ? null
-                            : () {
-                                setScoresForGame4(2);
-                              },
-                        icon: Icon((autoFill4(2) == null) ? null : Icons.arrow_upward, size: 30)),
-                  ),
+                  child: IconButton(
+                      onPressed: (autoFill4(2) == null)
+                          ? null
+                          : () {
+                              setScoresForGame4(2);
+                            },
+                      icon: Icon((autoFill4(2) == null) ? null : Icons.arrow_upward, size: 45)),
                 ),
                 Expanded(
                     flex: 1,
@@ -788,68 +783,53 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                 ),
                 Expanded(
                   flex: 1,
-                  child: Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: IconButton(
-                        onPressed: (autoFill5(0) == null)
-                            ? null
-                            : () {
-                                setScoresForGame5(0);
-                              },
-                        icon: Icon((autoFill5(0) == null) ? null : Icons.arrow_upward, size: 30)),
-                  ),
+                  child: IconButton(
+                      onPressed: (autoFill5(0) == null)
+                          ? null
+                          : () {
+                              setScoresForGame5(0);
+                            },
+                      icon: Icon((autoFill5(0) == null) ? null : Icons.arrow_upward, size: 45)),
                 ),
                 Expanded(
                   flex: 1,
-                  child: Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: IconButton(
-                        onPressed: (autoFill5(1) == null)
-                            ? null
-                            : () {
-                                setScoresForGame5(1);
-                              },
-                        icon: Icon((autoFill5(1) == null) ? null : Icons.arrow_upward, size: 30)),
-                  ),
+                  child: IconButton(
+                      onPressed: (autoFill5(1) == null)
+                          ? null
+                          : () {
+                              setScoresForGame5(1);
+                            },
+                      icon: Icon((autoFill5(1) == null) ? null : Icons.arrow_upward, size: 45)),
                 ),
                 Expanded(
                   flex: 1,
-                  child: Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: IconButton(
-                        onPressed: (autoFill5(2) == null)
-                            ? null
-                            : () {
-                                setScoresForGame5(2);
-                              },
-                        icon: Icon((autoFill5(2) == null) ? null : Icons.arrow_upward, size: 30)),
-                  ),
+                  child: IconButton(
+                      onPressed: (autoFill5(2) == null)
+                          ? null
+                          : () {
+                              setScoresForGame5(2);
+                            },
+                      icon: Icon((autoFill5(2) == null) ? null : Icons.arrow_upward, size: 45)),
                 ),
                 Expanded(
                   flex: 1,
-                  child: Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: IconButton(
-                        onPressed: (autoFill5(3) == null)
-                            ? null
-                            : () {
-                                setScoresForGame5(3);
-                              },
-                        icon: Icon((autoFill5(3) == null) ? null : Icons.arrow_upward, size: 30)),
-                  ),
+                  child: IconButton(
+                      onPressed: (autoFill5(3) == null)
+                          ? null
+                          : () {
+                              setScoresForGame5(3);
+                            },
+                      icon: Icon((autoFill5(3) == null) ? null : Icons.arrow_upward, size: 45)),
                 ),
                 Expanded(
                   flex: 1,
-                  child: Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: IconButton(
-                        onPressed: (autoFill5(4) == null)
-                            ? null
-                            : () {
-                                setScoresForGame5(4);
-                              },
-                        icon: Icon((autoFill5(4) == null) ? null : Icons.arrow_upward, size: 30)),
-                  ),
+                  child: IconButton(
+                      onPressed: (autoFill5(4) == null)
+                          ? null
+                          : () {
+                              setScoresForGame5(4);
+                            },
+                      icon: Icon((autoFill5(4) == null) ? null : Icons.arrow_upward, size: 45)),
                 ),
                 Expanded(
                     flex: 1,
@@ -934,42 +914,33 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                 ),
                 Expanded(
                   flex: 1,
-                  child: Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: IconButton(
-                        onPressed: (autoFill4(0) == null)
-                            ? null
-                            : () {
-                                setScoresForGame4(0);
-                              },
-                        icon: Icon((autoFill4(0) == null) ? null : Icons.arrow_upward, size: 30)),
-                  ),
+                  child: IconButton(
+                      onPressed: (autoFill4(0) == null)
+                          ? null
+                          : () {
+                              setScoresForGame4(0);
+                            },
+                      icon: Icon((autoFill4(0) == null) ? null : Icons.arrow_upward, size: 45)),
                 ),
                 Expanded(
                   flex: 1,
-                  child: Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: IconButton(
-                        onPressed: (autoFill4(1) == null)
-                            ? null
-                            : () {
-                                setScoresForGame4(1);
-                              },
-                        icon: Icon((autoFill4(1) == null) ? null : Icons.arrow_upward, size: 30)),
-                  ),
+                  child: IconButton(
+                      onPressed: (autoFill4(1) == null)
+                          ? null
+                          : () {
+                              setScoresForGame4(1);
+                            },
+                      icon: Icon((autoFill4(1) == null) ? null : Icons.arrow_upward, size: 45)),
                 ),
                 Expanded(
                   flex: 1,
-                  child: Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: IconButton(
-                        onPressed: (autoFill4(2) == null)
-                            ? null
-                            : () {
-                                setScoresForGame4(2);
-                              },
-                        icon: Icon((autoFill4(2) == null) ? null : Icons.arrow_upward, size: 30)),
-                  ),
+                  child: IconButton(
+                      onPressed: (autoFill4(2) == null)
+                          ? null
+                          : () {
+                              setScoresForGame4(2);
+                            },
+                      icon: Icon((autoFill4(2) == null) ? null : Icons.arrow_upward, size: 45)),
                 ),
                 Expanded(
                     flex: 1,
@@ -1145,6 +1116,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                         alignment: Alignment.centerLeft,
                         child: IconButton(
                             onPressed: () {
+                              String gameScoresStr = saveWorkingScores();
                               // print('gameScores: #$_gameScores');
                               for (int play = 0; play < _gameScores.length; play++) {
                                 int score = 0;
@@ -1168,7 +1140,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                                   }
                                 }
                               }
-                              String gameScoresStr = saveWorkingScores();
+
                               writeAudit(user: activeUser.id, documentName: '${widget.ladderName}/$_scoreDocStr', action: 'EnterScore', newValue: gameScoresStr, oldValue: _gameScoresStr);
                               String newScoresEnteredBy = _scoresEnteredBy;
                               if (newScoresEnteredBy.isNotEmpty) newScoresEnteredBy += '|';

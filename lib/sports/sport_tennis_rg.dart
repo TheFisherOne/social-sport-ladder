@@ -388,7 +388,6 @@ List<PlayerList>? sportTennisRGDetermineMovement(List<QueryDocumentSnapshot>? pl
 }
 
 class CourtAssignmentsRgStandard{
-  late QueryDocumentSnapshot loggedInPlayerDoc;
   String errorString = '';
   List<QueryDocumentSnapshot> presentPlayers = [];
   int totalCourts = 0;
@@ -402,9 +401,6 @@ class CourtAssignmentsRgStandard{
   
   CourtAssignmentsRgStandard(List<QueryDocumentSnapshot> players){
     for (var player in players) {
-      if (player.id == activeUser.id) {
-        loggedInPlayerDoc = player;
-      }
       if (player.get('Present')) {
         presentPlayers.add(player);
       }
@@ -720,7 +716,7 @@ void sportTennisRGprepareForScoreEntry(List<QueryDocumentSnapshot>? players) {
   }
 }
 
-List<Color> courtColors = [Colors.red, Colors.green, Colors.cyan, Colors.grey];
+List<Color> courtColors = [Colors.yellow, Colors.green, Colors.cyan, Colors.grey];
 Widget courtTile(CourtAssignmentsRgStandard courtAssignments, int court, Color courtColor,
     List<QueryDocumentSnapshot>? players, List<PlayerList> movement, BuildContext context) {
   var crt = courtAssignments.playersOnEachCourt[court];
@@ -741,6 +737,9 @@ Widget courtTile(CourtAssignmentsRgStandard courtAssignments, int court, Color c
       }
     }
   }
+  if (loggedInPlayerOnCourt){
+    courtColor = Colors.red;
+  }
   // print('newRanksAfterMovement: $newRanksAfterMovement');
   return Container(
     // height: (crt.length == 4) ? 180 : 220,
@@ -753,7 +752,7 @@ Widget courtTile(CourtAssignmentsRgStandard courtAssignments, int court, Color c
     child: Padding(
       padding: const EdgeInsets.only(left: 8.0, right: 8, top: 2, bottom: 2),
       child: InkWell(
-        onTap: (loggedInPlayerOnCourt || activeUser.helper)?() {
+        onTap: () {
           List<String> playerNames = List.empty(growable: true);
           for (int i = 0; i < courtAssignments.playersOnEachCourt[court].length; i++) {
             playerNames.add(courtAssignments.playersOnEachCourt[court][i].get('Name'));
@@ -768,13 +767,11 @@ Widget courtTile(CourtAssignmentsRgStandard courtAssignments, int court, Color c
                         court: court + 1,
                         fullPlayerList: players,
                       )));
-        }:null,
+        },
         child: ListView.separated(
           shrinkWrap: true,
           physics: NeverScrollableScrollPhysics(),
-          separatorBuilder: (context, index) => const SizedBox(
-            height: 2,
-          ), //Divider(color: Colors.black),
+          separatorBuilder: (context, index) => Divider(color: Colors.grey.shade400, thickness: 2,),
           padding: const EdgeInsets.all(4),
           itemCount: crt.length + 1,
           itemBuilder: (BuildContext context, int row) {
@@ -792,26 +789,27 @@ Widget courtTile(CourtAssignmentsRgStandard courtAssignments, int court, Color c
             // print('Confirmed score: ${crt[row-1].id} / ${newRanksAfterMovement[row-1]}');
             String scoreStr='';
             if (confirmed){
-              scoreStr = 'to:${newRanksAfterMovement[row-1].toString().padLeft(2)} ';
+              scoreStr = '=>${newRanksAfterMovement[row-1].toString()} ';
+            }
+            String rankStr;
+            if (confirmed) {
+              rankStr = '${crt[row - 1].get('Rank').toString().padLeft(2, " ")}\u21d2${newRanksAfterMovement[row-1].toString()} ';
+            } else {
+              rankStr = 'Rk:${crt[row - 1].get('Rank').toString().padLeft(2, " ")}';
             }
 
-
-            scoreStr += 'Sc: ${crt[row - 1].get('TotalScore').toString().padLeft(2)}';
+            rankStr += '\nSc:${crt[row - 1].get('TotalScore').toString().padLeft(2)} ';
 
             // String scoreStr = 'Sc: ${crt[row - 1].get('TotalScore')}';
             return Row(
               children: [
-                Text(
-                  '${crt[row - 1].get('Rank').toString().padLeft(2, ' ')}: ${crt[row - 1].get('Name')} ',
-                  style: nameStyle,
-                ),
-                Spacer(),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: Text(
-                    scoreStr,
-                    style: nameStyle,
-                  ),
+                Text( rankStr
+                  // 'Rk:${crt[row - 1].get('Rank').toString().padLeft(2, ' ')}'
+                  //   '$scoreStr'
+                  , style: nameStyle,),
+                Flexible(
+                  child: Text('${crt[row - 1].get('Name')} '
+                    , style: (crt[row-1].id == loggedInUser)?nameBoldStyle:nameStyle,),
                 ),
               ],
             );
@@ -875,11 +873,7 @@ class _SportTennisRGState extends State<SportTennisRG> {
 
 
           _players = playerSnapshots.data!.docs;
-          for (var player in _players!) {
-            if (player.id == activeUser.id) {
-              loggedInPlayerDoc = player;
-            }
-          }
+
           _movement = sportTennisRGDetermineMovement(_players, _dateStr);
           AppBar thisAppBar = AppBar(
             title: Text('${activeLadderDoc!.get('DisplayName')}'),

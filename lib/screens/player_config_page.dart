@@ -89,6 +89,7 @@ movePlayerDown(String fromLadder, String toLadder) async {
       'StartingOrder': 0,
       'TotalScore': 0,
       'ScoresConfirmed': false,
+      'WaitListRank': highestPlayerDoc.get('WaitListRank'),
     });
 
     // now delete it from the fromLadder
@@ -166,6 +167,7 @@ movePlayerUp(String fromLadder, String toLadder) async {
       'StartingOrder': 0,
       'TotalScore': 0,
       'ScoresConfirmed': false,
+      'WaitListRank': fromPlayerDoc.get('WaitListRank'),
     });
 
     // now delete it from the fromLadder
@@ -254,6 +256,7 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
         'DaysAway': '',
         'StartingOrder': 0,
         'TotalScore': 0,
+        'WaitListRank': 0,
       });
 
       transactionAudit(
@@ -610,8 +613,8 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
                   // print('Create new Player onChanged:new value=$value');
                   String newValue = entry.trim().replaceAll(RegExp(r' \s+'), ' ');
 
-                  if ((newValue.length < 3) || (newValue.length > 20)) {
-                    return 'Name must be between3 and 20 characters long';
+                  if ((newValue.length < 3) || (newValue.length > 25)) {
+                    return 'Name must be between3 and 25 characters long';
                   }
                   // check for a duplicate name
                   for (QueryDocumentSnapshot<Object?> doc in _players) {

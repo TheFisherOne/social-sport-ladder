@@ -149,6 +149,10 @@ class _SuperAdminState extends State<SuperAdmin> {
       'SportDescriptor': '',
       'FrozenDate': '',
       'CurrentRound': 1,
+      'NumberFromWaitList': 0,
+      'LaddersThatCanView': '',
+      'HigherLadder': '',
+      'LowerLadder': '',
     });
   }
 
@@ -292,13 +296,13 @@ class _SuperAdminState extends State<SuperAdmin> {
                     true?null:() {
                       FirebaseFirestore.instance.collection('Ladder').get().then((QuerySnapshot ladder) {
                         for (var doc in ladder.docs) {
-                          // FirebaseFirestore.instance.collection('Ladder').doc(doc.id).update({
-                          //   // 'CurrentRound': 1,
-                          //   'RequiredSoftwareVersion': softwareVersion,
-                          //   // 'LaddersThatCanView': '',
-                          //   // 'HigherLadder':'',
-                          //   // 'LowerLadder':'',
-                          // });
+                          FirebaseFirestore.instance.collection('Ladder').doc(doc.id).update({
+                            // 'CurrentRound': 1,
+                            // 'RequiredSoftwareVersion': softwareVersion,
+                            'NumberFromWaitList': 0,
+                            // 'HigherLadder':'',
+                            // 'LowerLadder':'',
+                          });
 
                           FirebaseFirestore.instance.collection('Ladder/${doc.id}/Players').get().then((QuerySnapshot player) {
                             for (var subDoc in player.docs) {

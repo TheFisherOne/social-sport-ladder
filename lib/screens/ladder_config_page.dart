@@ -956,7 +956,7 @@ class _ConfigPageState extends State<ConfigPage> {
                                   );
                                 }).toList(),
                                 icon: const Icon(Icons.menu),
-                                iconSize: 30,
+                                iconSize: appFontSize+10,
                                 dropdownColor: Colors.brown.shade200,
                                 onChanged: (value) {
                                   // print('ladder_config_page set Disabled to $value');

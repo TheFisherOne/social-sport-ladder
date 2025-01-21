@@ -187,6 +187,7 @@ Widget helperIcon(var context, String activeLadderId, List<PlayerList>? courtAss
                                     'RandomCourtOf5': newSeed,
                                     'CurrentRound': currentRound,
                                     'DaysOfPlay': newDaysOfPlay.join('|'),
+                                    'NumberFromWaitlist':0,
                                   });
                                   writeAudit(user: activeUser.id, documentName: activeLadderId, action: 'Finalize and move', newValue: true.toString(), oldValue: 'n/a');
                                 });
