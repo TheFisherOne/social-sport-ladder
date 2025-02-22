@@ -19,21 +19,11 @@ class _SuperAdminState extends State<SuperAdmin> {
   }
 
   void rebuildLadders() {
+    // if you want to see the print statements it seems like you have to be debugging it and put a breakpoint here
     FirebaseFirestore.instance.runTransaction((transaction) async {
       // first all of the globalUsers
       CollectionReference globalUserCollectionRef = FirebaseFirestore.instance.collection('Users');
       QuerySnapshot globalUserSnapshot = await globalUserCollectionRef.get();
-      var globalUserNames = globalUserSnapshot.docs.map((doc) => doc.id);
-
-      var globalUserRefMap = {};
-      for (String userId in globalUserNames) {
-        globalUserRefMap[userId] = FirebaseFirestore.instance.collection('Users').doc(userId);
-      }
-
-      var globalUserDocMap = {};
-      for (String userId in globalUserNames) {
-        globalUserDocMap[userId] = await globalUserRefMap[userId].get();
-      }
 
       // second the list of all ladders, will be using the id and the Admins field
       CollectionReference laddersRef = FirebaseFirestore.instance.collection('Ladder');
@@ -45,6 +35,7 @@ class _SuperAdminState extends State<SuperAdmin> {
 
       for (int ladderIndex = 0; ladderIndex < snapshotLadders.docs.length; ladderIndex++) {
         String ladderName = snapshotLadders.docs[ladderIndex].id;
+        // print('rebuildLadders: reading from ladder $ladderName');
         List<String> admins = snapshotLadders.docs[ladderIndex].get('Admins').split(',');
         for (String user in admins) {
           // print('Ladder:$ladderName adding ADMIN $user');
@@ -58,11 +49,24 @@ class _SuperAdminState extends State<SuperAdmin> {
           }
         }
 
-        CollectionReference playersRef = FirebaseFirestore.instance.collection('Ladder').doc(ladderName).collection('Players');
-        QuerySnapshot ladderSnapshot = await playersRef.get();
+        List<String> helpers = snapshotLadders.docs[ladderIndex].get('NonPlayingHelper').split(',');
+        for (String user in helpers) {
+          // print('Ladder:$ladderName adding helper $user');
+          if (emailLadders.containsKey(user)) {
+            String currentLadders = emailLadders[user];
+            if (!currentLadders.split(',').contains(ladderName)) {
+              emailLadders[user] = '$currentLadders,$ladderName';
+            }
+          } else {
+            emailLadders[user] = ladderName;
+          }
+        }
 
-        for (int playerIndex = 0; playerIndex < ladderSnapshot.docs.length; playerIndex++) {
-          String user = ladderSnapshot.docs[playerIndex].id;
+        CollectionReference playersRef = FirebaseFirestore.instance.collection('Ladder').doc(ladderName).collection('Players');
+        QuerySnapshot snapshotPlayers = await playersRef.get();
+
+        for (int playerIndex = 0; playerIndex < snapshotPlayers.docs.length; playerIndex++) {
+          String user = snapshotPlayers.docs[playerIndex].id;
           // print('ladder:$ladderName adding player $user');
           if (emailLadders.containsKey(user)) {
             String currentLadders = emailLadders[user];
@@ -74,6 +78,8 @@ class _SuperAdminState extends State<SuperAdmin> {
           }
         }
       }
+      // print('rebuildLadders: done reading players from each ladder');
+
       // now combine emails from 'LaddersThatCanView
       for (int ladderIndex = 0; ladderIndex < snapshotLadders.docs.length; ladderIndex++) {
         String ladderName = snapshotLadders.docs[ladderIndex].id;
@@ -81,6 +87,7 @@ class _SuperAdminState extends State<SuperAdmin> {
         List<String> friendLadders = snapshotLadders.docs[ladderIndex].get('LaddersThatCanView').split('|');
         for (int friend=0; friend<friendLadders.length; friend++){
           String friendLadder = friendLadders[friend];
+          print('rebuildLadders: processing LaddersThatCanView $friendLadder of ladder $ladderName');
           if (friendLadder.isEmpty) continue;
 
 
@@ -100,6 +107,8 @@ class _SuperAdminState extends State<SuperAdmin> {
           }
         }
       }
+      // print('rebuildLadders: done reads ');
+
       // emailLadders.keys.forEach((k)=> print(' k:$k l:${emailLadders[k]}'));
 
       for (int index = 0; index < globalUserSnapshot.docs.length; index++) {
@@ -130,6 +139,7 @@ class _SuperAdminState extends State<SuperAdmin> {
   void createLadder(String newLadderName) async {
     await FirebaseFirestore.instance.collection('Ladder').doc(newLadderName).set({
       'Admins': '',
+      'NonPlayingHelper': '',
       'CheckInStartHours': 0,
       'DaysOfPlay': '',
       'DaysSpecial': '',
@@ -299,26 +309,26 @@ class _SuperAdminState extends State<SuperAdmin> {
                           FirebaseFirestore.instance.collection('Ladder').doc(doc.id).update({
                             // 'CurrentRound': 1,
                             // 'RequiredSoftwareVersion': softwareVersion,
-                            'NumberFromWaitList': 0,
+                            'NonPlayingHelper': '',
                             // 'HigherLadder':'',
                             // 'LowerLadder':'',
                           });
 
-                          FirebaseFirestore.instance.collection('Ladder/${doc.id}/Players').get().then((QuerySnapshot player) {
-                            for (var subDoc in player.docs) {
-                              // print('Ladder: ${doc.id} and Player: ${subDoc.id}');
-                              FirebaseFirestore.instance.collection('Ladder').doc(doc.id).collection('Players').doc(subDoc.id)
-                              .update({
-                                'WaitListRank': 0,
-                                // 'TotalScore':0,
-                                // 'StartingOrder': 0,
-                                // 'Score1': FieldValue.delete(),
-                                // 'Score2': FieldValue.delete(),
-                                // 'LaddersThatCanView': FieldValue.delete(),
-
-                              });
-                            }
-                          });
+                          // FirebaseFirestore.instance.collection('Ladder/${doc.id}/Players').get().then((QuerySnapshot player) {
+                          //   for (var subDoc in player.docs) {
+                          //     // print('Ladder: ${doc.id} and Player: ${subDoc.id}');
+                          //     FirebaseFirestore.instance.collection('Ladder').doc(doc.id).collection('Players').doc(subDoc.id)
+                          //     .update({
+                          //       'WaitListRank': 0,
+                          //       // 'TotalScore':0,
+                          //       // 'StartingOrder': 0,
+                          //       // 'Score1': FieldValue.delete(),
+                          //       // 'Score2': FieldValue.delete(),
+                          //       // 'LaddersThatCanView': FieldValue.delete(),
+                          //
+                          //     });
+                          //   }
+                          // });
                         }
                       });
                     },

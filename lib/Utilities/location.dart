@@ -108,6 +108,7 @@ class LocationService {
   Timer? _timer;
   startTimer() async {
     _timer?.cancel();
+    _timer=null;
     _timer = Timer.periodic(Duration(seconds: 10), (_) async{
 
       // print('Location goes off $_pageToRefresh');
@@ -121,6 +122,7 @@ class LocationService {
   void stopTimer(){
     _pageToRefresh = null;
     _timer?.cancel();
+    _timer=null;
   }
   void init() async {
     _serviceEnabled = await _locService.serviceEnabled();
@@ -135,5 +137,6 @@ class LocationService {
  }
   void dispose() {
     _timer?.cancel();
+    _timer=null;
   }
 }

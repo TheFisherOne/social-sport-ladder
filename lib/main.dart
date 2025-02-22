@@ -2,9 +2,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:social_sport_ladder/screens/ladder_selection_page.dart';
 import 'package:social_sport_ladder/screens/login_page.dart';
 import 'Utilities/helper_icon.dart';
+import 'Utilities/user_stream.dart';
 import 'constants/firebase_setup2.dart';
 
 String settingsColorMode = 'lightMode';
@@ -51,7 +51,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Social Sport Ladder',
       // theme: Provider.of<ThemeProvider>(context).themeData,
-      home: loggedInUser.isEmpty?const LoginPage():const LadderSelectionPage(),
+      home: loggedInUser.isEmpty?const LoginPage():const UserStream(),
     );
   }
 }

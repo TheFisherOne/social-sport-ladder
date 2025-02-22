@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -9,7 +11,6 @@ import '../screens/audit_page.dart';
 import '../screens/calendar_page.dart';
 import '../screens/ladder_config_page.dart';
 import '../screens/ladder_selection_page.dart';
-import '../screens/player_home.dart';
 import '../screens/score_base.dart';
 
 dynamic sportTennisRgInstance;
@@ -81,7 +82,7 @@ List<PlayerList>? sportTennisRGDetermineMovement(List<QueryDocumentSnapshot>? pl
   PlayerList.errorString = '';
   PlayerList.nextPlayString = '';
 
-  List<PlayerList> result = List.empty();
+  // List<PlayerList> result = List.empty();
   if (players == null) {
     PlayerList.errorString = 'null players';
     return null;
@@ -99,6 +100,10 @@ List<PlayerList>? sportTennisRGDetermineMovement(List<QueryDocumentSnapshot>? pl
   // this should be in Rank order
   List<PlayerList> startingList = List.generate(players.length, (index) => PlayerList(players[index]));
 
+  // for (int p=0; p<6; p++){
+  //   print('X $p ${startingList[p].snapshot.id} ${startingList[p].startingRank}  ');
+  // }
+
   String dateStr = dateWithRoundStr.substring(0, 10);
   DateTime? nextPlay;
   (nextPlay, _) = getNextPlayDateTime(activeLadderDoc!);
@@ -113,7 +118,7 @@ List<PlayerList>? sportTennisRGDetermineMovement(List<QueryDocumentSnapshot>? pl
   PlayerList.usedCourtNames = activeLadderDoc!.get('PriorityOfCourts').split('|');
   if ((PlayerList.usedCourtNames.length == 1) && (PlayerList.usedCourtNames[0].isEmpty)) {
     PlayerList.errorString = 'PriorityOfCourts not configured';
-    return result;
+    return null;
   }
 
   PlayerList.totalCourtsAvailable = activeLadderDoc!.get('PriorityOfCourts').split('|').length;
@@ -260,27 +265,30 @@ List<PlayerList>? sportTennisRGDetermineMovement(List<QueryDocumentSnapshot>? pl
     afterDownOne.last.afterDownOne = i + 1;
     // print('i:$i P: ${afterDownOne.last.present.toString().padRight(5)} R:${afterDownOne.last.rank} current: ${afterDownOne.last.currentRank}');
   }
-
+  // for (int p=0; p<6; p++){
+  //   print('X1 $p ${startingList[p].snapshot.id} ${startingList[p].startingRank}  ${startingList[p].afterDownOne}');
+  // }
   // this moves down players that are not present 1 spot unless they marked as away
   // (unless they were on the waiting list and not allowed to play)
   List<PlayerList> afterDownTwo;
+
   if(getSportDescriptor(0)=='pickleballRG'){
     afterDownTwo = afterDownOne;
   } else {
+    List<PlayerList> startingList2 = afterDownOne.toList();
     notPresentList = List.empty(growable: true);
     presentList = List.empty(growable: true);
-    startingList = afterDownOne.toList();
 
     for (int i = 0; i < players.length; i++) {
       // moving down a second spot does not apply to players that are present, or marked themselves as away, or weren't allowed to play off the waiting list
-      if (startingList[i].present || (startingList[i].daysAwayIncludes(dateStr)) ||
-          (startingList[i].snapshot.get('WaitListRank') > activeLadderDoc!.get('NumberFromWaitList'))) {
-        // print('afterDownTwo, not moving ${startingList[i].snapshot.get('Name')}:${startingList[i].present} ${(startingList[i].daysAwayIncludes(dateStr))} ${(startingList[i].snapshot.get('WaitListRank') > activeLadderDoc!.get('NumberFromWaitList'))} ');
-        startingList[i].newRank = 0;
-        presentList.add(startingList[i]);
+      if (startingList2[i].present || (startingList2[i].daysAwayIncludes(dateStr)) ||
+          (startingList2[i].snapshot.get('WaitListRank') > activeLadderDoc!.get('NumberFromWaitList'))) {
+        // print('afterDownTwo, not moving ${startingList2[i].snapshot.get('Name')}:${startingList2[i].present} ${(startingList2[i].daysAwayIncludes(dateStr))} ${(startingList[i].snapshot.get('WaitListRank') > activeLadderDoc!.get('NumberFromWaitList'))} ');
+        startingList2[i].newRank = 0;
+        presentList.add(startingList2[i]);
       } else {
-        startingList[i].newRank = startingList[i].currentRank + 1;
-        notPresentList.add(startingList[i]);
+        startingList2[i].newRank = startingList2[i].currentRank + 1;
+        notPresentList.add(startingList2[i]);
       }
 
     }
@@ -288,7 +296,7 @@ List<PlayerList>? sportTennisRGDetermineMovement(List<QueryDocumentSnapshot>? pl
 
     // can't move down players that are already at the bottom
     for (int i = presentList.last.rank - 1; i < players.length; i++) {
-      startingList[i].newRank = 0;
+      startingList2[i].newRank = 0;
     }
     afterDownTwo = List.empty(growable: true);
     for (int i = 0; i < players.length; i++) {
@@ -307,6 +315,9 @@ List<PlayerList>? sportTennisRGDetermineMovement(List<QueryDocumentSnapshot>? pl
 
 
   }
+  // for (int p=0; p<6; p++){
+  //   print('X2 $p ${startingList[p].snapshot.id} ${startingList[p].startingRank}  ${startingList[p].afterDownTwo}');
+  // }
   // now figure out movement due to score
   List<PlayerList> afterScoresTmp = List.empty(growable: true);
   for (int i = 0; i < courtAssignments.length; i++) {
@@ -343,7 +354,9 @@ List<PlayerList>? sportTennisRGDetermineMovement(List<QueryDocumentSnapshot>? pl
   // for (int i=0; i<afterScores.length;i++){
   //   print('Start3: ${afterScores[i].rank} A1:${afterScores[i].afterDownOne}  A2: ${afterScores[i].afterDownTwo} A3:${afterScores[i].afterScores} R: ${i+1}');
   // }
-
+  // for (int p=0; p<6; p++){
+  //   print('X3 $p ${startingList[p].snapshot.id} ${startingList[p].startingRank}  ${startingList[p].afterScores}');
+  // }
   List<PlayerList> afterWinLose = afterScores.toList();
   int lastWinner = -1;
   int lastPresent = -1;
@@ -383,7 +396,9 @@ List<PlayerList>? sportTennisRGDetermineMovement(List<QueryDocumentSnapshot>? pl
   //   print('Start4: ${afterWinLose[i].rank} A1:${afterWinLose[i].afterDownOne}  A2: ${afterWinLose[i].afterDownTwo} '
   //       'A3:${afterWinLose[i].afterScores} A4: ${afterWinLose[i].afterWinLose} R: ${i+1}');
   // }
-
+  // for (int p=0; p<6; p++){
+  //   print('X4 $p ${startingList[p].snapshot.id} ${startingList[p].startingRank}  ${startingList[p].afterWinLose}');
+  // }
   return startingList;
 }
 
@@ -504,7 +519,7 @@ class CourtAssignmentsRgStandard{
         assignedCourtNumber = [
           1, 1, 1, 1, 1,
           2, 2, 2, 2, 2,
-          3, 3, 3, 3, 3, 3,];;
+          3, 3, 3, 3, 3, 3,];
       }
       playersOnEachCourt = List.generate(3, (_) => []);
       int currentCourt = 1;
@@ -614,43 +629,69 @@ class CourtAssignmentsRgStandard{
         }
       }
     } else if (getSportDescriptor(1)=='rg_womens') {
-      List<String> newNames = List.empty(growable: true);
-      // randomly assign courts
-      var tmpNames = shuffledCourtNames.toList();
-      while (tmpNames.isNotEmpty){
-        int whichName = activeLadderDoc!.get('RandomCourtOf5') % tmpNames.length;
-        newNames.add(tmpNames.removeAt(whichName));
-      }
-      // print('randomized court names: $newNames');
-      //newNames is now randomly assigned, need to now move courts of 5
-      List<bool> keepInPlace = List.filled(totalCourts,false);
-      //courts of 5 already assigned to 8,10 or 1 should stay
-      List<String> availableCourtsFor5 = ['8','10','1'];
+      // print('before: $shuffledCourtNames');
+      // var saveList = shuffledCourtNames.toList();
+      List<int> numbers = List.generate(shuffledCourtNames.length, (index) => index);
+      numbers.shuffle(Random(activeLadderDoc!.get('RandomCourtOf5')));
+      // print('random $numbers');
+      List<String> newNames = List.filled(shuffledCourtNames.length,'');
+      List<String> priorityCourtsOf5 = ['8','1','10'];
+      if (totalCourts == 3 ) priorityCourtsOf5 = ['8','10'];
+      if (totalCourts == 2 ) priorityCourtsOf5 = ['8'];
+
       for (int i=0; i<totalCourts; i++){
-        if ((numberOnCourt[i]==5) && availableCourtsFor5.contains(newNames[i])){
-          keepInPlace[i] = true;
+        int courtNum = numbers[i]; // process them in random order
+        if ((numberOnCourt[courtNum]==5) && (priorityCourtsOf5.isNotEmpty)){
+          // print('rg_womens: $i, $courtNum $numberOnCourt $priorityCourtsOf5 $shuffledCourtNames');
+          newNames[courtNum] = priorityCourtsOf5.removeAt(0);
+          shuffledCourtNames.remove(newNames[courtNum]);
         }
-        // print('keepInPlace: $i #${numberOnCourt[i]} keep:${keepInPlace[i]}');
       }
-      List<int> availableToMove = List.empty(growable: true);
-      List<int> wantsToMoveCourtOf5= List.empty(growable: true);
       for (int i=0; i<totalCourts; i++){
-        if (keepInPlace[i]) continue;
-        if (numberOnCourt[i]==4) {
-          availableToMove.add(i);
-          continue;
-        }
-        wantsToMoveCourtOf5.add(i);
+        int courtNum = numbers[i];
+        if (newNames[courtNum].isNotEmpty) continue;
+        newNames[courtNum] = shuffledCourtNames.removeAt(0);
       }
-      // print('ready for switch: $availableToMove $wantsToMoveCourtOf5');
-      while (availableToMove.isNotEmpty && wantsToMoveCourtOf5.isNotEmpty){
-        int tmpInt1 = availableToMove.removeAt(0);
-        int tmpInt2 = wantsToMoveCourtOf5.removeAt(0);
-        // print('exchanging $tmpInt1 with $tmpInt2');
-        String tmpStr = newNames[tmpInt1];
-        newNames[tmpInt1] = newNames[tmpInt2];
-        newNames[tmpInt2] = tmpStr;
-      }
+      // print('after: $newNames');
+      // shuffledCourtNames = saveList.toList();
+      //   /////
+      // newNames = List.empty(growable: true);
+      // // randomly assign courts
+      // var tmpNames = shuffledCourtNames.toList();
+      // while (tmpNames.isNotEmpty){
+      //   int whichName = activeLadderDoc!.get('RandomCourtOf5') % tmpNames.length;
+      //   newNames.add(tmpNames.removeAt(whichName));
+      // }
+      // // print('randomized court names: $newNames');
+      // //newNames is now randomly assigned, need to now move courts of 5
+      // List<bool> keepInPlace = List.filled(totalCourts,false);
+      // //courts of 5 already assigned to 8,10 or 1 should stay
+      // List<String> availableCourtsFor5 = ['8','10','1'];
+      // for (int i=0; i<totalCourts; i++){
+      //   if ((numberOnCourt[i]==5) && availableCourtsFor5.contains(newNames[i])){
+      //     keepInPlace[i] = true;
+      //   }
+      //   // print('keepInPlace: $i #${numberOnCourt[i]} keep:${keepInPlace[i]}');
+      // }
+      // List<int> availableToMove = List.empty(growable: true);
+      // List<int> wantsToMoveCourtOf5= List.empty(growable: true);
+      // for (int i=0; i<totalCourts; i++){
+      //   if (keepInPlace[i]) continue;
+      //   if (numberOnCourt[i]==4) {
+      //     availableToMove.add(i);
+      //     continue;
+      //   }
+      //   wantsToMoveCourtOf5.add(i);
+      // }
+      // // print('ready for switch: $availableToMove $wantsToMoveCourtOf5');
+      // while (availableToMove.isNotEmpty && wantsToMoveCourtOf5.isNotEmpty){
+      //   int tmpInt1 = availableToMove.removeAt(0);
+      //   int tmpInt2 = wantsToMoveCourtOf5.removeAt(0);
+      //   // print('exchanging $tmpInt1 with $tmpInt2');
+      //   String tmpStr = newNames[tmpInt1];
+      //   newNames[tmpInt1] = newNames[tmpInt2];
+      //   newNames[tmpInt2] = tmpStr;
+      // }
       shuffledCourtNames = newNames;
       // print('after shuffle: $shuffledCourtNames');
     }else if (getSportDescriptor(0)=='pickleballRG') {
@@ -736,6 +777,7 @@ Widget courtTile(CourtAssignmentsRgStandard courtAssignments, int court, Color c
         break;
       }
     }
+    // print('newRanksAfterMovement.length: ${newRanksAfterMovement} $i');
   }
   if (loggedInPlayerOnCourt){
     courtColor = Colors.red;
@@ -787,10 +829,7 @@ Widget courtTile(CourtAssignmentsRgStandard courtAssignments, int court, Color c
               confirmed = crt[row-1].get('ScoresConfirmed');
             } catch(_){}
             // print('Confirmed score: ${crt[row-1].id} / ${newRanksAfterMovement[row-1]}');
-            String scoreStr='';
-            if (confirmed){
-              scoreStr = '=>${newRanksAfterMovement[row-1].toString()} ';
-            }
+
             String rankStr;
             if (confirmed) {
               rankStr = '${crt[row - 1].get('Rank').toString().padLeft(2, " ")}\u21d2${newRanksAfterMovement[row-1].toString()} ';

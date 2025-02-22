@@ -11,9 +11,10 @@ import 'package:social_sport_ladder/Utilities/string_validators.dart';
 import 'package:social_sport_ladder/help/help_pages.dart';
 
 import '../Utilities/helper_icon.dart';
+import '../Utilities/user_stream.dart';
 import '../constants/constants.dart';
 import '../constants/firebase_setup2.dart';
-import 'ladder_selection_page.dart';
+
 
 String loggedInUser = "";
 DocumentSnapshot<Object?>? loggedInUserDoc;
@@ -107,7 +108,7 @@ class LoginPageState extends State<LoginPage> {
         _emailController.text = '';
         _passwordController.text = '';
 
-        nav.push(MaterialPageRoute(builder: (context) => const LadderSelectionPage()));
+        nav.push(MaterialPageRoute(builder: (context) => const UserStream()));
         return;
       } catch (e) {
         setState(() {
@@ -172,7 +173,7 @@ class LoginPageState extends State<LoginPage> {
         loggedInUser = userCredential.user!.email!.toLowerCase();
         activeUser.id = loggedInUser;
         // print('logged with google as: ${activeUser.id}');
-        nav.push(MaterialPageRoute(builder: (context) => const LadderSelectionPage()));
+        nav.push(MaterialPageRoute(builder: (context) => const UserStream()));
 
         return;
       } catch (e) {

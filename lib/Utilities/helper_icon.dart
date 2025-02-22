@@ -77,7 +77,7 @@ Widget helperIcon(var context, String activeLadderId, List<PlayerList>? courtAss
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (activeUser.canBeHelper)
+                        if (activeUser.canBeHelper ||activeUser.canBeAdmin ||activeUser.canBeSuper)
                         TextButton.icon(
                           icon: Icon(activeUser.helperEnabled? Icons.check_box: Icons.check_box_outline_blank),
                             onPressed: (){
@@ -91,7 +91,7 @@ Widget helperIcon(var context, String activeLadderId, List<PlayerList>? courtAss
                               Navigator.pop(context);
                             },
                             label: const Text('Enable Helper functions')),
-                        if (activeUser.canBeAdmin)
+                        if ((activeUser.canBeAdmin) || activeUser.canBeSuper)
                           TextButton.icon(
                               icon: Icon(activeUser.adminEnabled? Icons.check_box: Icons.check_box_outline_blank),
                               onPressed: (){
@@ -173,6 +173,7 @@ Widget helperIcon(var context, String activeLadderId, List<PlayerList>? courtAss
                                     } else {
                                       transaction.update(playerRef, {
                                         'Rank': courtAssignments[pl].afterWinLose,
+                                        // 'EndingRanks':'',
                                         'Present': false,
                                         'ScoresConfirmed': false,
                                       });

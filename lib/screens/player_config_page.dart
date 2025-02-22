@@ -49,7 +49,7 @@ movePlayerDown(String fromLadder, String toLadder) async {
     String laddersStr = userDoc.get('Ladders');
     String newLaddersStr = laddersStr.toString();
     if (laddersStr.isEmpty) {
-      newLaddersStr = '$fromLadder|$toLadder';
+      newLaddersStr = '$fromLadder,$toLadder';
     } else {
       List<String> ladders = laddersStr.split(',');
       if (!ladders.contains(fromLadder)) {

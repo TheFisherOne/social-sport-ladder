@@ -123,7 +123,7 @@ Widget headerSummary(List<QueryDocumentSnapshot>? players, List<PlayerList> assi
               Text('Courts of 6=${PlayerList.numCourtsOf6}', style: nameStyle),
 
               (PlayerList.numCourts == (PlayerList.numCourtsOf4+PlayerList.numCourtsOf5+PlayerList.numCourtsOf6))?
-              Text('Courts available ${PlayerList.numCourts}', style: nameStyle):SizedBox(height: 1,),
+              Text('Courts used ${PlayerList.numCourts} of ${PlayerList.totalCourtsAvailable} available', style: nameStyle):SizedBox(height: 1,),
 
               if ((PlayerList.numUnassigned > 0) && (PlayerList.numCourtsOf5 == PlayerList.numCourts) && (PlayerList.numCourts == PlayerList.totalCourtsAvailable))
                 Text(
@@ -530,9 +530,6 @@ class _PlayerHomeState extends State<PlayerHome> {
                 if (player.id == loggedInUser) {
                   loggedInPlayerDoc = player;
                   activeUser.canBeHelper = loggedInPlayerDoc!.get('Helper');
-                  if (!activeUser.canBeHelper) {
-                    activeUser.helperEnabled = false;
-                  }
                 }
                 if (player.get('Present')) {
                   numberOfPlayersPresent++;
@@ -541,7 +538,15 @@ class _PlayerHomeState extends State<PlayerHome> {
                   }
                 }
               }
-
+              List<String> nonPlayingHelperStr = activeLadderDoc!.get('NonPlayingHelper').split(',');
+              // print('nonPlayingHelper: $nonPlayingHelperStr activeUser: ${activeUser.id}');
+              if (nonPlayingHelperStr.contains(activeUser.id)){
+                  activeUser.canBeHelper = true;
+                  // print('setting canBeHelper to true');
+              }
+              if (!activeUser.canBeHelper) {
+                activeUser.helperEnabled = false;
+              }
               DateTime? nextPlayDate;
               (nextPlayDate, _) = getNextPlayDateTime(activeLadderDoc!);
               DateTime timeNow = DateTime.now();
@@ -655,7 +660,7 @@ class _PlayerHomeState extends State<PlayerHome> {
                           }
                           return buildPlayerLine(row, courtAssignments);
                         },
-                      ):Text('Administrator to configure next date of play', style: nameStyle,),
+                      ):Text('Administrator Config error: ${PlayerList.errorString}', style: nameStyle,),
                     ],
                   ),
                 ),

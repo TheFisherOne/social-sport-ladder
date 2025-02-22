@@ -54,26 +54,6 @@ bool mapContainsDateKey(var events, DateTime key){
   }
   return (result, daysOfPlayChecked.first.substring(16));
 
-  for (int i=0; i<daysOfPlayChecked.length; i++) {
-    DateTime result;
-    try {
-      result = FixedDateTimeFormatter('YYYY.MM.DD_hh:mm',isUtc: false).decode(daysOfPlayChecked[i]);
-    } catch(e){
-      if (kDebugMode) {
-        print('exception: $e from ${daysOfPlayChecked[i]}');
-      }
-      continue;
-    }
-    if (result.compareTo(DateTime.now().add(Duration(hours:1, minutes: 30)))<0){
-      // if (kDebugMode) {
-      //   print('Old start date found $result at offset $i in ${ladderDoc.id} skipping');
-      // }
-      continue;
-    }
-    // print('getNextPlayDateTime: ${daysOfPlayChecked[i]} =>$result');
-    return (result, daysOfPlayChecked[i].substring(16));
-  }
-  return (null,'');
 }
 
 bool isVacationTimeOk(DocumentSnapshot<Object?> ladderDoc){
@@ -519,7 +499,7 @@ class CalendarPageState extends State<CalendarPage> {
     }
     _selectedEvents.value = List.from(_getEventsForDay(selectedDay));
   }
-  _buildEvent(value, index, String clickText) {
+  _buildEvent(List<Event> value, index, String clickText) {
 
     // print('_buildEvent: index: $index, value[index]: ${value[index]} clickText:"$clickText"');
     String str = value[index].toString();
@@ -543,6 +523,7 @@ class CalendarPageState extends State<CalendarPage> {
       } catch(_){}
     }
     String thisLine = '$eventType ${hour.toString().padLeft(2,' ')}:${min.toString().padLeft(2,'0')}${isPM?'PM':'AM'} ${str.substring(10)}';
+    bool includesSelectedPlayer = false;
     if (eventType == 'AWAY:') {
       thisLine = str;
     } else if (eventType == 'misc:'){
@@ -551,11 +532,14 @@ class CalendarPageState extends State<CalendarPage> {
       thisLine = str;
     }else if (eventType == 'SCORE') {
       thisLine = str;
+      if (value[index].scoreDoc!.get('Players').split('|').contains(_playerDoc!.id)) {
+        includesSelectedPlayer = true;
+      }
     }
     // print('thisLine:$thisLine');
     return Row(children: [
       Flexible(
-        child: Text('$thisLine$clickText', style: nameStyle),
+        child: Text('$thisLine$clickText', style: includesSelectedPlayer? nameBoldStyle:nameStyle),
       ),
       if ((typeOfCalendarEvent == EventTypes.playOn)&&  (!value[index].toString().startsWith('FILE') &&(!value[index].toString().startsWith('SCOR'))))
         IconButton(

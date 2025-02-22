@@ -94,6 +94,7 @@ class _ConfigPageState extends State<ConfigPage> {
   final TextEditingController _metersFromController = TextEditingController();
   final TextEditingController _randomController = TextEditingController();
   final TextEditingController _adminsController = TextEditingController();
+  final TextEditingController _helperController = TextEditingController();
   final TextEditingController _courtsController = TextEditingController();
   final TextEditingController _sportsDescriptorController = TextEditingController();
   final TextEditingController _ladderViewController = TextEditingController();
@@ -114,6 +115,7 @@ class _ConfigPageState extends State<ConfigPage> {
     _metersFromController.dispose();
     _randomController.dispose();
     _adminsController.dispose();
+    _helperController.dispose();
     _courtsController.dispose();
     _waitListController.dispose();
     _sportsDescriptorController.dispose();
@@ -820,7 +822,142 @@ class _ConfigPageState extends State<ConfigPage> {
                       },
                       initialValue: activeLadderDoc!.get('Admins'),
                     ),
+                    MyTextField(
+                      labelText: 'NonPlayingHelpers',
+                      helperText: 'List of emails separated by commas. This assumes the specified email can already login. Add as Player first.',
+                      controller: _helperController,
+                      entryOK: (entry) {
+                        //print('admins entryOK: "$entry",${entry.length}');
+                        if (entry.length > 400) return 'List too long';
 
+                        List<String> adminList = entry.split(',');
+
+                        if ((adminList.length==1)&&(adminList[0].isEmpty)) {
+                          return null;
+                        }
+
+                        int cnt = 0;
+                        for (String email in adminList) {
+                          cnt++;
+                          if (!email.isValidEmail()) {
+                            return 'Entry:$cnt="$email" is not a valid email address';
+                          }
+                        }
+                        return null;
+                      },
+                      onIconClicked: (entry) {
+                        String attrName = 'NonPlayingHelper';
+
+                        String newValue = entry.trim().replaceAll(RegExp(r' \s+'), ' ');
+                        String oldValue = activeLadderDoc!.get(attrName);
+
+                        List<String> oldHelpers = oldValue.split(',');
+
+                        FirebaseFirestore.instance.runTransaction((transaction) async {
+                          // first the ladder document, which contains the Admins list
+                          DocumentReference ladderRef = FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId);
+
+                          // second all of the globalUsers
+                          CollectionReference globalUserCollectionRef = FirebaseFirestore.instance.collection('Users');
+                          QuerySnapshot snapshot = await globalUserCollectionRef.get();
+                          var globalUserNames = snapshot.docs.map((doc) => doc.id);
+                          // print('List of all globalUsers  : $globalUserNames');
+
+                          var globalUserRefMap = {};
+                          for (String userId in globalUserNames) {
+                            globalUserRefMap[userId] = FirebaseFirestore.instance.collection('Users').doc(userId);
+                          }
+
+                          var globalUserDocMap = {};
+                          // var ladderDoc = await ladderRef.get();
+                          for (String userId in globalUserNames) {
+                            globalUserDocMap[userId] = await globalUserRefMap[userId].get();
+                          }
+
+                          //third the list of all of the Players
+                          // CollectionReference playersRef = FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Players');
+                          // QuerySnapshot snapshotPlayers = await playersRef.get();
+                          // var playerNames = snapshotPlayers.docs.map((doc) => doc.id);
+                          // print('List of all Players in ladder $activeLadderId : $playerNames');
+
+                          // at this point we have done a get on all of the documents that we need
+                          // ladderRef, and globalUserDocMap
+                          // it is required to do all of the reads before any writes in a transaction
+
+                          // print('updating ladder $activeLadderId with NonPlayingHelpers : "$newValue"');
+                          transaction.update(ladderRef, {
+                            attrName : newValue,
+                          });
+
+                          List<String> helperList = newValue.split(',');
+                          // print('new admins list is $adminList');
+
+                          // no go through the global users and make sure that this is in their Ladders list so they can see this ladder
+                          for (String email in helperList) {
+                            try {
+                              String ladders = globalUserDocMap[email].get('Ladders');
+                              List<String> ladderList = ladders.split(',');
+                              bool found = false;
+                              for (var lad in ladderList) {
+                                if (lad == activeLadderId) found = true;
+                              }
+                              if (!found) {
+                                if (ladders.isEmpty) {
+                                  transaction.update(globalUserRefMap[email], {
+                                    'Ladders': activeLadderId,
+                                  });
+                                } else {
+                                  transaction.update(globalUserRefMap[email], {
+                                    'Ladders': '$ladders,$activeLadderId',
+                                  });
+                                }
+                              }
+                              // print('removing $email from $oldAdmins');
+                              oldHelpers.remove(email);
+                            } catch (e) {
+                              // the global user does not exist
+                              // print('creating globalUser $email with Ladders $activeLadderId');
+                              var newDocRef = FirebaseFirestore.instance.collection('Users').doc(email);
+                              transaction.set(newDocRef, {
+                                'Ladders': activeLadderId,
+                              });
+                            }
+                          }
+                          // print('oldAdmins is now = $oldAdmins');
+
+                          // removing from global user ladders list is a little more difficult
+
+                          // for (String email in oldHelpers) {
+                          //   // print('setAdmins remove from ladder $activeLadderId from global users $email');
+                          //   // need to find out if the removed admin is also a player, if so then do not remove from Ladders
+                          //   if (playerNames.contains(email)) continue;
+                          //
+                          //   try {
+                          //     String ladders = globalUserDocMap[email].get('Ladders');
+                          //     // print('setAdmins: got $ladders from $email');
+                          //     List<String> ladderList = ladders.split(',');
+                          //     String newLadders = '';
+                          //     for (var lad in ladderList) {
+                          //       if (lad == activeLadderId) continue;
+                          //       if (newLadders.isEmpty) {
+                          //         newLadders = lad;
+                          //       } else {
+                          //         newLadders = '$newLadders,$lad';
+                          //       }
+                          //     }
+                          //     // print('setAdmins: writing $newLadders to global user $email');
+                          //     transaction.update(globalUserRefMap[email], {
+                          //       'Ladders': newLadders,
+                          //     });
+                          //      } catch (_) {}
+                          // }
+                          transactionAudit(
+                              transaction: transaction, user: loggedInUser, documentName: 'LadderConfig', action: 'Change Helpers', newValue: newValue, oldValue: activeLadderDoc!.get('Admins'));
+
+                        });
+                      },
+                      initialValue: activeLadderDoc!.get('NonPlayingHelper'),
+                    ),
                     MyTextField(
                       labelText: 'PriorityOfCourts',
                       helperText: 'List of short court names using "|" to separate them. If not all of the courts are required the ones at the end will not be used.',
