@@ -165,15 +165,6 @@ class _MyTextFieldState extends State<MyTextField> {
                 setState(() {
                   errorString=null;
                 });
-                // _editing[index] = false;
-                // _errorStrings[index] = null;
-                // if (_editingDoc != null) {
-                //   _textControllers[index].text = _editingDoc!.get(_attrName[index]).toString();
-                // } else {
-                //   _textControllers[index].text = '';
-                // }
-                // // });
-                // _state!.refresh();
               },
               icon: const Icon(
                 Icons.send,

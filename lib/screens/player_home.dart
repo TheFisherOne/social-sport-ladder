@@ -454,7 +454,7 @@ class _PlayerHomeState extends State<PlayerHome> {
           child: Row(children: [
             icon,
             Text(
-              ' $rank${(player.get('WaitListRank')>0)?"w${player.get('WaitListRank')}":""}: ${player.get('Name')} ${plAssignment!.unassigned ? '(Last)' : ''}',
+              ' $rank${(player.get('WaitListRank')>0)?"w${player.get('WaitListRank')}":""}: ${player.get('Name')}',
               style: isUserRow ? nameBoldStyle : ((player.get('Helper') ?? false) ? italicNameStyle : nameStyle),
             ),
           ]),
@@ -497,6 +497,7 @@ class _PlayerHomeState extends State<PlayerHome> {
           // print('ladder_selection_page getting user global ladder but data is null');
           return const CircularProgressIndicator();
         }
+        try{
         activeLadderDoc = ladderSnapshot.data!;
         activeLadderBackgroundColor = colorFromString((activeLadderDoc!.get('Color') ?? "brown").toLowerCase());
 
@@ -584,7 +585,7 @@ class _PlayerHomeState extends State<PlayerHome> {
                   actions: [
                     IconButton(
                         onPressed: () {
-                          Navigator.push(context, MaterialPageRoute(builder: (context) => HelpLoginPage(page:HelpPage.player)));
+                          Navigator.push(context, MaterialPageRoute(builder: (context) => HelpPage(page:'Player')));
                         },
                         icon: Icon(Icons.help, color: Colors.green,)),
                     activeUser.admin
@@ -666,6 +667,9 @@ class _PlayerHomeState extends State<PlayerHome> {
                 ),
               );
             });
+        } catch (e, stackTrace) {
+          return Text('player home EXCEPTION: $e\n$stackTrace', style: TextStyle(color: Colors.red));
+        }
       },
     );
   }

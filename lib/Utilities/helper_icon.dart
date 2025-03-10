@@ -48,11 +48,18 @@ class ActiveUser {
 
 }
 String buildCsv(List<PlayerList>? courtAssignments){
-  String result='Rank,NewR,Present,Unassigned,Away,Player Name,Score,Pos,Court#,CourtName\n';
+  String result='Rank,NewR,Present,Unassigned,Away,Player Name,Score,Pos,Court#,CourtName,aw+-,tot+-,TimePresent,Scr1,Scr2,Scr3,Scr4,Scr5\n';
   for(int i=0; i< courtAssignments!.length; i++){
     PlayerList pl = courtAssignments[i];
+    List<String> matchScores =  pl.snapshot.get('MatchScores').split('|');
+    while ( matchScores.length < 5 ){
+      matchScores.add('');
+    }
+    String matchScoreStr = matchScores.join(',');
     result += '${pl.startingRank},${pl.newRank},${pl.present?'true':''},${pl.unassigned?'true':''},${pl.markedAway?'true':''},${pl.snapshot.get('Name')},'
-        '${pl.totalScore},${pl.startingOrder},${pl.courtNumber+1},${pl.courtNumber>=0?PlayerList.usedCourtNames[pl.courtNumber]:''}\n';
+        '${pl.totalScore},${pl.startingOrder},${pl.courtNumber>=0?pl.courtNumber+1:''},${pl.courtNumber>=0?PlayerList.usedCourtNames[pl.courtNumber]:''},'
+        '${pl.startingRank-pl.afterDownTwo},${pl.startingRank-pl.afterWinLose},'
+        '${pl.present?DateFormat('yyyy.MM.dd_HH:mm:ss').format(pl.snapshot.get('TimePresent').toDate()):''},$matchScoreStr\n';
   }
   return result;
 }

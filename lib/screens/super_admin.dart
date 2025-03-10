@@ -281,11 +281,21 @@ class _SuperAdminState extends State<SuperAdmin> {
                     } catch (_) {
                       return;
                     }
+                    await FirebaseFirestore.instance.runTransaction((transaction) async {
                     for (QueryDocumentSnapshot<Object?> doc in ladderSnapshots.data!.docs) {
-                      FirebaseFirestore.instance.collection('Ladder').doc(doc.id).update({
+                      DocumentReference ladderRef = FirebaseFirestore.instance.collection('Ladder').doc(doc.id);
+                      transaction.update(ladderRef, {
                         'RequiredSoftwareVersion': number,
                       });
                     }
+
+                    });
+                    // for (QueryDocumentSnapshot<Object?> doc in ladderSnapshots.data!.docs) {
+                    //   print('updating RequiredSoftwareVersion for ladder ${doc.id} to $number');
+                    //   await FirebaseFirestore.instance.collection('Ladder').doc(doc.id).update({
+                    //     'RequiredSoftwareVersion': number,
+                    //   });
+                    // }
                     // print('done creating la
                     // dder $newValue');
                     // doc not ready to accept an audit yet

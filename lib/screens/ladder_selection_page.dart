@@ -87,7 +87,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
   // List<calendar.Event> _events = [];
 
   Color activeLadderBackgroundColor = Colors.brown;
-  double  _originalAppFontSize = -1;
+  double _originalAppFontSize = -1;
   @override
   void initState() {
     super.initState();
@@ -142,6 +142,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
           child: Text(buttonText));
     }
 
+    try{
     // print('ladder_selection_page.build _events: ${_events.length}');
 
     if (loggedInUser.isEmpty) {
@@ -151,38 +152,13 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
     //print('ladder_selection_page: doing build #$_buildCount');
     if (_buildCount > 1000) return const Text('Build Count exceeded');
 
-    // return StreamBuilder<DocumentSnapshot>(
-    //     stream: FirebaseFirestore.instance.collection('Users').doc(loggedInUser).snapshots(),
-    //     builder: (BuildContext context, AsyncSnapshot<DocumentSnapshot<Object?>> snapshot) {
-    //       // print('users snapshot');
-    //       if (snapshot.error != null) {
-    //         String error = 'Snapshot error: ${snapshot.error.toString()} on getting global user $loggedInUser';
-    //         if (kDebugMode) {
-    //           print(error);
-    //         }
-    //         return Text(error);
-    //       }
-    //       // print('in StreamBuilder ladder 0');
-    //       if (!snapshot.hasData || (snapshot.connectionState != ConnectionState.active)) {
-    //         // print('ladder_selection_page getting user $loggedInUser but hasData is false');
-    //         return const CircularProgressIndicator();
-    //       }
-    //       if (snapshot.data == null) {
-    //         if (kDebugMode) {
-    //           print('ladder_selection_page getting user $loggedInUser but data is null');
-    //         }
-    //         return const CircularProgressIndicator();
-    //       }
-    //
-    //       loggedInUserDoc = snapshot.data;
-
     try {
       activeUser.canBeSuper = loggedInUserDoc!.get('SuperUser');
     } catch (_) {
       activeUser.canBeSuper = false;
     }
 
-    if (_originalAppFontSize<20){
+    if (_originalAppFontSize < 20) {
       _originalAppFontSize = appFontSize;
     }
 
@@ -229,6 +205,22 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
       _lastLoggedInUser = activeUser.id;
     }
 
+    reloadWithNewVersion(double reqSoftwareVersion) {
+      // html.window.location.reload();
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      String newURL = '${html.window.location.pathname}?v=$timestamp';
+      if (kDebugMode) {
+        print('NEED NEW VERSION OF THE SOFTWARE $reqSoftwareVersion > $softwareVersion $newURL');
+      }
+      html.window.location.reload();
+
+      Future.delayed(Duration(milliseconds: 1000), () {
+        if (html.window.location.href != newURL) {
+          html.window.location.href = newURL;
+        }
+      });
+      return Text('YOU MUST FORCE A RELOAD you need V$reqSoftwareVersion', style: nameStyle,);
+    }
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance.collection('Ladder').snapshots(),
       builder: (BuildContext context, AsyncSnapshot<QuerySnapshot<Object?>> snapshot) {
@@ -249,7 +241,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
           // print('ladder_selection_page getting user global ladder but data is null');
           return const CircularProgressIndicator();
         }
-
+        print('building Ladder snapshots with fontsize: $appFontSize ${nameStyle.fontSize}');
         availableLadders = _userLadders.split(",");
         List<QueryDocumentSnapshot<Object?>> availableDocs = List.empty(growable: true);
 
@@ -277,14 +269,19 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
         return Scaffold(
           backgroundColor: Colors.brown[50],
           appBar: AppBar(
-            title: Text('Pick Ladder sw V$softwareVersion\n$loggedInUser'),
+            title: Text('V$softwareVersion\n$loggedInUser', style: nameStyle,
+            // softWrap: true,
+            //     overflow: TextOverflow.visible,
+            ),
+            toolbarHeight: appFontSize*2.5,
             backgroundColor: Colors.brown[400],
             elevation: 0.0,
             automaticallyImplyLeading: false,
+            // actionsIconTheme: IconThemeData(size: 20),
             actions: [
               IconButton(
                   onPressed: () {
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => HelpLoginPage(page: HelpPage.pickLadder)));
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => HelpPage(page: 'PickLadder')));
                   },
                   icon: Icon(
                     Icons.help,
@@ -300,29 +297,30 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                           mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            Text('Saved FontSize is currently: $appFontSize', style: nameStyle),
                             TextButton.icon(
                               label: Text('Increase Font Size', style: nameStyle),
-                                onPressed: () {
-                                  // print('appFontSize+: $appFontSize');
-                                  double newFontSize = appFontSize + 1.0;
-                                  if (newFontSize > 40) newFontSize = 20.0;
-                                  setState(() {
-                                    setBaseFont(newFontSize);
-                                  });
-                                },
-                                icon: Icon(Icons.text_increase, size: appFontSize*1.25),
+                              onPressed: () {
+                                // print('appFontSize+: $appFontSize');
+                                double newFontSize = appFontSize + 1.0;
+                                if (newFontSize > 40) newFontSize = 40.0;
+                                setState(() {
+                                  setBaseFont(newFontSize);
+                                });
+                              },
+                              icon: Icon(Icons.text_increase, size: appFontSize * 1.25),
                             ),
                             TextButton.icon(
                                 label: Text('Decrease Font Size', style: nameStyle),
                                 onPressed: () {
                                   // print('appFontSize-: $appFontSize');
                                   double newFontSize = appFontSize - 1.0;
-                                  if (newFontSize < 20) newFontSize = 40.0;
+                                  if (newFontSize < 15) newFontSize = 15.0;
                                   setState(() {
                                     setBaseFont(newFontSize);
                                   });
                                 },
-                                icon: Icon(Icons.text_decrease, size: appFontSize*1.25)),
+                                icon: Icon(Icons.text_decrease, size: appFontSize * 1.25)),
                             TextButton.icon(
                                 label: Text('Save Font Size', style: nameStyle),
                                 onPressed: () {
@@ -333,7 +331,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                                   _originalAppFontSize = appFontSize;
                                   Navigator.of(context).pop();
                                 },
-                                icon: Icon(Icons.save, size: appFontSize*1.25)),
+                                icon: Icon(Icons.save, size: appFontSize * 1.25)),
                             TextButton.icon(
                                 label: Text('Quit and restore original Font Size', style: nameStyle),
                                 onPressed: () {
@@ -342,11 +340,17 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                                   });
                                   Navigator.of(context).pop();
                                 },
-                                icon: Icon(Icons.cancel, size: appFontSize*1.25)),
+                                icon: Icon(Icons.cancel, size: appFontSize * 1.25)),
                           ],
                         ),
                       ),
                     );
+                    //.then((_) {
+                    //  print('Doing setState after dialog exits');
+                    //  setState(() {
+
+                    //  });
+                    //});
 
                     // setState(() {
                     //   double newFontSize=appFontSize+ 1.0;
@@ -400,137 +404,152 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
               padding: const EdgeInsets.all(8),
               itemCount: availableDocs.length + 1, //for last divider line
               itemBuilder: (BuildContext context, int row) {
-                if (row == availableDocs.length) {
-                  return const SizedBox(
-                    height: 1,
-                  );
-                }
-                // activeLadderId = activeLadderDoc!.id;
-
-                double reqSoftwareVersion = availableDocs[row].get('RequiredSoftwareVersion');
-                if (reqSoftwareVersion > softwareVersion) {
-                  if (kDebugMode) {
-                    print('NEED NEW VERSION OF THE SOFTWARE $reqSoftwareVersion > $softwareVersion');
+                try {
+                  if (row == availableDocs.length) {
+                    return const SizedBox(
+                      height: 1,
+                    );
                   }
-                  html.window.location.reload();
-                }
+                  // activeLadderId = activeLadderDoc!.id;
 
-                bool disabled = availableDocs[row].get('Disabled');
+                  double reqSoftwareVersion = availableDocs[row].get('RequiredSoftwareVersion');
+                  if (reqSoftwareVersion > softwareVersion) {
+                    if (html.window.navigator.serviceWorker != null) {
+                      html.window.navigator.serviceWorker!.getRegistrations().then((registrations) {
+                        for (var reg in registrations) {
+                          print('unregister worker ${reg.toString()}');
+                          reg.unregister();
+                        }
+                        print('Service worker cleared');
+                        reloadWithNewVersion(reqSoftwareVersion);
+                      });
+                    } else {
+                      reloadWithNewVersion(reqSoftwareVersion);
+                    }
+                  }
 
-                activeLadderBackgroundColor = colorFromString(availableDocs[row].get('Color').toLowerCase());
+                  bool disabled = availableDocs[row].get('Disabled');
 
-                String message = availableDocs[row].get('Message');
-                // print('message: $row $message');
+                  activeLadderBackgroundColor = colorFromString(availableDocs[row].get('Color').toLowerCase());
 
-                String nextPlay1 = '';
-                String nextPlay2 = '';
+                  String message = availableDocs[row].get('Message');
+                  // print('message: $row $message');
 
-                DateTime? nextPlay;
-                String note;
-                (nextPlay, note) = getNextPlayDateTime(availableDocs[row]);
-                if (nextPlay != null) {
-                  int daysAway = daysBetween(DateTime.now(), nextPlay);
-                  // print('Row:$row ${availableDocs[row].id} daysAway: $daysAway  nextPlay:  $nextPlay');
-                  String timeToPlay = DateFormat('h:mma').format(nextPlay);
-                  String numDaysAwayStr;
-                  if (daysAway == 1) {
-                    numDaysAwayStr = '(Tomorrow) @ $timeToPlay';
-                    nextPlay2 = note;
-                  } else if (daysAway < 0) {
-                    numDaysAwayStr = '(next date is in the past!)';
-                    nextPlay2 = '';
-                  } else if (daysAway > 1) {
-                    numDaysAwayStr = '($daysAway days) @ $timeToPlay';
-                    nextPlay2 = note;
+                  String nextPlay1 = '';
+                  String nextPlay2 = '';
+
+                  DateTime? nextPlay;
+                  String note;
+                  (nextPlay, note) = getNextPlayDateTime(availableDocs[row]);
+                  if (nextPlay != null) {
+                    int daysAway = daysBetween(DateTime.now(), nextPlay);
+                    // print('Row:$row ${availableDocs[row].id} daysAway: $daysAway  nextPlay:  $nextPlay');
+                    String timeToPlay = DateFormat('h:mma').format(nextPlay);
+                    String numDaysAwayStr;
+                    if (daysAway == 1) {
+                      numDaysAwayStr = '(Tomorrow) @ $timeToPlay';
+                      nextPlay2 = note;
+                    } else if (daysAway < 0) {
+                      numDaysAwayStr = '(next date is in the past!)';
+                      nextPlay2 = '';
+                    } else if (daysAway > 1) {
+                      numDaysAwayStr = '($daysAway days) @ $timeToPlay';
+                      nextPlay2 = note;
+                    } else {
+                      numDaysAwayStr = '(TODAY)  @ $timeToPlay';
+                      nextPlay2 = note;
+                    }
+                    nextPlay1 = ' ${DateFormat('E yyyy.MM.dd').format(nextPlay)} $numDaysAwayStr';
                   } else {
-                    numDaysAwayStr = '(TODAY)  @ $timeToPlay';
-                    nextPlay2 = note;
+                    nextPlay1 = 'no date of play set by admin';
                   }
-                  nextPlay1 = ' ${DateFormat('E yyyy.MM.dd').format(nextPlay)} $numDaysAwayStr';
-                } else {
-                  nextPlay1 = 'no date of play set by admin';
-                }
 
-                return Container(
-                    // height: 350,
-                    decoration: BoxDecoration(
-                      border: Border.all(color: activeLadderBackgroundColor, width: 5),
-                      borderRadius: BorderRadius.circular(15.0),
-                      color: activeLadderBackgroundColor.withOpacity(0.1), //withValues(alpha:0.1),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.only(left: 8.0, right: 8, top: 2, bottom: 2),
-                      child: InkWell(
-                        onTap: (!disabled || availableDocs[row].get('Admins').split(',').contains(loggedInUser) || activeUser.canBeSuper)
-                            ? () {
-                                activeLadderDoc = availableDocs[row];
-                                activeLadderId = availableDocs[row].id;
-                                activeUser.canBeAdmin = activeLadderDoc!.get('Admins').split(',').contains(activeUser.id);
-                                //print('canBeAdmin: ${activeUser.canBeAdmin} ${activeLadderDoc!.get('Admins').split(',')}');
-                                if (!activeUser.canBeAdmin && !activeUser.canBeSuper) {
-                                  activeUser.adminEnabled = false;
-                                }
+                  return Container(
+                      // height: 350,
+                      decoration: BoxDecoration(
+                        border: Border.all(color: activeLadderBackgroundColor, width: 5),
+                        borderRadius: BorderRadius.circular(15.0),
+                        color: activeLadderBackgroundColor.withOpacity(0.1), //withValues(alpha:0.1),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 8.0, right: 8, top: 2, bottom: 2),
+                        child: InkWell(
+                          onTap: (!disabled || availableDocs[row].get('Admins').split(',').contains(loggedInUser) || activeUser.canBeSuper)
+                              ? () {
+                                  activeLadderDoc = availableDocs[row];
+                                  activeLadderId = availableDocs[row].id;
+                                  activeUser.canBeAdmin = activeLadderDoc!.get('Admins').split(',').contains(activeUser.id);
+                                  //print('canBeAdmin: ${activeUser.canBeAdmin} ${activeLadderDoc!.get('Admins').split(',')}');
+                                  if (!activeUser.canBeAdmin && !activeUser.canBeSuper) {
+                                    activeUser.adminEnabled = false;
+                                  }
 
-                                String colorString = '';
-                                try {
-                                  colorString = availableDocs[row].get('Color').toLowerCase();
-                                } catch (_) {}
-                                activeLadderBackgroundColor = colorFromString(colorString);
-                                bool frozen = activeLadderDoc!.get('FreezeCheckIns');
-                                // print('go to players page $activeLadderId');
-                                if (frozen) {
-                                  showFrozenLadderPage(context, activeLadderDoc!, false);
-                                } else {
-                                  Navigator.push(context, MaterialPageRoute(builder: (context) => const PlayerHome()));
+                                  String colorString = '';
+                                  try {
+                                    colorString = availableDocs[row].get('Color').toLowerCase();
+                                  } catch (_) {}
+                                  activeLadderBackgroundColor = colorFromString(colorString);
+                                  bool frozen = activeLadderDoc!.get('FreezeCheckIns');
+                                  // print('go to players page $activeLadderId');
+                                  if (frozen) {
+                                    showFrozenLadderPage(context, activeLadderDoc!, false);
+                                  } else {
+                                    Navigator.push(context, MaterialPageRoute(builder: (context) => const PlayerHome()));
+                                  }
                                 }
-                              }
-                            : null,
-                        child: Column(
-                          children: [
-                            Text(' ${availableDocs[row].get('DisplayName')}', textAlign: TextAlign.start, style: disabled ? nameStrikeThruStyle : nameBigStyle),
-                            // SizedBox(height: 10),
-                            (urlCache.containsKey(availableDocs[row].id) && (urlCache[availableDocs[row].id] != null) && enableImages)
-                                ? Image.network(
-                                    urlCache[availableDocs[row].id],
-                                    height: 100,
-                                  )
-                                : const SizedBox(
-                                    height: 100,
+                              : null,
+                          child: Column(
+                            children: [
+                              Text(' ${availableDocs[row].get('DisplayName')}', textAlign: TextAlign.start, style: disabled ? nameStrikeThruStyle : nameBigStyle),
+                              // SizedBox(height: 10),
+                              (urlCache.containsKey(availableDocs[row].id) && (urlCache[availableDocs[row].id] != null) && enableImages)
+                                  ? Image.network(
+                                      urlCache[availableDocs[row].id],
+                                      height: 100,
+                                    )
+                                  : const SizedBox(
+                                      height: 100,
+                                    ),
+                              Container(
+                                // height: 350,
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: activeLadderBackgroundColor, width: 5),
+                                  borderRadius: BorderRadius.circular(15.0),
+                                  color: activeLadderBackgroundColor.withOpacity(0.1), //withValues(alpha:0.1),
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: Text(
+                                    message,
+                                    style: nameStyle,
                                   ),
-                            Container(
-                              // height: 350,
-                              decoration: BoxDecoration(
-                                border: Border.all(color: activeLadderBackgroundColor, width: 5),
-                                borderRadius: BorderRadius.circular(15.0),
-                                color: activeLadderBackgroundColor.withOpacity(0.1), //withValues(alpha:0.1),
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: Text(
-                                  message,
-                                  style: nameStyle,
                                 ),
                               ),
-                            ),
-                            Text(
-                              'Next Play:',
-                              style: nameStyle,
-                            ),
-                            Text(
-                              nextPlay1,
-                              style: nameStyle,
-                            ),
-                            Text(
-                              nextPlay2,
-                              style: nameStyle,
-                            ),
-                          ],
+                              Text(
+                                'Next Play:',
+                                style: nameStyle,
+                              ),
+                              Text(
+                                nextPlay1,
+                                style: nameStyle,
+                              ),
+                              Text(
+                                nextPlay2,
+                                style: nameStyle,
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    ));
+                      ));
+                } catch (e, stackTrace) {
+                  return Text('Row: $row, EXCEPTION: $e\n$stackTrace', style: TextStyle(color: Colors.red));
+                }
               }),
         );
       },
     );
+    } catch (e, stackTrace) {
+      return Text('outer EXCEPTION: $e\n$stackTrace', style: TextStyle(color: Colors.red));
+    }
   }
 }

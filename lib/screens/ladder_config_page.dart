@@ -124,6 +124,7 @@ class _ConfigPageState extends State<ConfigPage> {
 
   @override
   Widget build(BuildContext context) {
+    try{
     return StreamBuilder<DocumentSnapshot>(
         stream: FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).snapshots(),
         builder: (BuildContext context, AsyncSnapshot<DocumentSnapshot<Object?>> snapshot) {
@@ -165,7 +166,7 @@ class _ConfigPageState extends State<ConfigPage> {
               actions: [
                 IconButton(
                     onPressed: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => HelpLoginPage(page:HelpPage.admin)));
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => HelpPage(page:'Admin Manual')));
                     },
                     icon: Icon(Icons.help, color: Colors.green,)),
                 if (isAdmin)
@@ -699,6 +700,8 @@ class _ConfigPageState extends State<ConfigPage> {
                       labelText: 'Admins',
                       helperText: 'List of emails separated by commas. This assumes the specified email can already login. Add as Player first.',
                       controller: _adminsController,
+                      inputFormatters: [LowerCaseTextInputFormatter()],
+                      keyboardType: TextInputType.emailAddress,
                       entryOK: (entry) {
                         //print('admins entryOK: "$entry",${entry.length}');
                         if (entry.length > 400) return 'List too long';
@@ -723,38 +726,47 @@ class _ConfigPageState extends State<ConfigPage> {
                         String oldValue = activeLadderDoc!.get(attrName);
 
                         List<String> oldAdmins = oldValue.split(',');
+                        List<String> globalUsersToCheck = oldAdmins.toList();
+                        for (String user in newValue.split(',')){
+                           if (!globalUsersToCheck.contains(user)){
+                            globalUsersToCheck.add(user);
+                          }
+                        }
 
                         FirebaseFirestore.instance.runTransaction((transaction) async {
+                          // print('starting transaction for changing admins to $newValue');
                           // first the ladder document, which contains the Admins list
                           DocumentReference ladderRef = FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId);
 
                           // second all of the globalUsers
+                          // print('changing admins: 1');
                           CollectionReference globalUserCollectionRef = FirebaseFirestore.instance.collection('Users');
                           QuerySnapshot snapshot = await globalUserCollectionRef.get();
                           var globalUserNames = snapshot.docs.map((doc) => doc.id);
                           // print('List of all globalUsers  : $globalUserNames');
-
+                          // print('changing admins: 2');
                           var globalUserRefMap = {};
                           for (String userId in globalUserNames) {
                             globalUserRefMap[userId] = FirebaseFirestore.instance.collection('Users').doc(userId);
                           }
-
+                          // print('changing admins: 3');
                           var globalUserDocMap = {};
                           // var ladderDoc = await ladderRef.get();
-                          for (String userId in globalUserNames) {
+                          for (String userId in globalUsersToCheck) {
                             globalUserDocMap[userId] = await globalUserRefMap[userId].get();
                           }
-
+                          // print('changing admins: 4');
                           //third the list of all of the Players
                           CollectionReference playersRef = FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Players');
                           QuerySnapshot snapshotPlayers = await playersRef.get();
                           var playerNames = snapshotPlayers.docs.map((doc) => doc.id);
                           // print('List of all Players in ladder $activeLadderId : $playerNames');
-
+                          // print('changing admins: 5');
                           // at this point we have done a get on all of the documents that we need
                           // ladderRef, and globalUserDocMap
                           // it is required to do all of the reads before any writes in a transaction
                           // print('updating ladder $activeLadderId with Admins : "$newAdmins"');
+                          // print('writing transaction for admins');
                           transaction.update(ladderRef, {
                             'Admins': newValue,
                           });
@@ -815,7 +827,8 @@ class _ConfigPageState extends State<ConfigPage> {
                                 'Ladders': newLadders,
                               });
                               transactionAudit(
-                                  transaction: transaction, user: loggedInUser, documentName: 'LadderConfig', action: 'Change Admins', newValue: newValue, oldValue: activeLadderDoc!.get('Admins'));
+                                  transaction: transaction, user: loggedInUser, documentName: 'LadderConfig', action: 'Change Admins', newValue: newValue,
+                                  oldValue: oldValue);
                             } catch (_) {}
                           }
                         });
@@ -1111,5 +1124,8 @@ class _ConfigPageState extends State<ConfigPage> {
             ),
           );
         });
+    } catch (e, stackTrace) {
+      return Text('ladder config EXCEPTION: $e\n$stackTrace', style: TextStyle(color: Colors.red));
+    }
   }
 }

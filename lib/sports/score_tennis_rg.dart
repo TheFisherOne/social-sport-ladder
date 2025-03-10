@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:social_sport_ladder/Utilities/helper_icon.dart';
 import 'package:social_sport_ladder/constants/constants.dart';
 import 'package:social_sport_ladder/screens/ladder_selection_page.dart';
+import 'package:social_sport_ladder/screens/login_page.dart';
 import 'package:social_sport_ladder/screens/score_base.dart';
 import 'package:social_sport_ladder/sports/sport_tennis_rg.dart';
 import '../screens/audit_page.dart';
@@ -52,6 +53,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
   String? _lastBeingEditedById;
   bool _anyScoresToSave = false;
   bool _neverEdited = true;
+  bool _loggedInPlayerOnCourt = false;
 
   List<PlayerList>? _movementList;
 
@@ -69,7 +71,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
     _isOverrideEditorEnabled = false;
     // print('timer started');
     _timer = Timer(Duration(seconds: 30), () {
-      print('in Timer for _isOverrideEditorEnabled $this');
+      // print('in Timer for _isOverrideEditorEnabled $this');
       setState(() {
         // print('timer goes off');
         _isOverrideEditorEnabled = true;
@@ -114,6 +116,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
       List<String> playerScores = gameScoresList[pl].split(',');
       List<int?> nullList = List.filled(_numGames, null);
       _gameScores.add(nullList);
+      int numberNull=0;
       for (int game = 0; game < _numGames; game++) {
         _gameScores[pl][game] = null;
         try {
@@ -121,7 +124,12 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
             _gameScores[pl][game] = int.parse(playerScores[game]);
           }
         } catch (_) {}
-        if (_gameScores[pl][game] == null) _allScoresEntered = false;
+        if (_gameScores[pl][game] == null) numberNull++;
+      }
+      if ((_numGames == 3) && (numberNull>0)){
+        _allScoresEntered = false;
+      } else if((_numGames == 5) && (numberNull>1)){
+        _allScoresEntered = false;
       }
     }
 
@@ -210,6 +218,8 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
         _gameScoreErrors[game] = !allOK;
       }
     } else if (getSportDescriptor(0) == 'pickleballRG') {
+      int maxScore3 = 11;
+      int maxScore5 = 9;
       _gameScoreErrors = List.filled(_numGames, false);
       for (int game = 0; game < _numGames; game++) {
         bool allOK = true;
@@ -227,10 +237,10 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
               allOK = false;
             } else {
               if ((scores[0] != scores[1]) || (scores[2] != scores[3])) allOK = false;
-              if (scores.last != 11) allOK = false;
+              if (scores.last != maxScore3) allOK = false;
               if (!allOK) {
                 if (kDebugMode) {
-                  print('_gameScoreErrors[$game] 2 scores have to be 11 and the other 2 have to match');
+                  print('_gameScoreErrors[$game] 2 scores have to be $maxScore3 and the other 2 have to match');
                 }
               }
             }
@@ -240,10 +250,54 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
               allOK = false;
             } else {
               if ((scores[1] != scores[2]) || (scores[3] != scores[4])) allOK = false;
-              if (scores.last != 9) allOK = false;
+              if (scores.last != maxScore5) allOK = false;
               if (!allOK) {
                 if (kDebugMode) {
-                  print('_gameScoreErrors[$game]  scores have to be 9 and the other 2 have to match');
+                  print('_gameScoreErrors[$game]  scores have to be $maxScore5 and the other 2 have to match');
+                }
+              }
+            }
+          }
+        }
+        _gameScoreErrors[game] = !allOK;
+      }
+    } else if (getSportDescriptor(0) == 'badmintonRG') {
+      int maxScore3 = 21;
+      int maxScore5 = 21;
+      _gameScoreErrors = List.filled(_numGames, false);
+      for (int game = 0; game < _numGames; game++) {
+        bool allOK = true;
+        List<int?> scores = [for (var row in _gameScores) row[game]];
+        scores.sort((a, b) {
+          if (a == null) return -1; // Place nulls at the beginning
+          if (b == null) return 1; // Place nulls at the beginning
+          return a.compareTo(b); // Ascending order
+        });
+        if (scores.last != null) {
+          // if they are all null then it is ok nothing has been entered
+          if (_numGames == 3) {
+            if (scores.first == null) {
+              // print('_gameScoreErrors[$game] found null');
+              allOK = false;
+            } else {
+              if ((scores[0] != scores[1]) || (scores[2] != scores[3])) allOK = false;
+              if (scores.last != maxScore3) allOK = false;
+              if (!allOK) {
+                if (kDebugMode) {
+                  print('_gameScoreErrors[$game] 2 scores have to be $maxScore3 and the other 2 have to match');
+                }
+              }
+            }
+          } else {
+            if (((scores.first != null) && (scores.first != 0)) || (scores[1] == null)) {
+              // print('_gameScoreErrors[$game] didn\'t find one null or zero $scores');
+              allOK = false;
+            } else {
+              if ((scores[1] != scores[2]) || (scores[3] != scores[4])) allOK = false;
+              if (scores.last != maxScore5) allOK = false;
+              if (!allOK) {
+                if (kDebugMode) {
+                  print('_gameScoreErrors[$game]  scores have to be $maxScore5 and the other 2 have to match');
                 }
               }
             }
@@ -455,7 +509,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
           ),
           child: InkWell(
             borderRadius: BorderRadius.circular(10),
-            onTap: (allowedToEdit && ((_beingEditedById.isEmpty) || (_beingEditedById == activeUser.id)))
+            onTap: (allowedToEdit && ((_beingEditedById.isEmpty) || (_beingEditedById == activeUser.id)) && (_loggedInPlayerOnCourt || activeUser.helper))
                 ? () async {
                     // print('clicked on P:$playerNum, G:$gameNum V:$initialValue/$workingValue');
                     workingValue = (workingValue ?? 0) + 1;
@@ -465,7 +519,13 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                       } else {
                         if (workingValue! > 9) workingValue = 0;
                       }
-                    } else if (getSportDescriptor(1) == 'rg_singles') {
+                    } else if (getSportDescriptor(0) == 'badmintonRG') {
+                      if (_numGames == 3) {
+                        if (workingValue! > 21) workingValue = 0;
+                      } else {
+                        if (workingValue! > 21) workingValue = 0;
+                      }
+                    }else if (getSportDescriptor(1) == 'rg_singles') {
                       if (_numGames == 3) {
                         if (workingValue! > 8) workingValue = 0;
                       } else {
@@ -545,7 +605,15 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
         for (int i = 0; i < result.length; i++) {
           if (result[i] < 0) result[i] = score2;
         }
-      } else if (getSportDescriptor(1) == 'rg_singles') {
+      } else if (getSportDescriptor(0) == 'badmintonRG') {
+        if (score1 >= 21) return null;
+        int score2 = 21;
+        result[lastPlayerWithScore] = score1;
+        result[partner] = score1;
+        for (int i = 0; i < result.length; i++) {
+          if (result[i] < 0) result[i] = score2;
+        }
+      }else if (getSportDescriptor(1) == 'rg_singles') {
         return null;
       } else {
         if (score1 > 8) return null;
@@ -569,7 +637,15 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
         for (int i = 0; i < result.length; i++) {
           if (result[i] < 0) result[i] = score2;
         }
-      } else if (getSportDescriptor(1) == 'rg_singles') {
+      } else if (getSportDescriptor(0) == 'badmintonRG') {
+        if (score1 >= 21) return null;  // can not autofill with 2 max scores
+        int score2 = 21;
+        result[lastPlayerWithScore] = score1;
+        result[playerWithSameScore] = score1;
+        for (int i = 0; i < result.length; i++) {
+          if (result[i] < 0) result[i] = score2;
+        }
+      }else if (getSportDescriptor(1) == 'rg_singles') {
         return null; // can not autofill for singles
       } else {
         if (score1 > 8) return null; // this is just an error that should not occur
@@ -611,6 +687,15 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
       if (getSportDescriptor(0) == 'pickleballRG') {
         if (score1 >= 9) return null;
         int score2 = 9;
+        result[lastPlayerWithScore] = score1;
+        result[partner] = score1;
+        for (int i = 0; i < result.length; i++) {
+          if (result[i] < 0) result[i] = score2;
+        }
+        result[4 - game] = null;
+      } else if (getSportDescriptor(0) == 'badmintonRG') {
+        if (score1 >= 21) return null;
+        int score2 = 21;
         result[lastPlayerWithScore] = score1;
         result[partner] = score1;
         for (int i = 0; i < result.length; i++) {
@@ -1086,9 +1171,14 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
     _scoreDocStr = '${_dateStr}_C#${widget.court.toString()}';
     _movementList = sportTennisRGDetermineMovement(widget.fullPlayerList, _dateStr);
 
+    _loggedInPlayerOnCourt = false;
     List<PlayerList> courtMovementList = List.empty(growable: true);
     for (int i = 0; i < _movementList!.length; i++) {
       if (_playerList.contains(_movementList![i].snapshot.id)) {
+        if (loggedInUserDoc!.id == _movementList![i].snapshot.id){
+          _loggedInPlayerOnCourt = true;
+          // print('logged in user: ${loggedInUserDoc!.id} is found on court');
+        }
         courtMovementList.add(_movementList![i]);
         // print('court movement: $i ${courtMovementList.last.snapshot.id} ${courtMovementList.last.afterWinLose} ${courtMovementList.last.totalScore}');
       }
@@ -1104,7 +1194,12 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
       }
     }
     // print('rankChangeStr: $startingRanks => $endingRanks = $ranksChangeStr');
-    return PopScope(
+
+    print('admin: ${(activeUser.admin && !_scoresConfirmed)} _allScoresEntered: $_allScoresEntered  _beingEditedById: $_beingEditedById '
+    'notLastEditor: $notLastEditor _scoresCibfurned: $_scoresConfirmed $_loggedInPlayerOnCourt ${widget.allowEdit}' );
+
+
+      return PopScope(
       onPopInvokedWithResult: (bool result, dynamic _) {
         cancelWorkingScores();
         _anyScoresToSave = false;
@@ -1156,14 +1251,21 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                               // print('gameScores: #$_gameScores');
                               for (int play = 0; play < _gameScores.length; play++) {
                                 int score = 0;
+                                String matchScore='';
                                 for (int i = 0; i < _gameScores[0].length; i++) {
-                                  if (_gameScores[play][i] != null) score += _gameScores[play][i]!;
+                                  if (i!= 0) matchScore +='|';
+                                  if (_gameScores[play][i] != null) {
+                                    score += _gameScores[play][i]!;
+                                    matchScore += _gameScores[play][i]!.toString();
+                                  }
+
                                 }
                                 // print('totalScore: $score for player #${play + 1}');
                                 await FirebaseFirestore.instance.collection('Ladder').doc(widget.ladderName).collection('Players').doc(_playerList[play]).update({
                                   'TotalScore': score,
                                   'StartingOrder': play + 1,
                                   'ScoresConfirmed': false,
+                                  'MatchScores': matchScore,
                                 });
                               }
 
@@ -1194,9 +1296,11 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                                 _anyScoresToSave = false;
                               });
                             },
-                            icon: Icon(Icons.save, size: 50)),
+                            icon: Icon(Icons.save, size: 50, color: Colors.red,)),
                       ),
+                      Text('Save Changes', style: errorNameStyle,),
                       Spacer(),
+                      Text('Cancel', style: nameStyle,),
                       Align(
                         alignment: Alignment.centerRight,
                         child: IconButton(
@@ -1236,7 +1340,8 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                     'Scores being entered by:\n$_beingEditedByName',
                     style: nameStyle,
                   ),
-                if ((activeUser.admin && !_scoresConfirmed) || (_allScoresEntered && _beingEditedById.isEmpty && notLastEditor && !_scoresConfirmed) && widget.allowEdit)
+                if (((activeUser.admin && !_scoresConfirmed) ||
+                    (_allScoresEntered && _beingEditedById.isEmpty && notLastEditor && !_scoresConfirmed && (_loggedInPlayerOnCourt || activeUser.helper))) && widget.allowEdit)
                   TextButton(
                     style: ButtonStyle(
                       backgroundColor: WidgetStatePropertyAll(Colors.green.shade600),
@@ -1249,7 +1354,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                           if (_movementList![i].snapshot.id == _playerList[play]) {
                             if (play != 0) endingRanksStr += '|';
                             endingRanksStr += _movementList![i].afterWinLose.toString();
-                            print('ending ranks: play: $play i:$i ${_playerList[play]} =>$endingRanksStr');
+                            // print('ending ranks: play: $play i:$i ${_playerList[play]} =>$endingRanksStr');
                             break;
                           }
                         }
@@ -1272,7 +1377,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                       });
                     },
                     child: Text('Confirm Scores', style: nameStyle),
-                  ),
+                  ) else if (!_scoresConfirmed && widget.allowEdit && _allScoresEntered)Text( 'Someone else has to confirm scores', style: nameStyle),
                 const Divider(color: Colors.black),
                 ((_scoresConfirmed && _neverEdited) && widget.allowEdit)
                     ? Text(

@@ -3,7 +3,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:pdfx/pdfx.dart';
 import 'package:sign_in_button/sign_in_button.dart';
 import 'package:social_sport_ladder/Utilities/my_text_field.dart';
 import 'package:social_sport_ladder/Utilities/rounded_button.dart';
@@ -33,9 +32,6 @@ class LoginPageState extends State<LoginPage> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final pdfPinchController = PdfControllerPinch(
-    document: PdfDocument.openAsset('assets/Users Manual - Social Sport Ladder - Login Page.pdf'),
-  );
   final GoogleSignIn _googleSignIn = GoogleSignIn(
     clientId: googleClientId,
   );
@@ -196,6 +192,8 @@ class LoginPageState extends State<LoginPage> {
     });
   }
 
+  bool _baseFontSet = false;
+
   String? emailErrorText;
   // String oldColorMode ='';
   @override
@@ -207,6 +205,19 @@ class LoginPageState extends State<LoginPage> {
     // }
 
     // print('LoginPage: email "$loggedInUser" ');
+
+    if (!_baseFontSet){
+      _baseFontSet = true;
+      Future.delayed(Duration(milliseconds:500),(){
+        setState(() {
+          setBaseFont(29);
+          // print('setting base font to 29');
+        });
+      });
+    }
+    // print('doing login build');
+    //setBaseFont(29);
+    try{
     return Scaffold(
         backgroundColor: surfaceColor,
         appBar: AppBar(
@@ -217,7 +228,7 @@ class LoginPageState extends State<LoginPage> {
           actions: [
             IconButton(
                 onPressed: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => HelpLoginPage(page:HelpPage.login)));
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => HelpPage(page:'Login')));
                 },
                 icon: Icon(Icons.help, color: Colors.green,)),
           ],
@@ -237,6 +248,7 @@ class LoginPageState extends State<LoginPage> {
                   // initialValue: '',
                   helperText: 'the email your administrator used to register you',
                   inputFormatters: [LowerCaseTextInputFormatter()],
+                  keyboardType: TextInputType.emailAddress,
                   entryOK: (String? val) {
                     setState(() {
                       // refresh display to update reset message
@@ -299,5 +311,8 @@ class LoginPageState extends State<LoginPage> {
             ),
           ),
         ));
+    } catch (e, stackTrace) {
+      return Text('login EXCEPTION: $e\n$stackTrace', style: TextStyle(color: Colors.red));
+    }
   }
 }

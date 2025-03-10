@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 // which is in batch file cors.refresh
 const bool enableImages = true;
 const String fireStoreCollectionName = "social-sport-ladder";
-const int softwareVersion = 38;
+const int softwareVersion = 62;
 
 //colors
 Color surfaceColor = Colors.grey.shade300;
@@ -25,7 +25,7 @@ class LowerCaseTextInputFormatter extends TextInputFormatter {
   }
 }
 
-double appFontSize = 30;
+double appFontSize = 12;
 
 var nameStyle = TextStyle(decoration: TextDecoration.none, fontSize: appFontSize, fontWeight: FontWeight.normal);
 var nameBigStyle = TextStyle(decoration: TextDecoration.none, fontSize: appFontSize*1.3, fontWeight: FontWeight.normal);
@@ -38,9 +38,10 @@ var errorNameStyle = TextStyle(
     fontWeight: FontWeight.bold);
 var italicNameStyle = TextStyle(
     decoration: TextDecoration.none, fontStyle: FontStyle.italic, fontSize: appFontSize, fontWeight: FontWeight.normal);
-
 var nameBoldStyle = TextStyle(decoration: TextDecoration.none, fontSize: appFontSize, fontWeight: FontWeight.bold);
+
 setBaseFont(double fontSize){
+  if (appFontSize == fontSize) return;
   appFontSize = fontSize;
 
   nameStyle = TextStyle(decoration: TextDecoration.none, fontSize: appFontSize, fontWeight: FontWeight.normal);
@@ -54,8 +55,7 @@ setBaseFont(double fontSize){
       fontWeight: FontWeight.bold);
   italicNameStyle = TextStyle(
       decoration: TextDecoration.none, fontStyle: FontStyle.italic, fontSize: appFontSize, fontWeight: FontWeight.normal);
-
-  // var nameBoldStyle = TextStyle(decoration: TextDecoration.none, fontSize: appFontSize, fontWeight: FontWeight.bold);
+  nameBoldStyle = TextStyle(decoration: TextDecoration.none, fontSize: appFontSize, fontWeight: FontWeight.bold);
 }
 
 const List<String> daysOfWeek = ['Mon', 'Tues', 'Wed', 'Thurs', 'Fri', 'Sat', 'Sun'];

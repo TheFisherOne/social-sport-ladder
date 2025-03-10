@@ -1,95 +1,101 @@
 import 'package:flutter/material.dart';
-import 'package:pdfx/pdfx.dart';
-enum HelpPage {
-  login,
-  player,
-  pickLadder,
-  playerCalendar,
-  admin,
 
-}
 
-class HelpLoginPage extends StatefulWidget {
-  final HelpPage page;
-  const HelpLoginPage( {super.key,
+
+class HelpPage extends StatefulWidget {
+  final String page;
+
+  const HelpPage({super.key,
     required this.page,
   });
 
-
-
   @override
-  State<HelpLoginPage> createState() => _HelpLoginPageState();
+  HelpPageState createState() => HelpPageState();
 }
+class HelpPageState extends State<HelpPage>{
 
-enum DocShown { sample, tutorial, hello, password }
+  final Map<String, List<String>> _imageMap = {
+    'Admin Manual': [
+      'assets/Admin Manual/Admin Manual_page1.jpg',
+      'assets/Admin Manual/Admin Manual_page1.jpg',
+      'assets/Admin Manual/Admin Manual_page2.jpg',
+      'assets/Admin Manual/Admin Manual_page3.jpg',
+      'assets/Admin Manual/Admin Manual_page4.jpg',
+      'assets/Admin Manual/Admin Manual_page5.jpg',
+      'assets/Admin Manual/Admin Manual_page6.jpg',
+      'assets/Admin Manual/Admin Manual_page7.jpg',
+      'assets/Admin Manual/Admin Manual_page8.jpg',
+      'assets/Admin Manual/Admin Manual_page10.jpg',
+      'assets/Admin Manual/Admin Manual_page11.jpg',
+      'assets/Admin Manual/Admin Manual_page12.jpg',
+    ],
+    'Login': [
+      'assets/Login/Login_page1.jpg',
+      'assets/Login/Login_page2.jpg',
+      'assets/Login/Login_page3.jpg',
+      'assets/Login/Login_page4.jpg',
+      'assets/Login/Login_page5.jpg',
+      'assets/Login/Login_page6.jpg',
+      'assets/Login/Login_page7.jpg',
+      'assets/Login/Login_page8.jpg',
+    ],
+    'PickLadder': [
+      'assets/PickLadder/PickLadder_page1.jpg',
+      'assets/PickLadder/PickLadder_page2.jpg',
+    ],
+    'Player': [
+      'assets/Player/Player_page1.jpg',
+      'assets/Player/Player_page2.jpg',
+      'assets/Player/Player_page3.jpg',
+    ],
+    'Player Calendar': [
+      'assets/Player Calendar/Player Calendar_page1.jpg',
+      'assets/Player Calendar/Player Calendar_page2.jpg',
+      'assets/Player Calendar/Player Calendar_page3.jpg',
+      'assets/Player Calendar/Player Calendar_page4.jpg',
+    ],
+  };
 
-class _HelpLoginPageState extends State<HelpLoginPage> {
-  static const int _initialPage = 1;
-  // DocShown _showing = DocShown.sample;
-  late PdfControllerPinch _loginController;
-  late PdfControllerPinch _playerController;
-  late PdfControllerPinch _playerCalendarController;
-  late PdfControllerPinch _pickLadderController;
-  late PdfControllerPinch _adminController;
 
-  @override
-  void initState() {
-    _loginController = PdfControllerPinch(
-      document: PdfDocument.openAsset('assets/Users Manual - Social Sport Ladder - Login Page.pdf'),
-      initialPage: _initialPage,
-    );
-    _playerController = PdfControllerPinch(
-      document: PdfDocument.openAsset('assets/Users Manual - Social Sport Ladder - Player Page.pdf'),
-      initialPage: _initialPage,
-    );
-    _playerCalendarController = PdfControllerPinch(
-      document: PdfDocument.openAsset('assets/Users Manual - Social Sport Ladder - Player Calendar page.pdf'),
-      initialPage: _initialPage,
-    );
-    _pickLadderController = PdfControllerPinch(
-      document: PdfDocument.openAsset('assets/Users Manual - Social Sport Ladder - PickLadder page.pdf'),
-      initialPage: _initialPage,
-    );
-    _adminController = PdfControllerPinch(
-      document: PdfDocument.openAsset('assets/Admin Manual - Social Sport Ladder.pdf'),
-      initialPage: _initialPage,
-    );
+  
+
+  @override void initState(){
     super.initState();
-  }
 
-  @override
-  void dispose() {
-    _loginController.dispose();
-    super.dispose();
   }
+  // @override
+  // void dispose() {
+  //   // Clean up the container when the widget is disposed
+  //   super.dispose();
+  // }
+
+
   @override
   Widget build(BuildContext context) {
-    PdfControllerPinch pageToUse;
-    switch(widget.page){
-      case HelpPage.player:
-        pageToUse = _playerController;
-        break;
-      case HelpPage.playerCalendar:
-        pageToUse = _playerCalendarController;
-        break;
-      case HelpPage.pickLadder:
-        pageToUse = _pickLadderController;
-        break;
-      case HelpPage.admin:
-        pageToUse = _adminController;
-        break;
-      default:
-        pageToUse = _loginController;
+    
+    String manual = 'Login';
+    if (_imageMap.containsKey(widget.page)){
+      manual = widget.page;
+    } else {
+      print('Help error: could not find manual ${widget.page}');
     }
+
     return Scaffold(
         backgroundColor: Colors.grey,
         appBar: AppBar(
         title: const Text('Help Page'),
     ),
-      body: PdfViewPinch(
-        controller: pageToUse,
-      )
-    );
+      body: InteractiveViewer(
+        minScale: 1.0,
+        maxScale: 10.0,
+        child: SingleChildScrollView(
+          child: Column(
+            children: _imageMap[manual]!.map((path) => Image.asset(path,
+          fit: BoxFit.contain)).toList(),
+        ),
+        ),
+      ),
+      );
   }
 
 }

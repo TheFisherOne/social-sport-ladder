@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
@@ -202,6 +204,13 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
 
   refresh() => setState(() {});
 
+  String generateRandomString(int numChars) {
+    const String characters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    Random random = Random();
+    return String.fromCharCodes(
+        List.generate(numChars, (_) => characters.codeUnitAt(random.nextInt(characters.length)))
+    );
+  }
   void addPlayer(BuildContext context, String newPlayerEmail) async {
     DocumentReference globalUserRef = FirebaseFirestore.instance.collection('Users').doc(newPlayerEmail);
     String displayName = 'New Player';
@@ -269,7 +278,7 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
     });
     // print('addPlayer, calling firebase to create user with email and password, $newPlayerName');
     // final navigator = Navigator.of(context);
-    await FirebaseAuth.instance.createUserWithEmailAndPassword(email: newPlayerEmail, password: '123456').then((userCredential) {
+    await FirebaseAuth.instance.createUserWithEmailAndPassword(email: newPlayerEmail, password: generateRandomString(12),).then((userCredential) {
       // print('addPlayer, create user with email and password, $newPlayerName returned without error');
       if (!context.mounted) return;
 
@@ -763,7 +772,7 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
             return const CircularProgressIndicator();
           }
           _players = playerSnapshots.data!.docs;
-
+          try{
           if (_sortBy == 'email') {
             _players.sort((a, b) => a.id.compareTo(b.id));
           } else {
@@ -801,6 +810,8 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
                           labelText: 'Add New Player',
                           helperText: 'Enter the email for the new player',
                           controller: _newEmailController,
+                          inputFormatters: [LowerCaseTextInputFormatter()],
+                          keyboardType: TextInputType.emailAddress,
                           entryOK: (entry) {
                             // print('Create new Player onChanged:new value=$value');
                             String newValue = entry.trim().replaceAll(RegExp(r' \s+'), ' ');
@@ -817,7 +828,7 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
                             return null;
                           },
                           onIconClicked: (entry) {
-                            String newValue = entry.trim().replaceAll(RegExp(r' \s+'), ' ');
+                            String newValue = entry.trim().replaceAll(RegExp(r' \s+').toString().toLowerCase(), ' ');
                             addPlayer(context, newValue);
                           },
                           initialValue: '',
@@ -832,6 +843,9 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
               ),
             ),
           );
+          } catch (e, stackTrace) {
+            return Text('player config EXCEPTION: $e\n$stackTrace', style: TextStyle(color: Colors.red));
+          }
         });
   }
 }

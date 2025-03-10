@@ -50,7 +50,7 @@ dependencies:
   table_calendar:
   convert:
   provider:
-
+  pdfx:
 
 
 
@@ -58,7 +58,7 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.6
   firebase_ui_auth: ^1.14.0
-  pdfx: ^2.8.0
+
 
 dev_dependencies:
   flutter_test:
@@ -89,6 +89,23 @@ flutter:
   assets:
     - images/
     - assets/
+    - assets/Admin Manual/
+    - assets/Login/
+    - assets/PickLadder/
+    - assets/Player/
+    - assets/Player Calendar/
+#    - assets/fonts/
+#
+#  fonts:
+#    - family: Roboto
+#      fonts:
+#        - asset: assets/fonts/Roboto-Regular.ttf
+#        - asset: assets/fonts/Roboto-Bold.ttf
+#          weight: 700
+#        - asset: assets/fonts/Roboto-BoldItalic.ttf
+#          weight: 700
+#        - asset: assets/fonts/Roboto-Italic.ttf
+
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware

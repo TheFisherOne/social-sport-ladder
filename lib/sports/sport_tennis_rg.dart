@@ -696,6 +696,8 @@ class CourtAssignmentsRgStandard{
       // print('after shuffle: $shuffledCourtNames');
     }else if (getSportDescriptor(0)=='pickleballRG') {
       // do no shuffle
+    }else if (getSportDescriptor(0)=='badmintonRG') {
+      // do no shuffle
     } else if (getSportDescriptor(1)=='rg_singles') {
       // do no shuffle
     }else {
@@ -724,6 +726,15 @@ void sportTennisRGprepareForScoreEntry(List<QueryDocumentSnapshot>? players) {
     'FrozenDate': dateStr,
   });
 
+  // have to update all players even ones not assigned to a court
+  for (QueryDocumentSnapshot player in players){
+    FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Players').doc(player.id).update({
+      'TotalScore':0,
+      'MatchScores': '',
+      'StartingOrder': 0,
+    });
+  }
+
   for (int court = 0; court < numCourts; court++) {
     String docStr = '${dateStr}_C#${(court + 1).toString()}';
     List crt = courtAssignments.playersOnEachCourt[court];
@@ -740,7 +751,6 @@ void sportTennisRGprepareForScoreEntry(List<QueryDocumentSnapshot>? players) {
       ranks += crt[j]!.get('Rank').toString();
       gameScores += (courtAssignments.playersOnEachCourt[court].length == 4) ? ',,' : ',,,,';
       FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Players').doc(crt[j]!.id).update({
-        'TotalScore':0,
         'StartingOrder': j+1,
       });
     }

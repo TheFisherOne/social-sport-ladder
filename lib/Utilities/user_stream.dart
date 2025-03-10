@@ -14,9 +14,11 @@ class UserStream extends StatefulWidget {
 }
 
 class _UserStreamState extends State<UserStream> {
+  
+  double _lastFontSize=-1;
   @override
   Widget build(BuildContext context) {
-    print('rebuilding of UserStream');
+
     return StreamBuilder<DocumentSnapshot>(
         stream: FirebaseFirestore.instance.collection('Users').doc(loggedInUser).snapshots(),
         builder: (BuildContext context, AsyncSnapshot<DocumentSnapshot<Object?>> snapshot) {
@@ -39,13 +41,25 @@ class _UserStreamState extends State<UserStream> {
             }
             return const CircularProgressIndicator();
           }
+          print('rebuilding of UserStream');
           loggedInUserDoc = snapshot.data;
 
-          double usersFontSize = appFontSize;
+          double usersFontSize = 30;
           try {
             usersFontSize = loggedInUserDoc!.get('FontSize');
+            print('read FontSize: $usersFontSize');
           } catch (_) {}
-          setBaseFont(usersFontSize);
+          
+          if (_lastFontSize != usersFontSize){
+            _lastFontSize = usersFontSize;
+            Future.delayed(Duration(milliseconds:500),(){
+              setState(() {
+                setBaseFont(usersFontSize);
+                print('setting base font to $usersFontSize');
+              });
+            });
+          }
+
 
 
           return LadderSelectionPage();
