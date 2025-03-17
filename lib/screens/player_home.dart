@@ -294,6 +294,7 @@ class _PlayerHomeState extends State<PlayerHome> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
                   height: 50,
@@ -366,23 +367,28 @@ class _PlayerHomeState extends State<PlayerHome> {
                     child: Center(
                         child: Text(
                           enableImages ? "Please\nupload\npicture" : 'Images\nhidden',
-                          style: nameStyle,
+                          // style: nameStyle,
                         )),
                   ),
                 ),
                 SizedBox(height: 10),
                 (activeUser.helper || (loggedInUser == player.id))?Container(
-                  height: 50,
-                  width: 50,
+                  height: 60,
+                  // width: 50,
                   color: (player.id == activeUser.id) ? Colors.green.shade100 : Colors.blue.shade100,
                   child: Padding(
                     padding: const EdgeInsets.all(0.0),
-                    child: InkWell(
-                      onTap: () {
-                        typeOfCalendarEvent = EventTypes.standard;
-                        Navigator.push(context, MaterialPageRoute(builder: (context) => CalendarPage(fullPlayerList: _players,)));
-                      },
-                      child: const Icon(Icons.edit_calendar, size: 60, color: Colors.green),
+                    child: Row(
+                      children: [
+                        InkWell(
+                          onTap: () {
+                            typeOfCalendarEvent = EventTypes.standard;
+                            Navigator.push(context, MaterialPageRoute(builder: (context) => CalendarPage(fullPlayerList: _players,)));
+                          },
+                          child: const Icon(Icons.edit_calendar, size: 60, color: Colors.green),
+                        ),
+                        Text('Calendar:\nfor Away', style: nameStyle,),
+                      ],
                     ),
                   ),
                 ):SizedBox(width: 1,),
@@ -395,8 +401,6 @@ class _PlayerHomeState extends State<PlayerHome> {
                 style: nameStyle,
               ),
             ),
-
-
           ],
         ),
       ),
@@ -497,6 +501,7 @@ class _PlayerHomeState extends State<PlayerHome> {
           // print('ladder_selection_page getting user global ladder but data is null');
           return const CircularProgressIndicator();
         }
+
         try{
         activeLadderDoc = ladderSnapshot.data!;
         activeLadderBackgroundColor = colorFromString((activeLadderDoc!.get('Color') ?? "brown").toLowerCase());
@@ -523,6 +528,14 @@ class _PlayerHomeState extends State<PlayerHome> {
               }
               _players = playerSnapshots.data!.docs;
 
+              if (activeLadderDoc!.get('FreezeCheckIns')){
+                Future.delayed(Duration(milliseconds:500),(){
+                  if (!context.mounted) return;
+                  prepareForScoreEntry(activeLadderDoc!, _players);
+                  showFrozenLadderPage(context, activeLadderDoc!, true);
+                });
+                return Text('Switching to frozen view');
+              }
               loggedInPlayerDoc = null;
               int numberOfHelpersPresent = 0;
               int numberOfPlayersPresent = 0;
@@ -547,6 +560,17 @@ class _PlayerHomeState extends State<PlayerHome> {
               }
               if (!activeUser.canBeHelper) {
                 activeUser.helperEnabled = false;
+              }
+
+              // if the logged in user is not one of the players, then they are either an admin or a nonPlayingHelper
+              // default admins to admin enabled.
+              if (loggedInPlayerDoc == null ){
+                if (activeUser.canBeAdmin){
+                  activeUser.adminEnabled = true;
+                }
+              }
+              if (!activeUser.canBeAdmin ) {
+                activeUser.adminEnabled = false;
               }
               DateTime? nextPlayDate;
               (nextPlayDate, _) = getNextPlayDateTime(activeLadderDoc!);
@@ -638,7 +662,7 @@ class _PlayerHomeState extends State<PlayerHome> {
                     children: [
                       (urlCache.containsKey(activeLadderId) && (urlCache[activeLadderId] != null) && enableImages)
                           ? Image.network(
-                              urlCache[activeLadderId],
+                              urlCache[activeLadderId]!,
                               height: 100,
                             )
                           : const SizedBox(

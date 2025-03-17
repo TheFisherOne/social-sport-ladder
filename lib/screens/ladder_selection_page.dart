@@ -22,7 +22,7 @@ List<String>? availableLadders;
 
 String activeLadderId = '';
 
-dynamic urlCache = {};
+Map<String,String?> urlCache = {};
 Color colorFromString(String colorString) {
   const colorMap = {
     'red': Colors.red,
@@ -504,7 +504,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                               // SizedBox(height: 10),
                               (urlCache.containsKey(availableDocs[row].id) && (urlCache[availableDocs[row].id] != null) && enableImages)
                                   ? Image.network(
-                                      urlCache[availableDocs[row].id],
+                                      urlCache[availableDocs[row].id]!,
                                       height: 100,
                                     )
                                   : const SizedBox(

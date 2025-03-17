@@ -571,6 +571,7 @@ class CalendarPageState extends State<CalendarPage> {
       ..click();
   }
 
+  CalendarFormat _calendarFormat = CalendarFormat.month;
   Widget calendarScaffold() {
     String title = activeLadderDoc!.get('DisplayName');
     TextStyle headerStyle = nameBigStyle;
@@ -596,181 +597,197 @@ class CalendarPageState extends State<CalendarPage> {
                 )),
           ],
         ),
-        body: Column(children: [
-          TableCalendar(
-            eventLoader: _getEventsForDay,
-            headerVisible: true,
-            headerStyle: HeaderStyle(
-              titleCentered: true,
-              titleTextStyle: headerStyle,
-              formatButtonVisible: false,
-            ),
-            firstDay: kFirstDay,
-            lastDay: kLastDay,
-            focusedDay: _focusedDay,
-            onDaySelected: _onDaySelected,
-            rangeSelectionMode: RangeSelectionMode.disabled,
-            selectedDayPredicate: (day) {
-              // Use `selectedDayPredicate` to determine which day is currently selected.
-              // If this returns true, then `day` will be marked as selected.
+        body: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(children: [
+            SizedBox(
+              width: 300,
+              child: TableCalendar(
+                eventLoader: _getEventsForDay,
+                headerVisible: true,
+                headerStyle: HeaderStyle(
+                  titleCentered: true,
+                  titleTextStyle: headerStyle,
+                  formatButtonVisible: false,
+                ),
+                firstDay: kFirstDay,
+                lastDay: kLastDay,
+                focusedDay: _focusedDay,
+                onDaySelected: _onDaySelected,
+                rangeSelectionMode: RangeSelectionMode.enforced,
+                calendarFormat: _calendarFormat,
+                onFormatChanged: (format) {
+                  setState(() {
+                    _calendarFormat = format;
+                  });
+                },
+                availableGestures: AvailableGestures.all,
+                selectedDayPredicate: (day) {
+                  // Use `selectedDayPredicate` to determine which day is currently selected.
+                  // If this returns true, then `day` will be marked as selected.
 
-              // Using `isSameDay` is recommended to disregard
-              // the time-part of compared DateTime objects.
-              return isSameDay(_selectedDay, day);
-            },
-            onPageChanged: (focusedDay) {
-              // No need to call `setState()` here
-              _focusedDay = focusedDay;
-            },
-            calendarBuilders: CalendarBuilders(
-              markerBuilder: (context, day, events) {
-                if (events.isNotEmpty) {
-                  return Positioned(
-                    // left: 1,
-                    bottom: 1,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: events.map((event) {
-                        return Container(
-                          // color: Colors.yellow,
-                          margin: const EdgeInsets.symmetric(horizontal: 0.2),
-                          width: 15.0,
-                          height: 15.0,
-                          decoration: BoxDecoration(
-                            shape: event.toString().startsWith('play') ? BoxShape.circle : BoxShape.rectangle,
-                            color: event.toString().startsWith('play')
-                                ? Colors.green
-                                : event.toString().startsWith('AWAY')
-                                    ? Colors.red
-                                    : Colors.blue, // Change the color here
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  );
-                }
-                return const SizedBox();
-              },
+                  // Using `isSameDay` is recommended to disregard
+                  // the time-part of compared DateTime objects.
+                  return isSameDay(_selectedDay, day);
+                },
+                onPageChanged: (focusedDay) {
+                  // No need to call `setState()` here
+                  _focusedDay = focusedDay;
+                },
+                calendarBuilders: CalendarBuilders(
+                  markerBuilder: (context, day, events) {
+                    if (events.isNotEmpty) {
+                      return Positioned(
+                        // left: 1,
+                        bottom: 1,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: events.map((event) {
+                            return Container(
+                              // color: Colors.yellow,
+                              margin: const EdgeInsets.symmetric(horizontal: 0.2),
+                              width: 15.0,
+                              height: 15.0,
+                              decoration: BoxDecoration(
+                                shape: event.toString().startsWith('play') ? BoxShape.circle : BoxShape.rectangle,
+                                color: event.toString().startsWith('play')
+                                    ? Colors.green
+                                    : event.toString().startsWith('AWAY')
+                                        ? Colors.red
+                                        : Colors.blue, // Change the color here
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      );
+                    }
+                    return const SizedBox();
+                  },
+                ),
+              ),
             ),
-          ),
-          const SizedBox(height: 8.0),
-          Expanded(
-            child: ValueListenableBuilder<List<Event>>(
+            const SizedBox(height: 4.0),
+            ValueListenableBuilder<List<Event>>(
               valueListenable: _selectedEvents,
               builder: (context, value, _) {
-                return ListView.builder(
-                  itemCount: value.length,
-                  itemBuilder: (context, index) {
-                    String clickText = '';
-                    DateTime? nextPlayDate;
-                    (nextPlayDate, _) = getNextPlayDateTime(activeLadderDoc!);
-                    // print('ListView.builder calendar page: nextPlayDate: $nextPlayDate _selectedDay: $_selectedDay');
-                    if ((typeOfCalendarEvent == EventTypes.standard) && (value[index].toString().startsWith('play') || value[index].toString().startsWith('AWAY'))) {
-                      if (activeUser.admin ||
-                          isVacationTimeOk(activeLadderDoc!) ||
-                          ((_selectedDay != null) &&
-                              (nextPlayDate != null) &&
-                              ((_selectedDay!.year != nextPlayDate.year) || (_selectedDay!.month != nextPlayDate.month) || (_selectedDay!.day != nextPlayDate.day)))) {
-                        clickText = '\nClick to ${value[index].toString().startsWith('play') ? 'Mark as away' : 'change back to playing'}';
+                return Column(
+                  children: List.generate(
+                    value.length,
+                    (index) {
+                      String clickText = '';
+                      DateTime? nextPlayDate;
+                      (nextPlayDate, _) = getNextPlayDateTime(activeLadderDoc!);
+                      // print('ListView.builder calendar page: nextPlayDate: $nextPlayDate _selectedDay: $_selectedDay');
+                      if ((typeOfCalendarEvent == EventTypes.standard) && (value[index].toString().startsWith('play') || value[index].toString().startsWith('AWAY'))) {
+                        if (activeUser.admin ||
+                            isVacationTimeOk(activeLadderDoc!) ||
+                            ((_selectedDay != null) &&
+                                (nextPlayDate != null) &&
+                                ((_selectedDay!.year != nextPlayDate.year) || (_selectedDay!.month != nextPlayDate.month) || (_selectedDay!.day != nextPlayDate.day)))) {
+                          clickText = '\nClick to ${value[index].toString().startsWith('play') ? 'Mark as away' : 'change back to playing'}';
+                        } else if (!isVacationTimeOk(activeLadderDoc!)){
+                          clickText = '\nit is after ${activeLadderDoc!.get('VacationStopTime')}! too late on day of ladder to change AWAY';
+                        }
+                        // print('_buildEvent: $index ${value[index]} hour: $thisPlayHour $_selectedDay $_clickText');
                       }
-                      // print('_buildEvent: $index ${value[index]} hour: $thisPlayHour $_selectedDay $_clickText');
-                    }
-                    //print('before event Click: $typeOfCalendarEvent clickText: $clickText str: ${value[index].toString()}');
-                    return Container(
-                      margin: const EdgeInsets.symmetric(
-                        horizontal: 12.0,
-                        vertical: 4.0,
-                      ),
-                      decoration: BoxDecoration(
-                        border: Border.all(),
-                        borderRadius: BorderRadius.circular(12.0),
-                      ),
-                      child: ListTile(
-                        leading: (value[index].toString().startsWith('play'))
-                            ? const Icon(
-                                Icons.circle,
-                                color: Colors.green,
-                              )
-                            : (value[index].toString().startsWith('AWAY'))
-                                ? const Icon(
-                                    Icons.square,
-                                    color: Colors.red,
-                                  )
-                                : const Icon(
-                                    Icons.square,
-                                    color: Colors.blue,
-                                  ),
-                        onTap: (((typeOfCalendarEvent == EventTypes.standard) && clickText.isEmpty) && !((typeOfCalendarEvent == EventTypes.standard) && (value[index].toString().startsWith('SCORE'))))
-                            ? null
-                            : () {
-                                //print('event Click: $typeOfCalendarEvent clickText: $clickText str: ${value[index].toString()}');
-                                if (typeOfCalendarEvent == EventTypes.standard) {
-                                  if (value[index].toString().startsWith('play')) {
-                                    setState(() {
-                                      _awayEvents.addEvent(_selectedDay!, Event(''));
-                                    });
-                                  } else if (value[index].toString().startsWith('AWAY')) {
-                                    setState(() {
-                                      _awayEvents.removeEvent(_selectedDay!);
-                                    });
-                                  } else if (value[index].toString().startsWith('SCOR')) {
-                                    DocumentSnapshot doc = value[index].scoreDoc!;
-                                    //print('launch SCORE on ${doc.id}');
-                                    // Navigator.push(context, )
-                                    String roundStr = doc.id.substring('yyyy.MM.dd_'.length, doc.id.indexOf('_C#'));
-                                    String courtStr = doc.id.substring(doc.id.indexOf('_C#') + '_C#'.length);
-                                    int round = 1;
-                                    int court = 1;
-                                    try {
-                                      round = int.parse(roundStr);
-                                      court = int.parse(courtStr);
-                                    } catch (e) {
-                                      if (kDebugMode) {
-                                        print('ERROR: could not parse round and court from doc.id ${doc.id} $roundStr $courtStr');
+                      //print('before event Click: $typeOfCalendarEvent clickText: $clickText str: ${value[index].toString()}');
+                      return Container(
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: 12.0,
+                          vertical: 4.0,
+                        ),
+                        decoration: BoxDecoration(
+                          border: Border.all(),
+                          borderRadius: BorderRadius.circular(12.0),
+                        ),
+                        child: ListTile(
+                          leading: (value[index].toString().startsWith('play'))
+                              ? const Icon(
+                                  Icons.circle,
+                                  color: Colors.green,
+                                )
+                              : (value[index].toString().startsWith('AWAY'))
+                                  ? const Icon(
+                                      Icons.square,
+                                      color: Colors.red,
+                                    )
+                                  : const Icon(
+                                      Icons.square,
+                                      color: Colors.blue,
+                                    ),
+                          onTap: (((typeOfCalendarEvent == EventTypes.standard) && clickText.isEmpty) && !((typeOfCalendarEvent == EventTypes.standard) && (value[index].toString().startsWith('SCORE'))))
+                              ? null
+                              : () {
+                                  //print('event Click: $typeOfCalendarEvent clickText: $clickText str: ${value[index].toString()}');
+                                  if (typeOfCalendarEvent == EventTypes.standard) {
+                                    if (value[index].toString().startsWith('play')) {
+                                      setState(() {
+                                        _awayEvents.addEvent(_selectedDay!, Event(''));
+                                      });
+                                    } else if (value[index].toString().startsWith('AWAY')) {
+                                      setState(() {
+                                        _awayEvents.removeEvent(_selectedDay!);
+                                      });
+                                    } else if (value[index].toString().startsWith('SCOR')) {
+                                      DocumentSnapshot doc = value[index].scoreDoc!;
+                                      //print('launch SCORE on ${doc.id}');
+                                      // Navigator.push(context, )
+                                      String roundStr = doc.id.substring('yyyy.MM.dd_'.length, doc.id.indexOf('_C#'));
+                                      String courtStr = doc.id.substring(doc.id.indexOf('_C#') + '_C#'.length);
+                                      int round = 1;
+                                      int court = 1;
+                                      try {
+                                        round = int.parse(roundStr);
+                                        court = int.parse(courtStr);
+                                      } catch (e) {
+                                        if (kDebugMode) {
+                                          print('ERROR: could not parse round and court from doc.id ${doc.id} $roundStr $courtStr');
+                                        }
                                       }
+                                      var page = ScoreTennisRg(
+                                        ladderName: activeLadderId,
+                                        round: round,
+                                        court: court,
+                                        fullPlayerList: widget.fullPlayerList,
+                                        activeLadderDoc: activeLadderDoc!,
+                                        scoreDoc: value[index].scoreDoc!,
+                                        allowEdit: false,
+                                      );
+                                      Navigator.push(context, MaterialPageRoute(builder: (context) => page));
                                     }
-                                    var page = ScoreTennisRg(
-                                      ladderName: activeLadderId,
-                                      round: round,
-                                      court: court,
-                                      fullPlayerList: widget.fullPlayerList,
-                                      activeLadderDoc: activeLadderDoc!,
-                                      scoreDoc: value[index].scoreDoc!,
-                                      allowEdit: false,
-                                    );
-                                    Navigator.push(context, MaterialPageRoute(builder: (context) => page));
+                                  } else if ((typeOfCalendarEvent == EventTypes.playOn) && (value[index].toString().startsWith('misc'))) {
+                                    String initialText = value[index].toString();
+                                    _specialTextFieldController.text = initialText.substring(5);
+
+                                    _specialTextInputDialog(context);
+                                  } else if ((typeOfCalendarEvent == EventTypes.playOn) && (value[index].toString().startsWith('play'))) {
+                                    String initialText = value[index].toString();
+                                    if (initialText.length >= 5) {
+                                      _playTextFieldController.text = value[index].toString().substring(5);
+                                    }
+
+                                    // print('selectedTimeOfDay: $selectedTimeOfDay');
+                                    _playTextInputDialog(context);
+                                  } else if ((typeOfCalendarEvent == EventTypes.playOn) && (value[index].toString().startsWith('FILE'))) {
+                                    downloadCsvFile(value[index]);
+
+                                    // _specialTextFieldController.text = url;
+                                    // if (!context.mounted) return;
+
+                                    // _specialTextInputDialog(context);
                                   }
-                                } else if ((typeOfCalendarEvent == EventTypes.playOn) && (value[index].toString().startsWith('misc'))) {
-                                  String initialText = value[index].toString();
-                                  _specialTextFieldController.text = initialText.substring(5);
-
-                                  _specialTextInputDialog(context);
-                                } else if ((typeOfCalendarEvent == EventTypes.playOn) && (value[index].toString().startsWith('play'))) {
-                                  String initialText = value[index].toString();
-                                  if (initialText.length >= 5) {
-                                    _playTextFieldController.text = value[index].toString().substring(5);
-                                  }
-
-                                  // print('selectedTimeOfDay: $selectedTimeOfDay');
-                                  _playTextInputDialog(context);
-                                } else if ((typeOfCalendarEvent == EventTypes.playOn) && (value[index].toString().startsWith('FILE'))) {
-                                  downloadCsvFile(value[index]);
-
-                                  // _specialTextFieldController.text = url;
-                                  // if (!context.mounted) return;
-
-                                  // _specialTextInputDialog(context);
-                                }
-                              },
-                        title: _buildEvent(value, index, clickText),
-                      ),
-                    );
-                  },
+                                },
+                          title: _buildEvent(value, index, clickText),
+                        ),
+                      );
+                    },
+                  ),
                 );
               },
             ),
-          ),
-        ]));
+            SizedBox(height: 8),
+          ]),
+        ));
   }
 
   @override
@@ -782,7 +799,7 @@ class CalendarPageState extends State<CalendarPage> {
             stream: FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Players').doc(clickedOnPlayerDoc!.id).snapshots(),
             builder: (BuildContext context, AsyncSnapshot<DocumentSnapshot<Object?>> playerSnapshots) {
               if (playerSnapshots.error != null) {
-                String error = 'Snapshot error: ${playerSnapshots.error.toString()} on getting global ladders ';
+                String error = 'Snapshot error: ${playerSnapshots.error.toString()} on getting player ${clickedOnPlayerDoc!.id} ';
                 if (kDebugMode) {
                   print(error);
                 }

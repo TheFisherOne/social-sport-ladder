@@ -222,7 +222,7 @@ class _ConfigPageState extends State<ConfigPage> {
                         child: const Text('Select new picture')),
                     (urlCache.containsKey(activeLadderId) && (urlCache[activeLadderId] != null) && enableImages)
                         ? Image.network(
-                            urlCache[activeLadderId],
+                            urlCache[activeLadderId]!,
                             height: 100,
                           )
                         : const SizedBox(

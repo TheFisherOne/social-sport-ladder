@@ -652,46 +652,6 @@ class CourtAssignmentsRgStandard{
         if (newNames[courtNum].isNotEmpty) continue;
         newNames[courtNum] = shuffledCourtNames.removeAt(0);
       }
-      // print('after: $newNames');
-      // shuffledCourtNames = saveList.toList();
-      //   /////
-      // newNames = List.empty(growable: true);
-      // // randomly assign courts
-      // var tmpNames = shuffledCourtNames.toList();
-      // while (tmpNames.isNotEmpty){
-      //   int whichName = activeLadderDoc!.get('RandomCourtOf5') % tmpNames.length;
-      //   newNames.add(tmpNames.removeAt(whichName));
-      // }
-      // // print('randomized court names: $newNames');
-      // //newNames is now randomly assigned, need to now move courts of 5
-      // List<bool> keepInPlace = List.filled(totalCourts,false);
-      // //courts of 5 already assigned to 8,10 or 1 should stay
-      // List<String> availableCourtsFor5 = ['8','10','1'];
-      // for (int i=0; i<totalCourts; i++){
-      //   if ((numberOnCourt[i]==5) && availableCourtsFor5.contains(newNames[i])){
-      //     keepInPlace[i] = true;
-      //   }
-      //   // print('keepInPlace: $i #${numberOnCourt[i]} keep:${keepInPlace[i]}');
-      // }
-      // List<int> availableToMove = List.empty(growable: true);
-      // List<int> wantsToMoveCourtOf5= List.empty(growable: true);
-      // for (int i=0; i<totalCourts; i++){
-      //   if (keepInPlace[i]) continue;
-      //   if (numberOnCourt[i]==4) {
-      //     availableToMove.add(i);
-      //     continue;
-      //   }
-      //   wantsToMoveCourtOf5.add(i);
-      // }
-      // // print('ready for switch: $availableToMove $wantsToMoveCourtOf5');
-      // while (availableToMove.isNotEmpty && wantsToMoveCourtOf5.isNotEmpty){
-      //   int tmpInt1 = availableToMove.removeAt(0);
-      //   int tmpInt2 = wantsToMoveCourtOf5.removeAt(0);
-      //   // print('exchanging $tmpInt1 with $tmpInt2');
-      //   String tmpStr = newNames[tmpInt1];
-      //   newNames[tmpInt1] = newNames[tmpInt2];
-      //   newNames[tmpInt2] = tmpStr;
-      // }
       shuffledCourtNames = newNames;
       // print('after shuffle: $shuffledCourtNames');
     }else if (getSportDescriptor(0)=='pickleballRG') {
@@ -714,6 +674,7 @@ class CourtAssignmentsRgStandard{
 
 
 void sportTennisRGprepareForScoreEntry(List<QueryDocumentSnapshot>? players) {
+  // this should be called once by the person switching the mode of the ladder
   CourtAssignmentsRgStandard courtAssignments = CourtAssignmentsRgStandard(players!);
   String currentDate = DateFormat('yyyy.MM.dd').format(DateTime.now());
   int currentRound = activeLadderDoc!.get('CurrentRound');
