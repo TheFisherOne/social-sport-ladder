@@ -506,6 +506,10 @@ class _PlayerHomeState extends State<PlayerHome> {
         activeLadderDoc = ladderSnapshot.data!;
         activeLadderBackgroundColor = colorFromString((activeLadderDoc!.get('Color') ?? "brown").toLowerCase());
 
+        if (activeLadderDoc!.get('FreezeCheckIns')){
+          return SportTennisRG();
+        }
+
         return StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Players').orderBy('Rank').snapshots(),
             builder: (BuildContext context, AsyncSnapshot<QuerySnapshot<Object?>> playerSnapshots) {
@@ -528,14 +532,14 @@ class _PlayerHomeState extends State<PlayerHome> {
               }
               _players = playerSnapshots.data!.docs;
 
-              if (activeLadderDoc!.get('FreezeCheckIns')){
-                Future.delayed(Duration(milliseconds:500),(){
-                  if (!context.mounted) return;
-                  prepareForScoreEntry(activeLadderDoc!, _players);
-                  showFrozenLadderPage(context, activeLadderDoc!, true);
-                });
-                return Text('Switching to frozen view');
-              }
+              // if (activeLadderDoc!.get('FreezeCheckIns')){
+              //   Future.delayed(Duration(milliseconds:500),(){
+              //     if (!context.mounted) return;
+              //     prepareForScoreEntry(activeLadderDoc!, _players);
+              //     showFrozenLadderPage(context, activeLadderDoc!, true);
+              //   });
+              //   return Text('Switching to frozen view');
+              // }
               loggedInPlayerDoc = null;
               int numberOfHelpersPresent = 0;
               int numberOfPlayersPresent = 0;
@@ -576,24 +580,25 @@ class _PlayerHomeState extends State<PlayerHome> {
               (nextPlayDate, _) = getNextPlayDateTime(activeLadderDoc!);
               DateTime timeNow = DateTime.now();
               bool mayFreeze = false;
+              int minToStart = 9999;
+              if (nextPlayDate!=null) {
+                minToStart = nextPlayDate.difference(timeNow).inMinutes;
+              }
 
               if (numberOfPlayersPresent>=4) {
                 if (activeUser.admin) mayFreeze = true;
-                if ((nextPlayDate != null) && (timeNow
-                    .difference(nextPlayDate)
-                    .inMinutes
-                    .abs() < 30.0) && (numberOfPlayersPresent >= 4)) {
+                if (minToStart < 10)  {
                   if (activeUser.helper) {
                     //TODO: can not unfreeze if scores are entered
                     mayFreeze = true;
-                  } else {
-                    if ((timeNow
-                        .difference(nextPlayDate)
-                        .inMinutes < 5.0) && (numberOfHelpersPresent == 0)) {
-                      // print('mayFreeze: special override, no helpers present, less than 5 minutes to go');
+                  } else if (( minToStart < 5.0) && (numberOfHelpersPresent == 0)) {
+                      print('mayFreeze: special override, no helpers present, less than 5 minutes to go');
                       mayFreeze = true;
-                    }
+                  } else if (minToStart < 0.0)  {
+                    print('mayFreeze: special override, helpers present but start time has passed');
+                    mayFreeze = true;
                   }
+
                 }
               }
               // print('mayFreeze: $mayFreeze, nextDate $nextPlayDate, now: ${DateTime.now()}');
@@ -607,11 +612,14 @@ class _PlayerHomeState extends State<PlayerHome> {
                   elevation: 0.0,
                   automaticallyImplyLeading: true,
                   actions: [
-                    IconButton(
+                    IconButton.filled(
+                        style: IconButton.styleFrom(backgroundColor: Colors.white),
+                        padding: EdgeInsets.zero,
                         onPressed: () {
                           Navigator.push(context, MaterialPageRoute(builder: (context) => HelpPage(page:'Player')));
                         },
-                        icon: Icon(Icons.help, color: Colors.green,)),
+                        icon: Icon(Icons.help, color: Colors.green,
+                        size: 30,)),
                     activeUser.admin
                         ? Padding(
                             padding: const EdgeInsets.all(5.0),
@@ -642,7 +650,7 @@ class _PlayerHomeState extends State<PlayerHome> {
                           onPressed: () async {
                             prepareForScoreEntry(activeLadderDoc!,_players);
 
-                            showFrozenLadderPage(context, activeLadderDoc!, true);
+                            // showFrozenLadderPage(context, activeLadderDoc!, true);
                           },
                           enableFeedback: true,
                           color: Colors.green,

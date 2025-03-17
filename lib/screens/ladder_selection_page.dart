@@ -9,7 +9,6 @@ import 'package:intl/intl.dart';
 import 'package:social_sport_ladder/constants/constants.dart';
 import 'package:social_sport_ladder/screens/calendar_page.dart';
 import 'package:social_sport_ladder/screens/player_home.dart';
-import 'package:social_sport_ladder/screens/score_base.dart';
 import 'package:social_sport_ladder/screens/super_admin.dart';
 import '../Utilities/helper_icon.dart';
 import '../Utilities/misc.dart';
@@ -489,13 +488,9 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                                     colorString = availableDocs[row].get('Color').toLowerCase();
                                   } catch (_) {}
                                   activeLadderBackgroundColor = colorFromString(colorString);
-                                  bool frozen = activeLadderDoc!.get('FreezeCheckIns');
-                                  // print('go to players page $activeLadderId');
-                                  if (frozen) {
-                                    showFrozenLadderPage(context, activeLadderDoc!, false);
-                                  } else {
-                                    Navigator.push(context, MaterialPageRoute(builder: (context) => const PlayerHome()));
-                                  }
+
+                                  Navigator.push(context, MaterialPageRoute(builder: (context) => const PlayerHome()));
+
                                 }
                               : null,
                           child: Column(

@@ -474,7 +474,7 @@ class CalendarPageState extends State<CalendarPage> {
       _focusedDay = DateTime(focusedDay.year, focusedDay.month, focusedDay.day);
     });
     if (typeOfCalendarEvent == EventTypes.playOn) {
-      if (_selectedDay!.compareTo(DateTime.now()) < 0) return;
+      if (_selectedDay!.compareTo(DateTime.now().subtract(Duration(days:1))) < 0) return;
       if (!mapContainsDateKey(_playOnEvents.convertToCalendarEvents(), _selectedDay!)) {
         // String eventString = 'play - this is a scheduled day of play';
         _playOnEvents.addEvent(_selectedDay!, Event(_lastPlayOnTime));

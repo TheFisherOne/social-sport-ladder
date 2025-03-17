@@ -249,7 +249,8 @@ Widget helperIcon(var context, String activeLadderId, List<PlayerList>? courtAss
                               FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({'FreezeCheckIns': false, 'FrozenDate': ''});
                               writeAudit(user: activeUser.id, documentName: activeLadderId, action: 'unfreeze', newValue: true.toString(), oldValue: 'n/a');
                               Navigator.pop(context);
-                              Navigator.pop(context);
+                              playerHomeInstance!.refresh();
+                              // Navigator.pop(context);
                             },
                             label: const Text('unFreeze (use rarely)')
                         ),
