@@ -34,17 +34,26 @@ jobs:
         run: flutter pub get
 
       - name: generate firebase_setup2.dart
+        env:
+          KEYSTRING: ${{secrets.KEYSTRING}}
+          AUTHDOMAIN: ${{secrets.AUTHDOMAIN}}
+          APPID: ${{secrets.APPID}}
+          MESSAGINGSENDERID: ${{secrets.MESSAGINGSENDERID}}
+          PROJECTID: ${{secrets.PROJECTID}}
+          STORAGEBUCKET: ${{secrets.STORAGEBUCKET}}
+          MEASUREMENTID: ${{secrets.MEASUREMENTID}}
+          GOOGLECLIENTID: ${{secrets.GOOGLECLIENTID}}
         run: |
           cat <<EOF >lib/constants/firebase_setup2.dart
-          String keyString="${{secrets.KEYSTRING}}";
-          String encodedApiKey="${{secrets.APIKEY}}";
-          String encodedAuthDomain="${{secrets.AUTHDOMAIN}}";
-          String encodedAppId="${{secrets.APPID}}";
-          String encodedMessagingSenderId="${{secrets.MESSAGINGSENDERID}}";
-          String encodedProjectId="${{secrets.PROJECTID}}";
-          String encodedStorageBucket="${{secrets.STORAGEBUCKET}}";
-          String encodedMeasurementId="${{secrets.MEASUREMENTID}}";
-          String encodedGoogleClientId="${{secrets.GOOGLECLIENTID}}";
+          String keyString="";
+          String encodedApiKey="$KEYSTRING";
+          String encodedAuthDomain="$AUTHDOMAIN";
+          String encodedAppId="$APPID";
+          String encodedMessagingSenderId="$MESSAGINGSENDERID";
+          String encodedProjectId="$PROJECTID";
+          String encodedStorageBucket="$STORAGEBUCKET";
+          String encodedMeasurementId="$MEASUREMENTID";
+          String encodedGoogleClientId="$GOOGLECLIENTID";
           void doDebugEncrypt(){
           //empty
           };
