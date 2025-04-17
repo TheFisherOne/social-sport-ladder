@@ -53,16 +53,18 @@ const _maxAuditLogEntries = 200;
 class _AuditPageState extends State<AuditPage> {
   String filterText = '';
   bool _waitingForRebuild= false;
+  final TextEditingController _filterController = TextEditingController();
 
   shortenAuditLog(List<QueryDocumentSnapshot> auditDocs) async {
     List<String> idList = auditDocs.map((doc) =>doc.id).toList();
     idList.sort();
 
     if (idList.length > _maxAuditLogEntries) {
+      // the list has the oldest entries at the beginning
       // remove the entries from the end that we do not want to delete
-      List truncatedList = idList.length>=_maxAuditLogEntries?idList.sublist(idList.length-_maxAuditLogEntries, idList.length):idList;
+      List truncatedList = idList.sublist(0, idList.length - _maxAuditLogEntries);
       // now limit it to 500 at a time
-      List toDeleteList = idList.length>=500?truncatedList.sublist(0, 500):idList;
+      List toDeleteList = truncatedList.length>=500?truncatedList.sublist(0, 500):truncatedList;
       // print('attempt to shortenAuditLog by ${toDeleteList.length} entries using batch');
       WriteBatch batch = FirebaseFirestore.instance.batch();
       for (String auditId in toDeleteList){
@@ -129,6 +131,7 @@ class _AuditPageState extends State<AuditPage> {
           }
           bool isAdmin = activeLadderDoc!.get('Admins').split(',').contains(loggedInUser) || activeUser.amSuper;
 
+          print('filterText: $filterText');
           return Scaffold(
               backgroundColor: Colors.green[50],
               appBar: AppBar(
@@ -193,11 +196,27 @@ class _AuditPageState extends State<AuditPage> {
                             Text('Filter:', style: nameStyle,),
                             Expanded(
                               child: TextField(
-                                onChanged: (val){
+                                controller: _filterController,
+                                decoration: InputDecoration(
+                                suffixIcon: IconButton(
+                                  onPressed: () {
+                                    setState(() {
+                                      filterText = _filterController.text;
+                                    });
+                                  },
+                                  icon: const Icon(
+                                    Icons.send,
+                                    color: Colors.redAccent,
+                                    weight: 2,
+                                    // size: 35,
+                                  ),
+                                ),
+                                ),
+                                onSubmitted: (val){
                                   setState(() {
                                     filterText = val;
                                   });
-                              
+
                                 },
                                 style: nameStyle,
                               ),

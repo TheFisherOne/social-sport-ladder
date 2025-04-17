@@ -1,9 +1,10 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:sign_in_button/sign_in_button.dart';
 import 'package:social_sport_ladder/Utilities/my_text_field.dart';
 import 'package:social_sport_ladder/Utilities/rounded_button.dart';
 import 'package:social_sport_ladder/Utilities/string_validators.dart';
@@ -13,6 +14,7 @@ import '../Utilities/helper_icon.dart';
 import '../Utilities/user_stream.dart';
 import '../constants/constants.dart';
 import '../constants/firebase_setup2.dart';
+import '../main.dart';
 
 
 String loggedInUser = "";
@@ -33,15 +35,18 @@ class LoginPageState extends State<LoginPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final GoogleSignIn _googleSignIn = GoogleSignIn(
-    clientId: googleClientId,
+    clientId: xorString(encodedGoogleClientId, keyString),
   );
   String _loginErrorString = '';
   String _passwordResetError = '';
+  Timer? _resetTimer;
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _resetTimer?.cancel();
+    _resetTimer=null;
     super.dispose();
   }
 
@@ -54,6 +59,14 @@ class LoginPageState extends State<LoginPage> {
       }
       setState(() {
         _passwordResetError = 'Email sent to $email';
+        _passwordResetAskedFor = true;
+        _resetTimer = Timer(Duration(seconds:30), (){
+          setState(() {
+            _passwordResetAskedFor = false;
+            _passwordResetError = '';
+          });
+
+        });
       });
     }).catchError((e) {
       setState(() {
@@ -193,6 +206,7 @@ class LoginPageState extends State<LoginPage> {
   }
 
   bool _baseFontSet = false;
+  bool _passwordResetAskedFor = false;
 
   String? emailErrorText;
   // String oldColorMode ='';
@@ -223,7 +237,7 @@ class LoginPageState extends State<LoginPage> {
         appBar: AppBar(
           backgroundColor: inversePrimaryColor,
           foregroundColor: Colors.white,
-          title: const Text('Login:'),
+          title: Text('V$softwareVersion Login:'),
           automaticallyImplyLeading: false,
           actions: [
             IconButton(
@@ -241,6 +255,28 @@ class LoginPageState extends State<LoginPage> {
               mainAxisAlignment: MainAxisAlignment.start,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                ElevatedButton.icon(
+                  onPressed: _signInWithGoogle,
+                  icon: enableImages?Image.network(
+                    'https://developers.google.com/identity/images/g-logo.png',
+                    width: 30, // Custom icon size
+                    height: 30,
+                  ):null,
+                  label: const Text(
+                    'Sign in with Google',
+                    style: TextStyle(fontSize: 30),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size(280, 65), // Custom size
+                    padding: const EdgeInsets.all(12),
+                    backgroundColor: Colors.lightGreen, // Google’s white background
+                    foregroundColor: Colors.black87,
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Center(child: Text('OR', style: nameStyle)),
                 MyTextField(
                   labelText: 'Email',
                   controller: _emailController,
@@ -254,6 +290,12 @@ class LoginPageState extends State<LoginPage> {
                       // refresh display to update reset message
                     });
                     if (val!.isValidEmail()) {
+                      setState(() {
+                        _passwordResetAskedFor = false;
+                        _passwordResetError = '';
+                        _resetTimer?.cancel();
+                      });
+
                       return null;
                     } else {
                       return 'Invalid email format';
@@ -286,8 +328,11 @@ class LoginPageState extends State<LoginPage> {
                       )
                     : Text('Please enter a valid ${_emailController.text.isValidEmail() ? 'password' : 'email'} to login', style: nameStyle),
                 const SizedBox(height: 20),
-                (_emailController.text.isValidEmail())
+                Center(child: Text('OR', style: nameStyle)),
+                const SizedBox(height: 20),
+                (_emailController.text.isValidEmail() && !_passwordResetAskedFor)
                     ? RoundedButton(
+                        backgroundColor: Colors.lightGreen,
                         onTap: (emailErrorText != null) || (_emailController.text.isEmpty) ? null : _sendPasswordReset,
                         text: 'Send Password Reset Email',
                       )
@@ -295,13 +340,20 @@ class LoginPageState extends State<LoginPage> {
                 const SizedBox(height: 20),
                 Text(
                   _passwordResetError,
-                  style: nameStyle,
+                  style: errorNameStyle,
                 ),
-                const SizedBox(height: 20),
-                SignInButton(
-                  Buttons.google,
-                  onPressed: _signInWithGoogle,
-                ),
+                // const SizedBox(height: 20),
+                // SizedBox(
+                //   height: 80,
+                //   child: SignInButton(
+                //     shape: RoundedRectangleBorder(
+                //       borderRadius: BorderRadius.circular(12),
+                //     ),
+                //     Buttons.google,
+                //     onPressed: _signInWithGoogle,
+                //   ),
+                // ),
+
                 const SizedBox(height: 20),
                 // SignInButton(Buttons.facebook,
                 //   onPressed: _signInWithFacebook,),

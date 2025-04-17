@@ -2,20 +2,18 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
-import 'package:location/location.dart';
+import 'package:geolocator/geolocator.dart';
 
 import '../screens/ladder_config_page.dart';
 
 
 class LocationService {
-  final Location _locService = Location();
-  bool _serviceEnabled=false;
-  LocationData? _lastLocation;
+  Position? _lastLocation;
   DateTime? _lastUpdateTime;
   dynamic _pageToRefresh;
-  double _lastDistanceAway=9999.0;
+  double _lastDistanceAway=99999.0;
   bool _lastLocationOk = false;
-  double _lastDistanceRefresh = 8888.0;
+  double _lastDistanceRefresh = 88888.0;
   bool isLastLocationOk(){
     return _lastLocationOk;
   }
@@ -24,13 +22,16 @@ class LocationService {
     return _lastDistanceAway;
   }
   askForSetState(page){
+    // print('ask for updates on Location ${page.toString()}');
     _pageToRefresh = page;
   }
 
  Future<bool> updateLocation() async {
-    _lastUpdateTime = DateTime.now(); // save the time of the request not the result to prevent infinite loops
-    _lastLocation = await _locService.getLocation();
+    // save the time of the request not the result to prevent infinite loops
+    LocationSettings locSettings = LocationSettings(distanceFilter: 25,);
+    _lastLocation = await Geolocator.getCurrentPosition(locationSettings: locSettings);
     if (_lastLocation != null ){
+      _lastUpdateTime = DateTime.now();
       // print('updateLocation: ${_lastLocation!.latitude}, ${_lastLocation!.longitude}');
     } else {
       if (kDebugMode) {
@@ -53,7 +54,7 @@ class LocationService {
     return true;
   }
 
-  (LocationData?, int) getLast(){
+  (Position?, int) getLast(){
     if (_lastUpdateTime == null ) return (null, 9999);
     int seconds = DateTime.now().difference(_lastUpdateTime!).inSeconds;
     return (_lastLocation, seconds);
@@ -89,12 +90,11 @@ class LocationService {
     // Distance in kilometers then converted to meters
     return R * c * 1000;
   }
-  bool isLocationOk( LocationData where) {
-    if ((where.latitude == null) || (where.longitude == null)) return false;
+  bool isLocationOk( Position where) {
     double allowedDistance = activeLadderDoc!.get('MetersFromLatLong');
     if (allowedDistance <= 0.0) return true; // this is disabled
 
-    double distance = measureDistance(activeLadderDoc!.get('Latitude'), activeLadderDoc!.get('Longitude'), where.latitude!, where.longitude!);
+    double distance = measureDistance(activeLadderDoc!.get('Latitude'), activeLadderDoc!.get('Longitude'), where.latitude, where.longitude);
 
     _lastDistanceAway = distance;
     if (distance > allowedDistance) {
@@ -107,6 +107,7 @@ class LocationService {
 
   Timer? _timer;
   startTimer() async {
+    // print('start location timer');
     _timer?.cancel();
     _timer=null;
     _timer = Timer.periodic(Duration(seconds: 10), (_) async{
@@ -120,22 +121,23 @@ class LocationService {
     await updateLocation();
   }
   void stopTimer(){
+    // print('stop location timer');
     _pageToRefresh = null;
     _timer?.cancel();
     _timer=null;
   }
   void init() async {
-    _serviceEnabled = await _locService.serviceEnabled();
-    if (!_serviceEnabled) {
-      _serviceEnabled = await _locService.requestService();
-      if (!_serviceEnabled) {
-        return;
-      }
+    await Geolocator.isLocationServiceEnabled();
+// Note: requestService() isn’t needed on web; skip or handle via permission
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
     }
     startTimer();
 
  }
   void dispose() {
+    // print('dispose of location timer');
     _timer?.cancel();
     _timer=null;
   }

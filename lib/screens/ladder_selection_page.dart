@@ -101,7 +101,9 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
   _getLadderImage(String ladderId) async {
     if (await getLadderImage(ladderId)) {
       // print('_getLadderImage: doing setState for $ladderId');
-      setState(() {});
+      if (mounted) {
+        setState(() {});
+      }
     }
   }
 
@@ -240,7 +242,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
           // print('ladder_selection_page getting user global ladder but data is null');
           return const CircularProgressIndicator();
         }
-        print('building Ladder snapshots with fontsize: $appFontSize ${nameStyle.fontSize}');
+        // print('building Ladder snapshots with fontsize: $appFontSize ${nameStyle.fontSize}');
         availableLadders = _userLadders.split(",");
         List<QueryDocumentSnapshot<Object?>> availableDocs = List.empty(growable: true);
 
@@ -462,7 +464,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                   } else {
                     nextPlay1 = 'no date of play set by admin';
                   }
-
+                  // print('building ladder selection entry: row: $row ${availableDocs[row].get('DisplayName')}');
                   return Container(
                       // height: 350,
                       decoration: BoxDecoration(

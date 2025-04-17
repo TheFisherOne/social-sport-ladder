@@ -790,7 +790,7 @@ Widget courtTile(CourtAssignmentsRgStandard courtAssignments, int court, Color c
           itemBuilder: (BuildContext context, int row) {
             if (row == 0) {
               return Text(
-                '#${court + 1} Court: ${courtAssignments.shuffledCourtNames[court]}',
+                '#${court + 1} Court: ${courtAssignments.shuffledCourtNames[court]} ${(courtAssignments.numberOnCourt[court]==5)?" *":""}',
                 style: nameBigStyle,
               );
             }
@@ -915,12 +915,26 @@ class _SportTennisRGState extends State<SportTennisRG> {
                       height: 5,
                     ), //Divider(color: Colors.black),
                 padding: const EdgeInsets.all(8),
-                itemCount: courtAssignments.playersOnEachCourt.length,
+                itemCount: courtAssignments.playersOnEachCourt.length+1,
                 itemBuilder: (BuildContext context, int row) {
+                  int playerNum = row-1;
                   Color courtColor = courtColors[0];
-                  courtColor = courtColors[row % courtColors.length];
+                  courtColor = courtColors[playerNum % courtColors.length];
 
-                  return courtTile(courtAssignments, row, courtColor, _players, _movement!, context);
+                  if (row==0) {
+                    if (getSportDescriptor(1)=='allowCourt5Change'){
+
+                    }
+                    return InkWell(
+                      onTap: (getSportDescriptor(1)=='allowCourt5Change')?(){
+                        FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
+                          'RandomCourtOf5': activeLadderDoc!.get('RandomCourtOf5')+1,
+                        });
+                      }:null,
+                      child: Text('CourtsOf4: ${courtAssignments.courtsOfFour}   CourtsOf5: ${courtAssignments.courtsOfFive}', style: nameStyle,));
+                  }
+
+                  return courtTile(courtAssignments, playerNum, courtColor, _players, _movement!, context);
                 }),
           );
         });

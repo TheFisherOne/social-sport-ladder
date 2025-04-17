@@ -47,7 +47,7 @@ class _UserStreamState extends State<UserStream> {
           double usersFontSize = 30;
           try {
             usersFontSize = loggedInUserDoc!.get('FontSize');
-            print('read FontSize: $usersFontSize');
+            // print('read FontSize: $usersFontSize');
           } catch (_) {}
           
           if (_lastFontSize != usersFontSize){
@@ -55,7 +55,7 @@ class _UserStreamState extends State<UserStream> {
             Future.delayed(Duration(milliseconds:500),(){
               setState(() {
                 setBaseFont(usersFontSize);
-                print('setting base font to $usersFontSize');
+                // print('setting base font to $usersFontSize');
               });
             });
           }

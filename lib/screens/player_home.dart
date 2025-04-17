@@ -1,9 +1,11 @@
+import 'dart:math';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
-import 'package:location/location.dart';
 import 'package:social_sport_ladder/screens/ladder_config_page.dart';
 import 'package:social_sport_ladder/screens/score_base.dart';
 
@@ -209,7 +211,7 @@ class _PlayerHomeState extends State<PlayerHome> {
 
     if (((nextPlayDate.hour + nextPlayDate.minute / 100.0) - (timeNow.hour + timeNow.minute / 100.0)) < activeLadderDoc!.get('CheckInStartHours')) {
       if ((!player.get('Present')) && (player.id == activeUser.id)) {
-        LocationData? where;
+        Position? where;
         int secAgo = 9999;
         (where, secAgo) = _loc.getLast();
         if ((where == null) || (secAgo > 60)) return (Icons.location_off, 'Your location has not been determined');
@@ -296,6 +298,7 @@ class _PlayerHomeState extends State<PlayerHome> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Text('${_loc.getLastDistanceAway().toStringAsFixed(1)}m away'),
                 Container(
                   height: 50,
                   width: 50,
@@ -373,7 +376,7 @@ class _PlayerHomeState extends State<PlayerHome> {
                 ),
                 SizedBox(height: 10),
                 (activeUser.helper || (loggedInUser == player.id))?Container(
-                  height: 60,
+                  height: max(60,appFontSize*2.7),
                   // width: 50,
                   color: (player.id == activeUser.id) ? Colors.green.shade100 : Colors.blue.shade100,
                   child: Padding(
@@ -592,10 +595,10 @@ class _PlayerHomeState extends State<PlayerHome> {
                     //TODO: can not unfreeze if scores are entered
                     mayFreeze = true;
                   } else if (( minToStart < 5.0) && (numberOfHelpersPresent == 0)) {
-                      print('mayFreeze: special override, no helpers present, less than 5 minutes to go');
+                      print('mayFreeze: special override, no helpers present, less than 5 minutes to go $nextPlayDate');
                       mayFreeze = true;
                   } else if (minToStart < 0.0)  {
-                    print('mayFreeze: special override, helpers present but start time has passed');
+                    print('mayFreeze: special override, helpers present but start time has passed $nextPlayDate');
                     mayFreeze = true;
                   }
 
@@ -603,7 +606,6 @@ class _PlayerHomeState extends State<PlayerHome> {
               }
               // print('mayFreeze: $mayFreeze, nextDate $nextPlayDate, now: ${DateTime.now()}');
               List<PlayerList>? courtAssignments = determineMovement( activeLadderDoc!, _players );//getCourtAssignmentNumbers(_players);
-
               return Scaffold(
                 backgroundColor: activeLadderBackgroundColor.withOpacity(0.1),//withValues(alpha:0.1), //Colors.green[50],
                 appBar: AppBar(

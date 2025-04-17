@@ -1246,56 +1246,97 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                       Align(
                         alignment: Alignment.centerLeft,
                         child: IconButton(
-                            onPressed: () async {
-                              String gameScoresStr = saveWorkingScores();
-                              // print('gameScores: #$_gameScores');
-                              for (int play = 0; play < _gameScores.length; play++) {
-                                int score = 0;
-                                String matchScore='';
-                                for (int i = 0; i < _gameScores[0].length; i++) {
-                                  if (i!= 0) matchScore +='|';
-                                  if (_gameScores[play][i] != null) {
-                                    score += _gameScores[play][i]!;
-                                    matchScore += _gameScores[play][i]!.toString();
-                                  }
+                          onPressed: () async {
+                            String gameScoresStr = saveWorkingScores();
+                            String thisUser = activeUser.id;
+                            await FirebaseFirestore.instance.runTransaction((transaction) async {
+                            List<int> scores = List.empty(growable: true);
+                            List<String> matchScores = List.empty(growable: true);
 
+                            DocumentReference scoreDoc = FirebaseFirestore.instance.collection('Ladder').doc(widget.ladderName).collection('Scores').doc(_scoreDocStr);
+                            for (int play = 0; play < _gameScores.length; play++) {
+                              int score = 0;
+                              String matchScore = '';
+                              for (int i = 0; i < _gameScores[0].length; i++) {
+                                if (i != 0) matchScore += '|';
+                                if (_gameScores[play][i] != null) {
+                                  score += _gameScores[play][i]!;
+                                  matchScore += _gameScores[play][i]!.toString();
                                 }
-                                // print('totalScore: $score for player #${play + 1}');
-                                await FirebaseFirestore.instance.collection('Ladder').doc(widget.ladderName).collection('Players').doc(_playerList[play]).update({
-                                  'TotalScore': score,
-                                  'StartingOrder': play + 1,
-                                  'ScoresConfirmed': false,
-                                  'MatchScores': matchScore,
-                                });
                               }
+                              scores.add(score);
+                              matchScores.add(matchScore);
+                              // playerRefs.add(FirebaseFirestore.instance.collection('Ladder').doc(widget.ladderName).collection('Players').doc(_playerList[play]));
+                            }
+                            DocumentSnapshot scoreSnapshot = await scoreDoc.get();
+                            // must handle case of this user no longer the active score enterer
+                            if (scoreSnapshot.get('BeingEditedBy') != thisUser) return;
 
-                              // String endingRanksStr = '';
-                              // for (int play = 0; play < _gameScores.length; play++) {
-                              //   for (int i = 0; i < _movementList!.length; i++) {
-                              //     if (_movementList![i].snapshot.id == _playerList[play]) {
-                              //       if (play != 0) endingRanksStr += '|';
-                              //       endingRanksStr += _movementList![i].afterWinLose.toString();
-                              //       print('ending ranks: play: $play i:$i ${_playerList[play]} =>$endingRanksStr');
-                              //       break;
-                              //     }
-                              //   }
-                              // }
-
-                              writeAudit(user: activeUser.id, documentName: '${widget.ladderName}/$_scoreDocStr', action: 'EnterScore', newValue: gameScoresStr, oldValue: _gameScoresStr);
-                              String newScoresEnteredBy = _scoresEnteredBy;
-                              if (newScoresEnteredBy.isNotEmpty) newScoresEnteredBy += '|';
-                              await FirebaseFirestore.instance.collection('Ladder').doc(widget.ladderName).collection('Scores').doc(_scoreDocStr).update({
-                                'BeingEditedBy': '',
-                                'ScoresEnteredBy': '$newScoresEnteredBy$_beingEditedById',
-                                'GameScores': gameScoresStr,
-                                // 'EndingRanks': endingRanksStr,
-                              });
-
-                              setState(() {
-                                cancelWorkingScores();
-                                _anyScoresToSave = false;
-                              });
-                            },
+                            for (int play=0; play<scores.length; play++){
+                              transaction.update(FirebaseFirestore.instance.collection('Ladder').doc(widget.ladderName).collection('Players').doc(_playerList[play]),
+                                  {
+                                    'TotalScore': scores[play],
+                                    'StartingOrder': play + 1,
+                                    'ScoresConfirmed': false,
+                                    'MatchScores': matchScores[play],
+                                  }
+                              );
+                            }
+                            transactionAudit(transaction: transaction, user: activeUser.id, documentName: '${widget.ladderName}/$_scoreDocStr',
+                                action: 'EnterScore', newValue: gameScoresStr, oldValue: _gameScoresStr);
+                            String newScoresEnteredBy = thisUser;
+                            if (newScoresEnteredBy.isNotEmpty) newScoresEnteredBy += '|';
+                            transaction.update(FirebaseFirestore.instance.collection('Ladder').doc(widget.ladderName).collection('Scores').doc(_scoreDocStr),{
+                              'BeingEditedBy': '',
+                              'ScoresEnteredBy': '$newScoresEnteredBy$_beingEditedById',
+                              'GameScores': gameScoresStr,
+                              // 'EndingRanks': endingRanksStr,
+                            });
+                            });
+                            setState(() {
+                              cancelWorkingScores();
+                              _anyScoresToSave = false;
+                            });
+                          },
+                            //
+                            // xonPressed: () async {
+                            //   String gameScoresStr = saveWorkingScores();
+                            //   // print('gameScores: #$_gameScores');
+                            //   for (int play = 0; play < _gameScores.length; play++) {
+                            //     int score = 0;
+                            //     String matchScore='';
+                            //     for (int i = 0; i < _gameScores[0].length; i++) {
+                            //       if (i!= 0) matchScore +='|';
+                            //       if (_gameScores[play][i] != null) {
+                            //         score += _gameScores[play][i]!;
+                            //         matchScore += _gameScores[play][i]!.toString();
+                            //       }
+                            //
+                            //     }
+                            //     // print('totalScore: $score for player #${play + 1}');
+                            //     await FirebaseFirestore.instance.collection('Ladder').doc(widget.ladderName).collection('Players').doc(_playerList[play]).update({
+                            //       'TotalScore': score,
+                            //       'StartingOrder': play + 1,
+                            //       'ScoresConfirmed': false,
+                            //       'MatchScores': matchScore,
+                            //     });
+                            //   }
+                            //
+                            //   writeAudit(user: activeUser.id, documentName: '${widget.ladderName}/$_scoreDocStr', action: 'EnterScore', newValue: gameScoresStr, oldValue: _gameScoresStr);
+                            //   String newScoresEnteredBy = _scoresEnteredBy;
+                            //   if (newScoresEnteredBy.isNotEmpty) newScoresEnteredBy += '|';
+                            //   await FirebaseFirestore.instance.collection('Ladder').doc(widget.ladderName).collection('Scores').doc(_scoreDocStr).update({
+                            //     'BeingEditedBy': '',
+                            //     'ScoresEnteredBy': '$newScoresEnteredBy$_beingEditedById',
+                            //     'GameScores': gameScoresStr,
+                            //     // 'EndingRanks': endingRanksStr,
+                            //   });
+                            //
+                            //   setState(() {
+                            //     cancelWorkingScores();
+                            //     _anyScoresToSave = false;
+                            //   });
+                            // },
                             icon: Icon(Icons.save, size: 50, color: Colors.red,)),
                       ),
                       Text('Save Changes', style: errorNameStyle,),
