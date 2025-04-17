@@ -56,7 +56,7 @@ jobs:
           String encodedGoogleClientId="$GOOGLECLIENTID";
           void doDebugEncrypt(){
           //empty
-          };
+          }
           EOF
 
 
