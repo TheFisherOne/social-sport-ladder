@@ -1,0 +1,71 @@
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
+name: Dart
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Note: This workflow uses the latest stable version of the Dart SDK.
+      # You can specify other versions if desired, see documentation here:
+      # https://github.com/dart-lang/setup-dart/blob/main/README.md
+      # - uses: dart-lang/setup-dart@v1
+      #- uses: dart-lang/setup-dart@9a04e6d73cca37bd455e0608d7e5092f881fd603
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.x'
+          channel: 'stable'
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: generate firebase_setup2.dart
+        env:
+          KEYSTRING: ${{secrets.KEYSTRING}}
+          AUTHDOMAIN: ${{secrets.AUTHDOMAIN}}
+          APPID: ${{secrets.APPID}}
+          MESSAGINGSENDERID: ${{secrets.MESSAGINGSENDERID}}
+          PROJECTID: ${{secrets.PROJECTID}}
+          STORAGEBUCKET: ${{secrets.STORAGEBUCKET}}
+          MEASUREMENTID: ${{secrets.MEASUREMENTID}}
+          GOOGLECLIENTID: ${{secrets.GOOGLECLIENTID}}
+        run: |
+          cat <<EOF >lib/constants/firebase_setup2.dart
+          String keyString="";
+          String encodedApiKey="$KEYSTRING";
+          String encodedAuthDomain="$AUTHDOMAIN";
+          String encodedAppId="$APPID";
+          String encodedMessagingSenderId="$MESSAGINGSENDERID";
+          String encodedProjectId="$PROJECTID";
+          String encodedStorageBucket="$STORAGEBUCKET";
+          String encodedMeasurementId="$MEASUREMENTID";
+          String encodedGoogleClientId="$GOOGLECLIENTID";
+          void doDebugEncrypt(){
+          //empty
+          };
+          EOF
+
+
+      # Consider passing '--fatal-infos' for slightly stricter analysis.
+      - name: Analyze project source
+        run: flutter analyze
+
+      # Your project will need to have tests in test/ and a dependency on
+      # package:test for this step to succeed. Note that Flutter projects will
+      # want to change this to 'flutter test'.
+     # - name: Run tests
+     #  run: flutter test
