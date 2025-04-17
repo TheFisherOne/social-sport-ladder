@@ -36,15 +36,15 @@ jobs:
       - name: generate firebase_setup2.dart
         run: |
           cat <<EOF >lib/constants/firebase_setup2.dart
-          String keyString="${{secrets.KEYSTRING}}"
-          String encodedApiKey="${{secrets.APIKEY}}"
-          String encodedAuthDomain="${{secrets.AUTHDOMAIN}}"
-          String encodedAppId="${{secrets.APPID}}"
-          String encodedMessagingSenderId="${{secrets.MESSAGINGSENDERID}}"
-          String encodedProjectId="${{secrets.PROJECTID}}"
-          String encodedStorageBucket="${{secrets.STORAGEBUCKET}}"
-          String encodedMeasurementId="${{secrets.MEASUREMENTID}}"
-          String encodedGoogleClientId="${{secrets.GOOGLECLIENTID}}"
+          String keyString="${{secrets.KEYSTRING}}";
+          String encodedApiKey="${{secrets.APIKEY}}";
+          String encodedAuthDomain="${{secrets.AUTHDOMAIN}}";
+          String encodedAppId="${{secrets.APPID}}";
+          String encodedMessagingSenderId="${{secrets.MESSAGINGSENDERID}}";
+          String encodedProjectId="${{secrets.PROJECTID}}";
+          String encodedStorageBucket="${{secrets.STORAGEBUCKET}}";
+          String encodedMeasurementId="${{secrets.MEASUREMENTID}}";
+          String encodedGoogleClientId="${{secrets.GOOGLECLIENTID}}";
           void doDebugEncrypt(){
           //empty
           };
