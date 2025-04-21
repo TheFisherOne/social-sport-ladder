@@ -22,6 +22,33 @@ jobs:
       # Step 3: Install dependencies
       - name: Install dependencies
         run: flutter pub get
+        
+      # setup the firebase-setup2.dart file
+      - name: generate firebase_setup2.dart
+        env:
+          KEYSTRING: ${{secrets.KEYSTRING}}
+          AUTHDOMAIN: ${{secrets.AUTHDOMAIN}}
+          APPID: ${{secrets.APPID}}
+          MESSAGINGSENDERID: ${{secrets.MESSAGINGSENDERID}}
+          PROJECTID: ${{secrets.PROJECTID}}
+          STORAGEBUCKET: ${{secrets.STORAGEBUCKET}}
+          MEASUREMENTID: ${{secrets.MEASUREMENTID}}
+          GOOGLECLIENTID: ${{secrets.GOOGLECLIENTID}}
+        run: |
+          cat <<EOF >lib/constants/firebase_setup2.dart
+          String keyString="";
+          String encodedApiKey="$KEYSTRING";
+          String encodedAuthDomain="$AUTHDOMAIN";
+          String encodedAppId="$APPID";
+          String encodedMessagingSenderId="$MESSAGINGSENDERID";
+          String encodedProjectId="$PROJECTID";
+          String encodedStorageBucket="$STORAGEBUCKET";
+          String encodedMeasurementId="$MEASUREMENTID";
+          String encodedGoogleClientId="$GOOGLECLIENTID";
+          void doDebugEncrypt(){
+          //empty
+          }
+          EOF
 
       # Step 4: Build the Flutter web app
       - name: Build Flutter Web
