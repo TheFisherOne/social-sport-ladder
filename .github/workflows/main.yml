@@ -1,0 +1,43 @@
+name: Flutter Build and Firebase Deploy
+
+on:
+  push:
+    branches:
+      - main # Trigger the workflow on pushes to the main branch
+
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout the repository
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Step 2: Set up Flutter
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 'stable'
+
+      # Step 3: Install dependencies
+      - name: Install dependencies
+        run: flutter pub get
+
+      # Step 4: Build the Flutter web app
+      - name: Build Flutter Web
+        run: flutter build web
+
+      # # Step 5: Set up Firebase CLI
+      # - name: Set up Firebase CLI
+      #   uses: w9jds/firebase-action@v2
+      #   with:
+      #     args: login:ci
+      #   env:
+      #     FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+
+      # # Step 6: Deploy to Firebase Hosting
+      # - name: Deploy to Firebase Hosting
+      #   run: firebase deploy --only hosting
+      #   env:
+      #     FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
