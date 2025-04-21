@@ -13,6 +13,11 @@ String settingsColorMode = 'lightMode';
 String xorString(String s1,String s2){
   if (s2.length > s1.length){
     print('xorString: ERROR second string too long ${s2.length} > ${s1.length} "$s1"');
+    return "s1 too short";
+  }
+  if (s2.length < 4 ){
+    print('xorString: ERROR second string too short ${s2.length} < 4 "$s2"');
+    return "s2 keyString too short";
   }
   // Get the length of s1
   int n = s1.length;
