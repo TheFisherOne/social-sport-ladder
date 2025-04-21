@@ -28,7 +28,7 @@ jobs:
       - name: Build Flutter Web
         run: flutter build web
 
-      # Step 5: Set up Firebase CLI
+      # Step 5: Set up Firebase CLI test
       - name: Set up Firebase CLI
         uses: w9jds/firebase-action@v2
         with:
