@@ -2,8 +2,7 @@ name: Flutter Build and Firebase Deploy
 
 on:
   push:
-    branches:
-      - main # Trigger the workflow on pushes to the main branch
+    branches: [ "master" ]
 
 jobs:
   build_and_deploy:
@@ -14,11 +13,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # Step 2: Set up Flutter
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: 'stable'
+          flutter-version: '3.24.x'
+          channel: 'stable'
 
       # Step 3: Install dependencies
       - name: Install dependencies
@@ -28,7 +27,7 @@ jobs:
       - name: Build Flutter Web
         run: flutter build web
 
-      # Step 5: Set up Firebase CLI
+      # Step 5: Set up Firebase CLI test
       - name: Set up Firebase CLI
         uses: w9jds/firebase-action@v2
         with:
