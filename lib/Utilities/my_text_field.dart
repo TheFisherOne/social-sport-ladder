@@ -47,6 +47,7 @@ class _MyTextFieldState extends State<MyTextField> {
     }
       _focusNode.addListener(() {
         // print('_focusNode: ${_focusNode.hasFocus}');
+        // print('onFocus: ${widget.controller.text}');
         // if (_focusNode.hasFocus) return;
         setState(() {
           if (widget.clearEntryOnLostFocus) {
@@ -79,6 +80,7 @@ class _MyTextFieldState extends State<MyTextField> {
     child:Padding(
         padding: const EdgeInsets.all(5.0),// .symmetric(horizontal: 5),
         child: TextField(
+          key: Key(widget.labelText),
           focusNode: _focusNode,
           controller: widget.controller,
           obscureText: widget.obscureText && _obscurePassword,
@@ -87,6 +89,7 @@ class _MyTextFieldState extends State<MyTextField> {
           style: nameStyle,
           keyboardType: widget.keyboardType,
           onChanged: (String entry) {
+            // print('MTF onChanged: $entry');
             if ( (entry.isEmpty) && (widget.entryOK == null)){
               setState(() {
                 errorString = null;
@@ -107,7 +110,7 @@ class _MyTextFieldState extends State<MyTextField> {
             }
           },
           decoration: InputDecoration(
-            labelText: widget.labelText,
+               labelText: widget.labelText,
             helper: _focusNode.hasFocus ? Text(widget.helperText, softWrap: true, overflow: TextOverflow.visible, style: nameStyle) : null,
             errorText: errorString,
             labelStyle: nameStyle,

@@ -6,13 +6,13 @@ extension StringExtensions on String {
     ).hasMatch(this);
   }
 
-  bool isWhiteSpace() => trim().isEmpty;
+  // bool isWhiteSpace() => trim().isEmpty;
 
-  bool isValidDouble() => double.tryParse(this) != null;
+  // bool isValidDouble() => double.tryParse(this) != null;
 
-  bool isValidInt()    =>    int.tryParse(this) != null;
+  // bool isValidInt()    =>    int.tryParse(this) != null;
 
-  bool isValidName()  {
-    return RegExp('^[A-Z][a-z]*[A-Z]?[a-z]*\\s[A-Z][a-z]*[A-Z]?[a-z]*\$').hasMatch(this);
-  }
+  // bool isValidName()  {
+  //   return RegExp('^[A-Z][a-z]*[A-Z]?[a-z]*\\s[A-Z][a-z]*[A-Z]?[a-z]*\$').hasMatch(this);
+  // }
 }

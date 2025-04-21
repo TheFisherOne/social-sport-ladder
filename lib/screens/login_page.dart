@@ -24,14 +24,15 @@ DocumentSnapshot<Object?>? loggedInUserDoc;
 LoginPageState? globalHomePage;
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+  final FirebaseAuth? auth;
+  const LoginPage({super.key, this.auth });
 
   @override
   State<LoginPage> createState() => LoginPageState();
 }
 
 class LoginPageState extends State<LoginPage> {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  late FirebaseAuth _auth;
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final GoogleSignIn _googleSignIn = GoogleSignIn(
@@ -212,6 +213,7 @@ class LoginPageState extends State<LoginPage> {
   // String oldColorMode ='';
   @override
   Widget build(BuildContext context) {
+    _auth = widget.auth!;
     // if (oldColorMode != settingsColorMode) {
     //   var provider = Provider.of<ThemeProvider>(context, listen: false);
     //   Future(() => provider.setTheme(settingsColorMode));
@@ -222,12 +224,13 @@ class LoginPageState extends State<LoginPage> {
 
     if (!_baseFontSet){
       _baseFontSet = true;
-      Future.delayed(Duration(milliseconds:500),(){
-        setState(() {
-          setBaseFont(29);
-          // print('setting base font to 29');
-        });
-      });
+      setBaseFont(29);
+      // Future.delayed(Duration(milliseconds:500),(){
+      //   setState(() {
+      //     setBaseFont(29);
+      //     // print('setting base font to 29');
+      //   });
+      // });
     }
     // print('doing login build');
     //setBaseFont(29);
@@ -256,6 +259,7 @@ class LoginPageState extends State<LoginPage> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 ElevatedButton.icon(
+                  key: Key('signInWithGoogle'),
                   onPressed: _signInWithGoogle,
                   icon: enableImages?Image.network(
                     'https://developers.google.com/identity/images/g-logo.png',
@@ -323,6 +327,7 @@ class LoginPageState extends State<LoginPage> {
                 const SizedBox(height: 20),
                 (_emailController.text.isValidEmail() && _passwordController.text.length >= 6)
                     ? RoundedButton(
+                        key: Key('signInWithEmail'),
                         onTap: _signInWithEmailAndPassword,
                         text: 'Sign in with Email',
                       )
@@ -332,6 +337,7 @@ class LoginPageState extends State<LoginPage> {
                 const SizedBox(height: 20),
                 (_emailController.text.isValidEmail() && !_passwordResetAskedFor)
                     ? RoundedButton(
+                        key: Key('PasswordReset'),
                         backgroundColor: Colors.lightGreen,
                         onTap: (emailErrorText != null) || (_emailController.text.isEmpty) ? null : _sendPasswordReset,
                         text: 'Send Password Reset Email',

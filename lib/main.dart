@@ -91,7 +91,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Social Sport Ladder',
       // theme: Provider.of<ThemeProvider>(context).themeData,
-      home: loggedInUser.isEmpty?const LoginPage():const UserStream(),
+      home: loggedInUser.isEmpty?LoginPage(auth:FirebaseAuth.instance):const UserStream(),
     );
   }
 }

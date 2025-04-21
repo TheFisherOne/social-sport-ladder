@@ -1,4 +1,5 @@
-import 'dart:html' as html;
+import '../Utilities/html_none.dart'
+if (dart.library.html ) '../Utilities/html_only.dart';
 import 'dart:collection';
 import 'package:convert/convert.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -559,17 +560,7 @@ class CalendarPageState extends State<CalendarPage> {
     ]);
   }
 
-  downloadCsvFile(Event event) async {
-    // this function exists so that the parent function does not have to be async
-    Reference ref = event.fileRef!;
-    final url = await ref.getDownloadURL();
 
-    html.AnchorElement(
-      href: url,
-    )
-      ..setAttribute('download', event.toString())
-      ..click();
-  }
 
   CalendarFormat _calendarFormat = CalendarFormat.month;
   Widget calendarScaffold() {

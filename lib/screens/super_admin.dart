@@ -313,7 +313,7 @@ class _SuperAdminState extends State<SuperAdmin> {
                 ),
                 IconButton(
                     onPressed:
-                    true?null:() {
+                    () {
                       FirebaseFirestore.instance.collection('Ladder').get().then((QuerySnapshot ladder) {
                         for (var doc in ladder.docs) {
                           FirebaseFirestore.instance.collection('Ladder').doc(doc.id).update({

@@ -1,5 +1,6 @@
 import 'dart:io';
-import 'dart:html' as html;
+import '../Utilities/html_none.dart'
+  if (dart.library.html ) '../Utilities/html_only.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -191,7 +192,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                   onOk: () {
                     FirebaseAuth.instance.signOut();
                     activeUser.id = '';
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => const LoginPage()));
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => LoginPage(auth:FirebaseAuth.instance)));
                   }),
             ),
           ],
@@ -206,22 +207,6 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
       _lastLoggedInUser = activeUser.id;
     }
 
-    reloadWithNewVersion(double reqSoftwareVersion) {
-      // html.window.location.reload();
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      String newURL = '${html.window.location.pathname}?v=$timestamp';
-      if (kDebugMode) {
-        print('NEED NEW VERSION OF THE SOFTWARE $reqSoftwareVersion > $softwareVersion $newURL');
-      }
-      html.window.location.reload();
-
-      Future.delayed(Duration(milliseconds: 1000), () {
-        if (html.window.location.href != newURL) {
-          html.window.location.href = newURL;
-        }
-      });
-      return Text('YOU MUST FORCE A RELOAD you need V$reqSoftwareVersion', style: nameStyle,);
-    }
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance.collection('Ladder').snapshots(),
       builder: (BuildContext context, AsyncSnapshot<QuerySnapshot<Object?>> snapshot) {
@@ -390,7 +375,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                       runLater() async {
                         await FirebaseAuth.instance.signOut();
                         loggedInUser = '';
-                        nav.push(MaterialPageRoute(builder: (context) => const LoginPage()));
+                        nav.push(MaterialPageRoute(builder: (context) => LoginPage(auth: FirebaseAuth.instance)));
                       }
 
                       runLater();
@@ -415,18 +400,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
 
                   double reqSoftwareVersion = availableDocs[row].get('RequiredSoftwareVersion');
                   if (reqSoftwareVersion > softwareVersion) {
-                    if (html.window.navigator.serviceWorker != null) {
-                      html.window.navigator.serviceWorker!.getRegistrations().then((registrations) {
-                        for (var reg in registrations) {
-                          print('unregister worker ${reg.toString()}');
-                          reg.unregister();
-                        }
-                        print('Service worker cleared');
-                        reloadWithNewVersion(reqSoftwareVersion);
-                      });
-                    } else {
-                      reloadWithNewVersion(reqSoftwareVersion);
-                    }
+                    reloadHtml(reqSoftwareVersion);
                   }
 
                   bool disabled = availableDocs[row].get('Disabled');
