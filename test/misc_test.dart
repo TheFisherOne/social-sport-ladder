@@ -1,7 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:social_sport_ladder/Utilities/misc.dart';
+import 'package:social_sport_ladder/constants/constants.dart';
 
 void main() {
+  setUp(() {
+    enableImages = false;
+  });
+
   group('daysBetween', () {
     test('should return 0 when the dates are the same', () {
       final from = DateTime(2025, 4, 18);

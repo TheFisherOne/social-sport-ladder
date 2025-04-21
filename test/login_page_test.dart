@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
+import 'package:social_sport_ladder/constants/constants.dart';
 import 'package:social_sport_ladder/screens/login_page.dart';
 
 // Mock classes
@@ -13,6 +14,7 @@ void main() {
 
 
   setUp(() {
+    enableImages = false;
     mockFirebaseAuth = MockFirebaseAuth();
 
   });

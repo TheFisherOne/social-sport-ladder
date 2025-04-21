@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:social_sport_ladder/constants/constants.dart';
 import 'package:social_sport_ladder/screens/ladder_config_page.dart';
 // import 'package:mockito/mockito.dart';
 import 'package:social_sport_ladder/sports/sport_tennis_rg.dart';
@@ -56,6 +57,10 @@ Map<String,dynamic> createPlayer(int rank){
 
 
 void main() {
+  setUp(() {
+    enableImages = false;
+  });
+
   test('sportTennisRGDetermineMovement with 4 players', () async {
     final FakeFirebaseFirestore instance = FakeFirebaseFirestore();
     await initActiveLadderDoc(instance);

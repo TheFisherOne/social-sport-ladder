@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:social_sport_ladder/Utilities/my_text_field.dart';
+import 'package:social_sport_ladder/constants/constants.dart';
 
 
 void main() {
+  setUp(() {
+    enableImages = false;
+  });
   group('MyTextField Widget Tests', () {
     testWidgets('renders with default properties', (WidgetTester tester) async {
       final controller = TextEditingController();
