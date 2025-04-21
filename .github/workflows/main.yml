@@ -2,8 +2,7 @@ name: Flutter Build and Firebase Deploy
 
 on:
   push:
-    branches:
-      - main # Trigger the workflow on pushes to the main branch
+    branches: [ "master" ]
 
 jobs:
   build_and_deploy:
