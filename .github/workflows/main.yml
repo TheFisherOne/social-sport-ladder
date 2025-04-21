@@ -28,13 +28,13 @@ jobs:
       - name: Build Flutter Web
         run: flutter build web
 
-      # # Step 5: Set up Firebase CLI
-      # - name: Set up Firebase CLI
-      #   uses: w9jds/firebase-action@v2
-      #   with:
-      #     args: login:ci
-      #   env:
-      #     FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+      # Step 5: Set up Firebase CLI
+      - name: Set up Firebase CLI
+        uses: w9jds/firebase-action@v2
+        with:
+          args: login:ci
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
 
       # # Step 6: Deploy to Firebase Hosting
       # - name: Deploy to Firebase Hosting
