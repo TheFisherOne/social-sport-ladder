@@ -760,7 +760,7 @@ Widget courtTile(CourtAssignmentsRgStandard courtAssignments, int court, Color c
     decoration: BoxDecoration(
       border: Border.all(color: courtColor, width: 5),
       borderRadius: BorderRadius.circular(15.0),
-      color: courtColor.withOpacity(0.1),//withValues(alpha:0.1),
+      color: courtColor.withValues(alpha:0.1),//withValues(alpha:0.1),
     ),
     child: Padding(
       padding: const EdgeInsets.only(left: 8.0, right: 8, top: 2, bottom: 2),
@@ -887,7 +887,7 @@ class _SportTennisRGState extends State<SportTennisRG> {
           _movement = sportTennisRGDetermineMovement(_players, _dateStr);
           AppBar thisAppBar = AppBar(
             title: Text('${activeLadderDoc!.get('DisplayName')}'),
-            backgroundColor: activeLadderBackgroundColor.withOpacity(0.7),//withValues(alpha:0.7), //withOpacity(0.7),
+            backgroundColor: activeLadderBackgroundColor.withValues(alpha:0.7),//withValues(alpha:0.7), //withOpacity(0.7),
             elevation: 0.0,
             automaticallyImplyLeading: true,
             actions: [

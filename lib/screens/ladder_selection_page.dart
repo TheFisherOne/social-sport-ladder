@@ -444,7 +444,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                       decoration: BoxDecoration(
                         border: Border.all(color: activeLadderBackgroundColor, width: 5),
                         borderRadius: BorderRadius.circular(15.0),
-                        color: activeLadderBackgroundColor.withOpacity(0.1), //withValues(alpha:0.1),
+                        color: activeLadderBackgroundColor.withValues(alpha: 0.1), //withValues(alpha:0.1),
                       ),
                       child: Padding(
                         padding: const EdgeInsets.only(left: 8.0, right: 8, top: 2, bottom: 2),
@@ -486,7 +486,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                                 decoration: BoxDecoration(
                                   border: Border.all(color: activeLadderBackgroundColor, width: 5),
                                   borderRadius: BorderRadius.circular(15.0),
-                                  color: activeLadderBackgroundColor.withOpacity(0.1), //withValues(alpha:0.1),
+                                  color: activeLadderBackgroundColor.withValues(alpha:0.1), //withValues(alpha:0.1),
                                 ),
                                 child: Padding(
                                   padding: const EdgeInsets.all(8.0),
