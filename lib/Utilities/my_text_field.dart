@@ -90,23 +90,28 @@ class _MyTextFieldState extends State<MyTextField> {
           keyboardType: widget.keyboardType,
           onChanged: (String entry) {
             // print('MTF onChanged: $entry');
+            String? tmpError;
             if ( (entry.isEmpty) && (widget.entryOK == null)){
-              setState(() {
-                errorString = null;
-              });
+              tmpError = null;
             } else {
-              setState(() {
-                errorString = widget.entryOK!(entry);
-              });
+              tmpError = widget.entryOK!(entry);
+              // print('entryOK returns: $tmpError');
             }
-            if (widget.onIconClicked != null) {
-              if (lastSavedValue != null) {
-                if (entry != lastSavedValue) {
-                  errorString ??= 'Not Saved';
+            if (tmpError == null) {
+              if (widget.onIconClicked != null) {
+                if (lastSavedValue != null) {
+                  if (entry != lastSavedValue) {
+                    tmpError = 'Not Saved';
+                  }
+                } else if (entry.isNotEmpty) {
+                  tmpError = 'Not Saved';
                 }
-              } else if (entry.isNotEmpty) {
-                errorString ??= 'Not Saved';
               }
+            }
+            if (tmpError != errorString){
+              setState(() {
+                errorString = tmpError;
+              });
             }
           },
           decoration: InputDecoration(

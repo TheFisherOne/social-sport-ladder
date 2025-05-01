@@ -194,7 +194,9 @@ class _PlayerHomeState extends State<PlayerHome> {
     DateTime? nextPlayDate;
     (nextPlayDate, _) = getNextPlayDateTime(activeLadderDoc!);
     DateTime timeNow = DateTime.now();
-    if (nextPlayDate == null) return (Icons.cancel_outlined, 'no start time specified for next day of play');
+    if (nextPlayDate == null) {
+      return (Icons.cancel_outlined, 'no start time specified for next day of play');
+    }
 
     String nextPlayDateStr = DateFormat('yyyy.MM.dd').format(nextPlayDate);
 
@@ -214,11 +216,17 @@ class _PlayerHomeState extends State<PlayerHome> {
         Position? where;
         int secAgo = 9999;
         (where, secAgo) = _loc.getLast();
-        if ((where == null) || (secAgo > 60)) return (Icons.location_off, 'Your location has not been determined');
-        if (!_loc.isLastLocationOk()) return (Icons.location_off, 'You are too far away ${_loc.getLastDistanceAway().toInt()} m');
+        if ((where == null) || (secAgo > 60)) {
+          return (Icons.location_off, 'Your location has not been determined');
+        }
+        if (!_loc.isLastLocationOk()) {
+          return (Icons.location_off, 'You are too far away ${_loc.getLastDistanceAway().toInt()} m');
+        }
       }
 
-      if (player.get('Present')) return (Icons.check_box, 'Checked in and ready to play');
+      if (player.get('Present')) {
+        return (Icons.check_box, 'Checked in and ready to play');
+      }
       if (player.id == activeUser.id) {
         if (player.get('WaitListRank')>0){
           if (player.get('WaitListRank') <= activeLadderDoc!.get('NumberFromWaitList')){
@@ -363,7 +371,7 @@ class _PlayerHomeState extends State<PlayerHome> {
                     decoration: BoxDecoration(
                       border: Border.all(color: activeLadderBackgroundColor, width: 5),
                       borderRadius: BorderRadius.circular(15.0),
-                      color: activeLadderBackgroundColor.withOpacity(0.1),//withValues(alpha:0.1),
+                      color: activeLadderBackgroundColor.withValues(alpha:0.1),//withValues(alpha:0.1),
                     ),
                     width: 100,
                     height: 100,
@@ -411,7 +419,9 @@ class _PlayerHomeState extends State<PlayerHome> {
   }
 
   Widget buildPlayerLine(int row, List<PlayerList>? courtAssignments) {
-    if (_players == null || row >= _players!.length) return Text('ERROR loading Player for row $row', style: nameStyle,);
+    if (_players == null || row >= _players!.length) {
+      return Text('ERROR loading Player for row $row', style: nameStyle,);
+    }
 
     QueryDocumentSnapshot player = _players![row];
     final isUserRow = (player.id == activeUser.id);
@@ -422,8 +432,8 @@ class _PlayerHomeState extends State<PlayerHome> {
       }
     }
     PlayerList? plAssignment;
-    for (int i=0; i<courtAssignments!.length; i++){
-      if (courtAssignments[i].snapshot.id == player.id){
+    for (int i = 0; i < courtAssignments!.length; i++) {
+      if (courtAssignments[i].snapshot.id == player.id) {
         plAssignment = courtAssignments[i];
         break;
       }
@@ -433,10 +443,17 @@ class _PlayerHomeState extends State<PlayerHome> {
     // print('buildPlayerLine: $row ${player.id} crt:${plAssignment!.snapshot.id} away: ${plAssignment!.markedAway}');
 
     Icon icon;
-    if (row == _checkInProgress) icon = Icon(Icons.refresh, color:Colors.green);
-    else if (player.get('Present') ) icon = Icon(Icons.check_box, color: Colors.black);
-    else if (plAssignment!.markedAway) icon = const Icon(Icons.horizontal_rule, color: Colors.black);
-    else icon = Icon(Icons.check_box_outline_blank, color:Colors.black);
+    if (row == _checkInProgress) {
+      icon = Icon(Icons.refresh, color: Colors.green);
+    } else if (player.get('Present')) {
+      icon = Icon(Icons.check_box, color: Colors.black);
+    }
+    else if (plAssignment!.markedAway) {
+      icon = const Icon(Icons.horizontal_rule, color: Colors.black);
+    }
+    else {
+      icon = Icon(Icons.check_box_outline_blank, color: Colors.black);
+    }
 
     // print('buildPlayerLine: _clickedOnRank: $_clickedOnRank vs $row admin: ${activeLadderDoc!.get('Admins').split(",").contains(loggedInUser) } ${player.id} vs $loggedInUser OR $loggedInUserIsSuper');
     return Column(
@@ -473,7 +490,9 @@ class _PlayerHomeState extends State<PlayerHome> {
   }
 
   _getPlayerImage(String playerEmail) async {
-    if (!enableImages) return;
+    if (!enableImages) {
+      return;
+    }
     if (await getPlayerImage(playerEmail)) {
       // print('_getPlayerImage: doing setState for $playerEmail');
       setState(() {});
@@ -607,10 +626,10 @@ class _PlayerHomeState extends State<PlayerHome> {
               // print('mayFreeze: $mayFreeze, nextDate $nextPlayDate, now: ${DateTime.now()}');
               List<PlayerList>? courtAssignments = determineMovement( activeLadderDoc!, _players );//getCourtAssignmentNumbers(_players);
               return Scaffold(
-                backgroundColor: activeLadderBackgroundColor.withOpacity(0.1),//withValues(alpha:0.1), //Colors.green[50],
+                backgroundColor: activeLadderBackgroundColor.withValues(alpha:0.1),//withValues(alpha:0.1), //Colors.green[50],
                 appBar: AppBar(
                   title: Text('${activeLadderDoc!.get('DisplayName') ?? 'No DisplayName attr'}'),
-                  backgroundColor: activeLadderBackgroundColor.withOpacity(0.7),//withValues(alpha:0.7), //Colors.green[400],
+                  backgroundColor: activeLadderBackgroundColor.withValues(alpha:0.7),//withValues(alpha:0.7), //Colors.green[400],
                   elevation: 0.0,
                   automaticallyImplyLeading: true,
                   actions: [

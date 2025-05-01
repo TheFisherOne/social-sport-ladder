@@ -35,7 +35,7 @@ dependencies:
   firebase_storage: ^12.3.5
   google_sign_in:
   cloud_firestore: ^5.4.5
-  geolocator: ^13.0.0
+  geolocator: ^14.0.0
 #  sign_in_button:
   intl:
   image_picker:
@@ -49,6 +49,8 @@ dependencies:
   table_calendar:
   convert:
   provider:
+  web: ^1.1.1
+
 
 
   # The following adds the Cupertino Icons font to your application.

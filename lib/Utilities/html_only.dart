@@ -1,4 +1,5 @@
-import 'dart:html' as html;
+// import 'dart:html' as html;
+import 'package:web/web.dart' as web;
 
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
@@ -13,31 +14,37 @@ reloadWithNewVersion(double reqSoftwareVersion) {
     final timestamp = DateTime
         .now()
         .millisecondsSinceEpoch;
-    String newURL = '${html.window.location.pathname}?v=$timestamp';
+    String newURL = '${web.window.location.href}?v=$timestamp';
+    // String newURL = '${html.window.location.pathname}?v=$timestamp';
     if (kDebugMode) {
       print('NEED NEW VERSION OF THE SOFTWARE $reqSoftwareVersion > $softwareVersion $newURL');
     }
-    html.window.location.reload();
+    web.window.location.replace(newURL);
+    // html.window.location.reload();
 
     Future.delayed(Duration(milliseconds: 1000), () {
-      if (html.window.location.href != newURL) {
-        html.window.location.href = newURL;
+      // if (html.window.location.href != newURL) {
+      //   html.window.location.href = newURL;
+      // }
+      if (web.window.location.href != newURL) {
+        web.window.location.href = newURL;
       }
     });
     return Text('YOU MUST FORCE A RELOAD you need V$reqSoftwareVersion', style: nameStyle,);
   }
 }
 void reloadHtml(double reqSoftwareVersion) {
-  if (html.window.navigator.serviceWorker != null) {
-    html.window.navigator.serviceWorker!.getRegistrations().then((registrations) {
-      for (var reg in registrations) {
-        print('unregister worker ${reg.toString()}');
-        reg.unregister();
-      }
-      print('Service worker cleared');
-      reloadWithNewVersion(reqSoftwareVersion);
-    });
-  } else {
+  // if (web.window.navigator.serviceWorker != null) {
+  //   web.window.navigator.serviceWorker!.getRegistrations().then((registrations) {
+  //     for (var reg in registrations) {
+  //       print('unregister worker ${reg.toString()}');
+  //       reg.unregister();
+  //     }
+  //     print('Service worker cleared');
+  //     reloadWithNewVersion(reqSoftwareVersion);
+  //   });
+  // } else
+  {
     reloadWithNewVersion(reqSoftwareVersion);
   }
 }
@@ -46,9 +53,15 @@ downloadCsvFile(Event event) async {
   Reference ref = event.fileRef!;
   final url = await ref.getDownloadURL();
 
-  html.AnchorElement(
-    href: url,
-  )
+  // html.AnchorElement(
+  //   href: url,
+  // )
+  //   ..setAttribute('download', event.toString())
+  //   ..click();
+
+  web.document.createElement('a') as web.HTMLAnchorElement
+    ..href = url
     ..setAttribute('download', event.toString())
     ..click();
+
 }
