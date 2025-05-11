@@ -11,6 +11,7 @@ import '../Utilities/helper_icon.dart';
 import '../Utilities/rounded_button.dart';
 import '../constants/constants.dart';
 import '../help/help_pages.dart';
+import '../main.dart';
 import 'audit_page.dart';
 import 'calendar_page.dart';
 import 'ladder_selection_page.dart';
@@ -126,7 +127,7 @@ class _ConfigPageState extends State<ConfigPage> {
   Widget build(BuildContext context) {
     try{
     return StreamBuilder<DocumentSnapshot>(
-        stream: FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).snapshots(),
+        stream: firestore.collection('Ladder').doc(activeLadderId).snapshots(),
         builder: (BuildContext context, AsyncSnapshot<DocumentSnapshot<Object?>> snapshot) {
           // print('Ladder snapshot');
           if (snapshot.error != null) {
@@ -276,7 +277,7 @@ class _ConfigPageState extends State<ConfigPage> {
                         String oldValue = activeLadderDoc!.get(attrName);
                         if (newValue != oldValue) {
                           writeAudit(user: loggedInUser, documentName: 'LadderConfig', action: 'Set $attrName', newValue: newValue, oldValue: oldValue);
-                          FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
+                          firestore.collection('Ladder').doc(activeLadderId).update({
                             attrName: newValue,
                           });
                         }
@@ -298,7 +299,7 @@ class _ConfigPageState extends State<ConfigPage> {
                         String oldValue = activeLadderDoc!.get(attrName);
                         if (newValue != oldValue) {
                           writeAudit(user: loggedInUser, documentName: 'LadderConfig', action: 'Set $attrName', newValue: newValue, oldValue: oldValue);
-                          FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
+                          firestore.collection('Ladder').doc(activeLadderId).update({
                             attrName: newValue,
                           });
                         }
@@ -333,7 +334,7 @@ class _ConfigPageState extends State<ConfigPage> {
                           try {
                             number = int.parse(entry);
                           } catch (_) {}
-                          FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
+                          firestore.collection('Ladder').doc(activeLadderId).update({
                             attrName: number,
                           });
                         }
@@ -373,7 +374,7 @@ class _ConfigPageState extends State<ConfigPage> {
                           try {
                             number = double.parse(entry);
                           } catch (_) {}
-                          FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
+                          firestore.collection('Ladder').doc(activeLadderId).update({
                             attrName: number,
                           });
                         }
@@ -413,7 +414,7 @@ class _ConfigPageState extends State<ConfigPage> {
                           try {
                             number = double.parse(entry);
                           } catch (_) {}
-                          FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
+                          firestore.collection('Ladder').doc(activeLadderId).update({
                             attrName: number,
                           });
                         }
@@ -446,7 +447,7 @@ class _ConfigPageState extends State<ConfigPage> {
                           try {
                             number = double.parse(entry);
                           } catch (_) {}
-                          FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
+                          firestore.collection('Ladder').doc(activeLadderId).update({
                             attrName: number,
                           });
                         }
@@ -479,7 +480,7 @@ class _ConfigPageState extends State<ConfigPage> {
                           try {
                             number = double.parse(entry);
                           } catch (_) {}
-                          FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
+                          firestore.collection('Ladder').doc(activeLadderId).update({
                             attrName: number,
                           });
                         }
@@ -512,7 +513,7 @@ class _ConfigPageState extends State<ConfigPage> {
                           try {
                             number = double.parse(entry);
                           } catch (_) {}
-                          FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
+                          firestore.collection('Ladder').doc(activeLadderId).update({
                             attrName: number,
                           });
                         }
@@ -546,7 +547,7 @@ class _ConfigPageState extends State<ConfigPage> {
                           try {
                             number = double.parse(entry);
                           } catch (_) {}
-                          FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
+                          firestore.collection('Ladder').doc(activeLadderId).update({
                             attrName: number,
                           });
                         }
@@ -579,7 +580,7 @@ class _ConfigPageState extends State<ConfigPage> {
                         if (newValueStr != oldValue) {
                           writeAudit(user: loggedInUser, documentName: 'LadderConfig', action: 'Set $attrName', newValue: newValueStr, oldValue: oldValue);
 
-                          FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
+                          firestore.collection('Ladder').doc(activeLadderId).update({
                             attrName: newValueStr,
                           });
                         }
@@ -612,7 +613,7 @@ class _ConfigPageState extends State<ConfigPage> {
                         if (newValueStr != oldValue) {
                           writeAudit(user: loggedInUser, documentName: 'LadderConfig', action: 'Set $attrName', newValue: newValueStr, oldValue: oldValue);
 
-                          FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
+                          firestore.collection('Ladder').doc(activeLadderId).update({
                             attrName: newValueStr,
                           });
                         }
@@ -644,7 +645,7 @@ class _ConfigPageState extends State<ConfigPage> {
                         if (newValueStr != oldValue) {
                           writeAudit(user: loggedInUser, documentName: 'LadderConfig', action: 'Set $attrName', newValue: newValueStr, oldValue: oldValue);
 
-                          FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
+                          firestore.collection('Ladder').doc(activeLadderId).update({
                             attrName: newValueStr,
                           });
                         }
@@ -691,7 +692,7 @@ class _ConfigPageState extends State<ConfigPage> {
                                 // print('ladder_config_page set PlayOn to $value');
                                 if (value == null) return;
                                 writeAudit(user: loggedInUser, documentName: 'LadderConfig', action: 'Set Color', newValue: value, oldValue: activeLadderDoc!.get('Color'));
-                                FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
+                                firestore.collection('Ladder').doc(activeLadderId).update({
                                   'Color': value,
                                 });
                               },
@@ -733,21 +734,21 @@ class _ConfigPageState extends State<ConfigPage> {
                           }
                         }
 
-                        FirebaseFirestore.instance.runTransaction((transaction) async {
+                        firestore.runTransaction((transaction) async {
                           // print('starting transaction for changing admins to $newValue');
                           // first the ladder document, which contains the Admins list
-                          DocumentReference ladderRef = FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId);
+                          DocumentReference ladderRef = firestore.collection('Ladder').doc(activeLadderId);
 
                           // second all of the globalUsers
                           // print('changing admins: 1');
-                          CollectionReference globalUserCollectionRef = FirebaseFirestore.instance.collection('Users');
+                          CollectionReference globalUserCollectionRef = firestore.collection('Users');
                           QuerySnapshot snapshot = await globalUserCollectionRef.get();
                           var globalUserNames = snapshot.docs.map((doc) => doc.id);
                           // print('List of all globalUsers  : $globalUserNames');
                           // print('changing admins: 2');
                           var globalUserRefMap = {};
                           for (String userId in globalUserNames) {
-                            globalUserRefMap[userId] = FirebaseFirestore.instance.collection('Users').doc(userId);
+                            globalUserRefMap[userId] = firestore.collection('Users').doc(userId);
                           }
                           // print('changing admins: 3');
                           var globalUserDocMap = {};
@@ -757,7 +758,7 @@ class _ConfigPageState extends State<ConfigPage> {
                           }
                           // print('changing admins: 4');
                           //third the list of all of the Players
-                          CollectionReference playersRef = FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Players');
+                          CollectionReference playersRef = firestore.collection('Ladder').doc(activeLadderId).collection('Players');
                           QuerySnapshot snapshotPlayers = await playersRef.get();
                           var playerNames = snapshotPlayers.docs.map((doc) => doc.id);
                           // print('List of all Players in ladder $activeLadderId : $playerNames');
@@ -797,7 +798,7 @@ class _ConfigPageState extends State<ConfigPage> {
                             } catch (e) {
                               // the global user does not exist
                               // print('creating globalUser $email with Ladders $activeLadderId');
-                              var newDocRef = FirebaseFirestore.instance.collection('Users').doc(email);
+                              var newDocRef = firestore.collection('Users').doc(email);
                               transaction.set(newDocRef, {
                                 'Ladders': activeLadderId,
                               });
@@ -866,19 +867,19 @@ class _ConfigPageState extends State<ConfigPage> {
 
                         List<String> oldHelpers = oldValue.split(',');
 
-                        FirebaseFirestore.instance.runTransaction((transaction) async {
+                        firestore.runTransaction((transaction) async {
                           // first the ladder document, which contains the Admins list
-                          DocumentReference ladderRef = FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId);
+                          DocumentReference ladderRef = firestore.collection('Ladder').doc(activeLadderId);
 
                           // second all of the globalUsers
-                          CollectionReference globalUserCollectionRef = FirebaseFirestore.instance.collection('Users');
+                          CollectionReference globalUserCollectionRef = firestore.collection('Users');
                           QuerySnapshot snapshot = await globalUserCollectionRef.get();
                           var globalUserNames = snapshot.docs.map((doc) => doc.id);
                           // print('List of all globalUsers  : $globalUserNames');
 
                           var globalUserRefMap = {};
                           for (String userId in globalUserNames) {
-                            globalUserRefMap[userId] = FirebaseFirestore.instance.collection('Users').doc(userId);
+                            globalUserRefMap[userId] = firestore.collection('Users').doc(userId);
                           }
 
                           var globalUserDocMap = {};
@@ -888,7 +889,7 @@ class _ConfigPageState extends State<ConfigPage> {
                           }
 
                           //third the list of all of the Players
-                          // CollectionReference playersRef = FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Players');
+                          // CollectionReference playersRef = firestore.collection('Ladder').doc(activeLadderId).collection('Players');
                           // QuerySnapshot snapshotPlayers = await playersRef.get();
                           // var playerNames = snapshotPlayers.docs.map((doc) => doc.id);
                           // print('List of all Players in ladder $activeLadderId : $playerNames');
@@ -930,7 +931,7 @@ class _ConfigPageState extends State<ConfigPage> {
                             } catch (e) {
                               // the global user does not exist
                               // print('creating globalUser $email with Ladders $activeLadderId');
-                              var newDocRef = FirebaseFirestore.instance.collection('Users').doc(email);
+                              var newDocRef = firestore.collection('Users').doc(email);
                               transaction.set(newDocRef, {
                                 'Ladders': activeLadderId,
                               });
@@ -998,7 +999,7 @@ class _ConfigPageState extends State<ConfigPage> {
                         String oldValue = activeLadderDoc!.get(attrName);
                         if (newValue != oldValue) {
                           writeAudit(user: loggedInUser, documentName: 'LadderConfig', action: 'Set $attrName', newValue: newValue, oldValue: oldValue);
-                          FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
+                          firestore.collection('Ladder').doc(activeLadderId).update({
                             attrName: newValue,
                           });
                         }
@@ -1046,7 +1047,7 @@ class _ConfigPageState extends State<ConfigPage> {
                                 if (value == null) return;
                                 bool disabled = (value == trueFalse[0]);
                                 writeAudit(user: loggedInUser, documentName: 'LadderConfig', action: 'Set Disabled', newValue: value, oldValue: activeLadderDoc!.get('Disabled').toString());
-                                FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
+                                firestore.collection('Ladder').doc(activeLadderId).update({
                                   'Disabled': disabled,
                                 });
                               },
@@ -1067,7 +1068,7 @@ class _ConfigPageState extends State<ConfigPage> {
                         String oldValue = activeLadderDoc!.get(attrName);
                         if (newValue != oldValue) {
                           writeAudit(user: loggedInUser, documentName: 'LadderConfig', action: 'Set $attrName', newValue: newValue, oldValue: oldValue);
-                          FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
+                          firestore.collection('Ladder').doc(activeLadderId).update({
                             attrName: newValue,
                           });
                         }
@@ -1113,7 +1114,7 @@ class _ConfigPageState extends State<ConfigPage> {
                                   if (value == null) return;
                                   bool disabled = (value == trueFalse[0]);
                                   writeAudit(user: loggedInUser, documentName: 'LadderConfig', action: 'Set SuperDisabled', newValue: value, oldValue: activeLadderDoc!.get('SuperDisabled').toString());
-                                  FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
+                                  firestore.collection('Ladder').doc(activeLadderId).update({
                                     'SuperDisabled': disabled,
                                   });
                                 },

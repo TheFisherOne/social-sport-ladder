@@ -14,6 +14,7 @@ import 'package:social_sport_ladder/screens/super_admin.dart';
 import '../Utilities/helper_icon.dart';
 import '../Utilities/misc.dart';
 import '../help/help_pages.dart';
+import '../main.dart';
 import 'ladder_config_page.dart';
 import 'login_page.dart';
 
@@ -201,14 +202,14 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
       );
     }
     if (_lastLoggedInUser != activeUser.id) {
-      FirebaseFirestore.instance.collection('Users').doc(activeUser.id).update({
+      firestore.collection('Users').doc(activeUser.id).update({
         'LastLogin': DateTime.now(),
       });
       _lastLoggedInUser = activeUser.id;
     }
 
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance.collection('Ladder').snapshots(),
+      stream: firestore.collection('Ladder').snapshots(),
       builder: (BuildContext context, AsyncSnapshot<QuerySnapshot<Object?>> snapshot) {
         // print('Ladder snapshot');
         if (snapshot.error != null) {
@@ -311,7 +312,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                                 label: Text('Save Font Size', style: nameStyle),
                                 onPressed: () {
                                   // print('appFontSize save: $appFontSize');
-                                  FirebaseFirestore.instance.collection('Users').doc(loggedInUserDoc!.id).update({
+                                  firestore.collection('Users').doc(loggedInUserDoc!.id).update({
                                     'FontSize': appFontSize,
                                   });
                                   _originalAppFontSize = appFontSize;
@@ -343,7 +344,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                     //   if (newFontSize > 40) newFontSize = 20.0;
                     //   setBaseFont(newFontSize);
                     //   // print('appFontSize: $appFontSize');
-                    //   FirebaseFirestore.instance.collection('Users').doc(loggedInUserDoc!.id).update({
+                    //   firestore.collection('Users').doc(loggedInUserDoc!.id).update({
                     //     'FontSize': appFontSize,
                     //   });
                     // });
@@ -416,29 +417,25 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                   DateTime? nextPlay;
                   String note;
                   (nextPlay, note) = getNextPlayDateTime(availableDocs[row]);
-                  if (nextPlay != null) {
-                    int daysAway = daysBetween(DateTime.now(), nextPlay);
-                    // print('Row:$row ${availableDocs[row].id} daysAway: $daysAway  nextPlay:  $nextPlay');
-                    String timeToPlay = DateFormat('h:mma').format(nextPlay);
-                    String numDaysAwayStr;
-                    if (daysAway == 1) {
-                      numDaysAwayStr = '(Tomorrow) @ $timeToPlay';
-                      nextPlay2 = note;
-                    } else if (daysAway < 0) {
-                      numDaysAwayStr = '(next date is in the past!)';
-                      nextPlay2 = '';
-                    } else if (daysAway > 1) {
-                      numDaysAwayStr = '($daysAway days) @ $timeToPlay';
-                      nextPlay2 = note;
-                    } else {
-                      numDaysAwayStr = '(TODAY)  @ $timeToPlay';
-                      nextPlay2 = note;
-                    }
-                    nextPlay1 = ' ${DateFormat('E yyyy.MM.dd').format(nextPlay)} $numDaysAwayStr';
+                  int daysAway = daysBetween(DateTime.now(), nextPlay!);
+                  // print('Row:$row ${availableDocs[row].id} daysAway: $daysAway  nextPlay:  $nextPlay');
+                  String timeToPlay = DateFormat('h:mma').format(nextPlay);
+                  String numDaysAwayStr;
+                  if (daysAway == 1) {
+                    numDaysAwayStr = '(Tomorrow) @ $timeToPlay';
+                    nextPlay2 = note;
+                  } else if (daysAway < 0) {
+                    numDaysAwayStr = '(next date is in the past!)';
+                    nextPlay2 = '';
+                  } else if (daysAway > 1) {
+                    numDaysAwayStr = '($daysAway days) @ $timeToPlay';
+                    nextPlay2 = note;
                   } else {
-                    nextPlay1 = 'no date of play set by admin';
+                    numDaysAwayStr = '(TODAY)  @ $timeToPlay';
+                    nextPlay2 = note;
                   }
-                  // print('building ladder selection entry: row: $row ${availableDocs[row].get('DisplayName')}');
+                  nextPlay1 = ' ${DateFormat('E yyyy.MM.dd').format(nextPlay)} $numDaysAwayStr';
+                                  // print('building ladder selection entry: row: $row ${availableDocs[row].get('DisplayName')}');
                   return Container(
                       // height: 350,
                       decoration: BoxDecoration(

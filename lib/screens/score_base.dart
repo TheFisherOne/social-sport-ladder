@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:social_sport_ladder/sports/score_tennis_rg.dart';
 
+import '../main.dart';
 import '../sports/sport_tennis_rg.dart';
 import 'ladder_config_page.dart';
 
@@ -33,16 +34,16 @@ String getSportDescriptor(int index){
   return (index < tmpList.length)? tmpList[index]: '';
 }
 
-void prepareForScoreEntry(DocumentSnapshot activeLadderDoc, List<QueryDocumentSnapshot>? players) {
+prepareForScoreEntry(DocumentSnapshot activeLadderDoc, List<QueryDocumentSnapshot>? players) async {
 
 if (getSportDescriptor(0) == 'tennisRG') {
-sportTennisRGprepareForScoreEntry(players);
-return;
+  await sportTennisRGprepareForScoreEntry(players);
+  return;
 } else if (getSportDescriptor(0) == 'pickleballRG') {
-  sportTennisRGprepareForScoreEntry(players);
+  await sportTennisRGprepareForScoreEntry(players);
   return;
 }else if (getSportDescriptor(0) == 'badmintonRG') {
-  sportTennisRGprepareForScoreEntry(players);
+  await sportTennisRGprepareForScoreEntry(players);
   return;
 }
 if (kDebugMode) {
@@ -98,7 +99,7 @@ class _ScoreBaseState extends State<ScoreBase> {
   Widget build(BuildContext context) {
     try{
     return StreamBuilder<DocumentSnapshot>(
-        stream: FirebaseFirestore.instance.collection('Ladder').doc(widget.ladderName).snapshots(),
+        stream: firestore.collection('Ladder').doc(widget.ladderName).snapshots(),
         builder: (BuildContext context, AsyncSnapshot<DocumentSnapshot<Object?>> snapshot) {
           // print('Ladder snapshot');
           if (snapshot.error != null) {
@@ -132,7 +133,7 @@ class _ScoreBaseState extends State<ScoreBase> {
           // print('displaying score sheet for $_scoreDocStr');
 
           return StreamBuilder<DocumentSnapshot>(
-              stream: FirebaseFirestore.instance.collection('Ladder').doc(widget.ladderName).collection('Scores').doc(_scoreDocStr).snapshots(),
+              stream: firestore.collection('Ladder').doc(widget.ladderName).collection('Scores').doc(_scoreDocStr).snapshots(),
               builder: (BuildContext context, AsyncSnapshot<DocumentSnapshot<Object?>> snapshot) {
                 // print('Ladder snapshot');
                 if (snapshot.error != null) {

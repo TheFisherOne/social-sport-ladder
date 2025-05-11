@@ -10,6 +10,7 @@ import 'package:social_sport_ladder/screens/ladder_selection_page.dart';
 import 'package:social_sport_ladder/screens/login_page.dart';
 import 'package:social_sport_ladder/screens/score_base.dart';
 import 'package:social_sport_ladder/sports/sport_tennis_rg.dart';
+import '../main.dart';
 import '../screens/audit_page.dart';
 
 class ScoreTennisRg extends StatefulWidget {
@@ -541,7 +542,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                     _workingGameScores[playerNum][gameNum] = workingValue;
 
                     if (_beingEditedById != activeUser.id) {
-                      await FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Scores').doc(widget.scoreDoc.id).update({
+                      await firestore.collection('Ladder').doc(activeLadderId).collection('Scores').doc(widget.scoreDoc.id).update({
                         'BeingEditedBy': activeUser.id,
                       });
                       _neverEdited = false;
@@ -732,7 +733,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
     }
     _anyScoresToSave = true;
     if (_beingEditedById != activeUser.id) {
-      await FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Scores').doc(widget.scoreDoc.id).update({
+      await firestore.collection('Ladder').doc(activeLadderId).collection('Scores').doc(widget.scoreDoc.id).update({
         'BeingEditedBy': activeUser.id,
       });
       _neverEdited = false;
@@ -754,7 +755,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
     _anyScoresToSave = true;
 
     if (_beingEditedById != activeUser.id) {
-      await FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Scores').doc(widget.scoreDoc.id).update({
+      await firestore.collection('Ladder').doc(activeLadderId).collection('Scores').doc(widget.scoreDoc.id).update({
         'BeingEditedBy': activeUser.id,
       });
       _neverEdited = false;
@@ -777,60 +778,58 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
               height: 1,
             );
           }
-          return Container(
-            child: Row(
-              children: [
-                Expanded(
-                  flex: 3,
+          return Row(
+            children: [
+              Expanded(
+                flex: 3,
+                child: Padding(
+                    padding: const EdgeInsets.only(
+                      top: 8.0,
+                    ),
+                    child: Align(
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          'AUTO FILL',
+                          style: nameStyle,
+                        ))),
+              ),
+              Expanded(
+                flex: 1,
+                child: IconButton(
+                    onPressed: (autoFill4(0) == null)
+                        ? null
+                        : () {
+                            setScoresForGame4(0);
+                          },
+                    icon: Icon((autoFill4(0) == null) ? null : Icons.arrow_upward, size: 45)),
+              ),
+              Expanded(
+                flex: 1,
+                child: IconButton(
+                    onPressed: (autoFill4(1) == null)
+                        ? null
+                        : () {
+                            setScoresForGame4(1);
+                          },
+                    icon: Icon((autoFill4(1) == null) ? null : Icons.arrow_upward, size: 45)),
+              ),
+              Expanded(
+                flex: 1,
+                child: IconButton(
+                    onPressed: (autoFill4(2) == null)
+                        ? null
+                        : () {
+                            setScoresForGame4(2);
+                          },
+                    icon: Icon((autoFill4(2) == null) ? null : Icons.arrow_upward, size: 45)),
+              ),
+              Expanded(
+                  flex: 1,
                   child: Padding(
-                      padding: const EdgeInsets.only(
-                        top: 8.0,
-                      ),
-                      child: Align(
-                          alignment: Alignment.centerRight,
-                          child: Text(
-                            'AUTO FILL',
-                            style: nameStyle,
-                          ))),
-                ),
-                Expanded(
-                  flex: 1,
-                  child: IconButton(
-                      onPressed: (autoFill4(0) == null)
-                          ? null
-                          : () {
-                              setScoresForGame4(0);
-                            },
-                      icon: Icon((autoFill4(0) == null) ? null : Icons.arrow_upward, size: 45)),
-                ),
-                Expanded(
-                  flex: 1,
-                  child: IconButton(
-                      onPressed: (autoFill4(1) == null)
-                          ? null
-                          : () {
-                              setScoresForGame4(1);
-                            },
-                      icon: Icon((autoFill4(1) == null) ? null : Icons.arrow_upward, size: 45)),
-                ),
-                Expanded(
-                  flex: 1,
-                  child: IconButton(
-                      onPressed: (autoFill4(2) == null)
-                          ? null
-                          : () {
-                              setScoresForGame4(2);
-                            },
-                      icon: Icon((autoFill4(2) == null) ? null : Icons.arrow_upward, size: 45)),
-                ),
-                Expanded(
-                    flex: 1,
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 8.0),
-                      child: Align(child: Text('', style: nameStyle)),
-                    )),
-              ],
-            ),
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: Align(child: Text('', style: nameStyle)),
+                  )),
+            ],
           );
         }
 
@@ -886,80 +885,78 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
               height: 1,
             );
           }
-          return Container(
-            child: Row(
-              children: [
-                Expanded(
-                  flex: 3,
+          return Row(
+            children: [
+              Expanded(
+                flex: 3,
+                child: Padding(
+                    padding: const EdgeInsets.only(
+                      top: 8.0,
+                    ),
+                    child: Align(
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          'AUTO FILL',
+                          style: nameStyle,
+                        ))),
+              ),
+              Expanded(
+                flex: 1,
+                child: IconButton(
+                    onPressed: (autoFill5(0) == null)
+                        ? null
+                        : () {
+                            setScoresForGame5(0);
+                          },
+                    icon: Icon((autoFill5(0) == null) ? null : Icons.arrow_upward, size: 45)),
+              ),
+              Expanded(
+                flex: 1,
+                child: IconButton(
+                    onPressed: (autoFill5(1) == null)
+                        ? null
+                        : () {
+                            setScoresForGame5(1);
+                          },
+                    icon: Icon((autoFill5(1) == null) ? null : Icons.arrow_upward, size: 45)),
+              ),
+              Expanded(
+                flex: 1,
+                child: IconButton(
+                    onPressed: (autoFill5(2) == null)
+                        ? null
+                        : () {
+                            setScoresForGame5(2);
+                          },
+                    icon: Icon((autoFill5(2) == null) ? null : Icons.arrow_upward, size: 45)),
+              ),
+              Expanded(
+                flex: 1,
+                child: IconButton(
+                    onPressed: (autoFill5(3) == null)
+                        ? null
+                        : () {
+                            setScoresForGame5(3);
+                          },
+                    icon: Icon((autoFill5(3) == null) ? null : Icons.arrow_upward, size: 45)),
+              ),
+              Expanded(
+                flex: 1,
+                child: IconButton(
+                    onPressed: (autoFill5(4) == null)
+                        ? null
+                        : () {
+                            setScoresForGame5(4);
+                          },
+                    icon: Icon((autoFill5(4) == null) ? null : Icons.arrow_upward, size: 45)),
+              ),
+              Expanded(
+                  flex: 1,
                   child: Padding(
-                      padding: const EdgeInsets.only(
-                        top: 8.0,
-                      ),
-                      child: Align(
-                          alignment: Alignment.centerRight,
-                          child: Text(
-                            'AUTO FILL',
-                            style: nameStyle,
-                          ))),
-                ),
-                Expanded(
-                  flex: 1,
-                  child: IconButton(
-                      onPressed: (autoFill5(0) == null)
-                          ? null
-                          : () {
-                              setScoresForGame5(0);
-                            },
-                      icon: Icon((autoFill5(0) == null) ? null : Icons.arrow_upward, size: 45)),
-                ),
-                Expanded(
-                  flex: 1,
-                  child: IconButton(
-                      onPressed: (autoFill5(1) == null)
-                          ? null
-                          : () {
-                              setScoresForGame5(1);
-                            },
-                      icon: Icon((autoFill5(1) == null) ? null : Icons.arrow_upward, size: 45)),
-                ),
-                Expanded(
-                  flex: 1,
-                  child: IconButton(
-                      onPressed: (autoFill5(2) == null)
-                          ? null
-                          : () {
-                              setScoresForGame5(2);
-                            },
-                      icon: Icon((autoFill5(2) == null) ? null : Icons.arrow_upward, size: 45)),
-                ),
-                Expanded(
-                  flex: 1,
-                  child: IconButton(
-                      onPressed: (autoFill5(3) == null)
-                          ? null
-                          : () {
-                              setScoresForGame5(3);
-                            },
-                      icon: Icon((autoFill5(3) == null) ? null : Icons.arrow_upward, size: 45)),
-                ),
-                Expanded(
-                  flex: 1,
-                  child: IconButton(
-                      onPressed: (autoFill5(4) == null)
-                          ? null
-                          : () {
-                              setScoresForGame5(4);
-                            },
-                      icon: Icon((autoFill5(4) == null) ? null : Icons.arrow_upward, size: 45)),
-                ),
-                Expanded(
-                    flex: 1,
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 8.0),
-                      child: Align(child: Text('', style: nameStyle)),
-                    )),
-              ],
-            ),
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: Align(child: Text('', style: nameStyle)),
+                  )),
+            ],
           );
         }
 
@@ -1017,60 +1014,58 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
               height: 1,
             );
           }
-          return Container(
-            child: Row(
-              children: [
-                Expanded(
-                  flex: 3,
+          return Row(
+            children: [
+              Expanded(
+                flex: 3,
+                child: Padding(
+                    padding: const EdgeInsets.only(
+                      top: 8.0,
+                    ),
+                    child: Align(
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          'AUTO FILL',
+                          style: nameStyle,
+                        ))),
+              ),
+              Expanded(
+                flex: 1,
+                child: IconButton(
+                    onPressed: (autoFill4(0) == null)
+                        ? null
+                        : () {
+                            setScoresForGame4(0);
+                          },
+                    icon: Icon((autoFill4(0) == null) ? null : Icons.arrow_upward, size: 45)),
+              ),
+              Expanded(
+                flex: 1,
+                child: IconButton(
+                    onPressed: (autoFill4(1) == null)
+                        ? null
+                        : () {
+                            setScoresForGame4(1);
+                          },
+                    icon: Icon((autoFill4(1) == null) ? null : Icons.arrow_upward, size: 45)),
+              ),
+              Expanded(
+                flex: 1,
+                child: IconButton(
+                    onPressed: (autoFill4(2) == null)
+                        ? null
+                        : () {
+                            setScoresForGame4(2);
+                          },
+                    icon: Icon((autoFill4(2) == null) ? null : Icons.arrow_upward, size: 45)),
+              ),
+              Expanded(
+                  flex: 1,
                   child: Padding(
-                      padding: const EdgeInsets.only(
-                        top: 8.0,
-                      ),
-                      child: Align(
-                          alignment: Alignment.centerRight,
-                          child: Text(
-                            'AUTO FILL',
-                            style: nameStyle,
-                          ))),
-                ),
-                Expanded(
-                  flex: 1,
-                  child: IconButton(
-                      onPressed: (autoFill4(0) == null)
-                          ? null
-                          : () {
-                              setScoresForGame4(0);
-                            },
-                      icon: Icon((autoFill4(0) == null) ? null : Icons.arrow_upward, size: 45)),
-                ),
-                Expanded(
-                  flex: 1,
-                  child: IconButton(
-                      onPressed: (autoFill4(1) == null)
-                          ? null
-                          : () {
-                              setScoresForGame4(1);
-                            },
-                      icon: Icon((autoFill4(1) == null) ? null : Icons.arrow_upward, size: 45)),
-                ),
-                Expanded(
-                  flex: 1,
-                  child: IconButton(
-                      onPressed: (autoFill4(2) == null)
-                          ? null
-                          : () {
-                              setScoresForGame4(2);
-                            },
-                      icon: Icon((autoFill4(2) == null) ? null : Icons.arrow_upward, size: 45)),
-                ),
-                Expanded(
-                    flex: 1,
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 8.0),
-                      child: Align(child: Text('', style: nameStyle)),
-                    )),
-              ],
-            ),
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: Align(child: Text('', style: nameStyle)),
+                  )),
+            ],
           );
         }
 
@@ -1195,8 +1190,8 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
     }
     // print('rankChangeStr: $startingRanks => $endingRanks = $ranksChangeStr');
 
-    print('admin: ${(activeUser.admin && !_scoresConfirmed)} _allScoresEntered: $_allScoresEntered  _beingEditedById: $_beingEditedById '
-    'notLastEditor: $notLastEditor _scoresCibfurned: $_scoresConfirmed $_loggedInPlayerOnCourt ${widget.allowEdit}' );
+    // print('admin: ${(activeUser.admin && !_scoresConfirmed)} _allScoresEntered: $_allScoresEntered  _beingEditedById: $_beingEditedById '
+    // 'notLastEditor: $notLastEditor _scoresCibfurned: $_scoresConfirmed $_loggedInPlayerOnCourt ${widget.allowEdit}' );
 
 
       return PopScope(
@@ -1204,7 +1199,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
         cancelWorkingScores();
         _anyScoresToSave = false;
         if (widget.allowEdit) {
-          FirebaseFirestore.instance.collection('Ladder').doc(widget.ladderName).collection('Scores').doc(_scoreDocStr).update({
+          firestore.collection('Ladder').doc(widget.ladderName).collection('Scores').doc(_scoreDocStr).update({
             'BeingEditedBy': '',
           });
         }
@@ -1249,11 +1244,11 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                           onPressed: () async {
                             String gameScoresStr = saveWorkingScores();
                             String thisUser = activeUser.id;
-                            await FirebaseFirestore.instance.runTransaction((transaction) async {
+                            await firestore.runTransaction((transaction) async {
                             List<int> scores = List.empty(growable: true);
                             List<String> matchScores = List.empty(growable: true);
 
-                            DocumentReference scoreDoc = FirebaseFirestore.instance.collection('Ladder').doc(widget.ladderName).collection('Scores').doc(_scoreDocStr);
+                            DocumentReference scoreDoc = firestore.collection('Ladder').doc(widget.ladderName).collection('Scores').doc(_scoreDocStr);
                             for (int play = 0; play < _gameScores.length; play++) {
                               int score = 0;
                               String matchScore = '';
@@ -1266,14 +1261,14 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                               }
                               scores.add(score);
                               matchScores.add(matchScore);
-                              // playerRefs.add(FirebaseFirestore.instance.collection('Ladder').doc(widget.ladderName).collection('Players').doc(_playerList[play]));
+                              // playerRefs.add(firestore.collection('Ladder').doc(widget.ladderName).collection('Players').doc(_playerList[play]));
                             }
                             DocumentSnapshot scoreSnapshot = await scoreDoc.get();
                             // must handle case of this user no longer the active score enterer
                             if (scoreSnapshot.get('BeingEditedBy') != thisUser) return;
 
                             for (int play=0; play<scores.length; play++){
-                              transaction.update(FirebaseFirestore.instance.collection('Ladder').doc(widget.ladderName).collection('Players').doc(_playerList[play]),
+                              transaction.update(firestore.collection('Ladder').doc(widget.ladderName).collection('Players').doc(_playerList[play]),
                                   {
                                     'TotalScore': scores[play],
                                     'StartingOrder': play + 1,
@@ -1286,7 +1281,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                                 action: 'EnterScore', newValue: gameScoresStr, oldValue: _gameScoresStr);
                             String newScoresEnteredBy = thisUser;
                             if (newScoresEnteredBy.isNotEmpty) newScoresEnteredBy += '|';
-                            transaction.update(FirebaseFirestore.instance.collection('Ladder').doc(widget.ladderName).collection('Scores').doc(_scoreDocStr),{
+                            transaction.update(firestore.collection('Ladder').doc(widget.ladderName).collection('Scores').doc(_scoreDocStr),{
                               'BeingEditedBy': '',
                               'ScoresEnteredBy': '$newScoresEnteredBy$_beingEditedById',
                               'GameScores': gameScoresStr,
@@ -1314,7 +1309,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                             //
                             //     }
                             //     // print('totalScore: $score for player #${play + 1}');
-                            //     await FirebaseFirestore.instance.collection('Ladder').doc(widget.ladderName).collection('Players').doc(_playerList[play]).update({
+                            //     await firestore.collection('Ladder').doc(widget.ladderName).collection('Players').doc(_playerList[play]).update({
                             //       'TotalScore': score,
                             //       'StartingOrder': play + 1,
                             //       'ScoresConfirmed': false,
@@ -1325,7 +1320,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                             //   writeAudit(user: activeUser.id, documentName: '${widget.ladderName}/$_scoreDocStr', action: 'EnterScore', newValue: gameScoresStr, oldValue: _gameScoresStr);
                             //   String newScoresEnteredBy = _scoresEnteredBy;
                             //   if (newScoresEnteredBy.isNotEmpty) newScoresEnteredBy += '|';
-                            //   await FirebaseFirestore.instance.collection('Ladder').doc(widget.ladderName).collection('Scores').doc(_scoreDocStr).update({
+                            //   await firestore.collection('Ladder').doc(widget.ladderName).collection('Scores').doc(_scoreDocStr).update({
                             //     'BeingEditedBy': '',
                             //     'ScoresEnteredBy': '$newScoresEnteredBy$_beingEditedById',
                             //     'GameScores': gameScoresStr,
@@ -1346,7 +1341,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                         alignment: Alignment.centerRight,
                         child: IconButton(
                             onPressed: () {
-                              FirebaseFirestore.instance.collection('Ladder').doc(widget.ladderName).collection('Scores').doc(_scoreDocStr).update({
+                              firestore.collection('Ladder').doc(widget.ladderName).collection('Scores').doc(_scoreDocStr).update({
                                 'BeingEditedBy': '',
                               });
                               setState(() {
@@ -1367,7 +1362,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                       ),
                       onPressed: _isOverrideEditorEnabled
                           ? () {
-                              FirebaseFirestore.instance.collection('Ladder').doc(widget.ladderName).collection('Scores').doc(_scoreDocStr).update({
+                              firestore.collection('Ladder').doc(widget.ladderName).collection('Scores').doc(_scoreDocStr).update({
                                 'BeingEditedBy': '',
                               });
                             }
@@ -1403,13 +1398,13 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                       writeAudit(user: activeUser.id, documentName: '${widget.ladderName}/$_scoreDocStr', action: 'ConfirmScore', newValue: 'True', oldValue: 'n/a');
                       String newScoresEnteredBy = _scoresEnteredBy;
                       if (newScoresEnteredBy.isNotEmpty) newScoresEnteredBy += '|';
-                      await FirebaseFirestore.instance.collection('Ladder').doc(widget.ladderName).collection('Scores').doc(_scoreDocStr).update({
+                      await firestore.collection('Ladder').doc(widget.ladderName).collection('Scores').doc(_scoreDocStr).update({
                         'ScoresEnteredBy': '$newScoresEnteredBy${activeUser.id} CONFIRMED',
                         'EndingRanks': endingRanksStr,
                       });
 
                       for (int i = 0; i < _playerList.length; i++) {
-                        await FirebaseFirestore.instance.collection('Ladder').doc(widget.ladderName).collection('Players').doc(_playerList[i]).update({
+                        await firestore.collection('Ladder').doc(widget.ladderName).collection('Players').doc(_playerList[i]).update({
                           'ScoresConfirmed': true,
                         });
                       }

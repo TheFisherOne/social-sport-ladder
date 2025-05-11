@@ -42,8 +42,11 @@ class _MyTextFieldState extends State<MyTextField> {
   initState() {
     super.initState();
     if (widget.initialValue !=null) {
-      widget.controller.text = widget.initialValue!;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        widget.controller.text = widget.initialValue!;
+      });
       lastSavedValue = widget.initialValue;
+
     }
       _focusNode.addListener(() {
         // print('_focusNode: ${_focusNode.hasFocus}');

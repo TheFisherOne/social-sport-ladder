@@ -1,4 +1,5 @@
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
@@ -8,15 +9,20 @@ import 'Utilities/helper_icon.dart';
 import 'Utilities/user_stream.dart';
 import 'constants/firebase_setup2.dart';
 
-String settingsColorMode = 'lightMode';
+var testFirestore;
+late FirebaseFirestore firestore;
 
 String xorString(String s1,String s2){
   if (s2.length > s1.length){
-    print('xorString: ERROR second string too long ${s2.length} > ${s1.length} "$s1"');
+    if (kDebugMode) {
+      print('xorString: ERROR second string too long ${s2.length} > ${s1.length} "$s1"');
+    }
     return "s1 too short";
   }
   if (s2.length < 4 ){
-    print('xorString: ERROR second string too short ${s2.length} < 4 "$s2"');
+    if (kDebugMode) {
+      print('xorString: ERROR second string too short ${s2.length} < 4 "$s2"');
+    }
     return "s2 keyString too short";
   }
   // Get the length of s1
@@ -78,9 +84,12 @@ void main() async {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
+
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
+    firestore = testFirestore??FirebaseFirestore.instance;
+
     loggedInUser = '';
     if (FirebaseAuth.instance.currentUser != null){
       if (FirebaseAuth.instance.currentUser!.email != null ){

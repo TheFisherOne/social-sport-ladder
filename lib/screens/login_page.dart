@@ -214,11 +214,7 @@ class LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     _auth = widget.auth!;
-    // if (oldColorMode != settingsColorMode) {
-    //   var provider = Provider.of<ThemeProvider>(context, listen: false);
-    //   Future(() => provider.setTheme(settingsColorMode));
-    //   oldColorMode = settingsColorMode;
-    // }
+
 
     // print('LoginPage: email "$loggedInUser" ');
 

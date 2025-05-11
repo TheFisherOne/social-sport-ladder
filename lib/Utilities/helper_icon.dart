@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import 'package:social_sport_ladder/screens/ladder_config_page.dart';
 import 'package:social_sport_ladder/screens/player_home.dart';
 import 'package:social_sport_ladder/screens/score_base.dart';
+import '../main.dart';
 import '../screens/audit_page.dart';
 import '../screens/ladder_selection_page.dart';
 import '../screens/login_page.dart';
@@ -148,8 +149,8 @@ Widget helperIcon(var context, String activeLadderId, List<PlayerList>? courtAss
                                   }
                                 }
 
-                                await FirebaseFirestore.instance.runTransaction((transaction) async {
-                                  DocumentSnapshot activeLadderRef = await FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).get();
+                                await firestore.runTransaction((transaction) async {
+                                  DocumentSnapshot activeLadderRef = await firestore.collection('Ladder').doc(activeLadderId).get();
                                   List<String> daysOfPlay = activeLadderRef.get('DaysOfPlay').split('|');
                                   List<String> newDaysOfPlay = List.empty(growable: true);
                                   DateTime now = DateTime.now();
@@ -169,7 +170,7 @@ Widget helperIcon(var context, String activeLadderId, List<PlayerList>? courtAss
                                   }
                                   // the Scores documents get initialized when the ladder is refrozen
                                   for (var pl = 0; pl < courtAssignments.length; pl++) {
-                                    DocumentReference playerRef = FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId)
+                                    DocumentReference playerRef = firestore.collection('Ladder').doc(activeLadderId)
                                         .collection('Players').doc(courtAssignments[pl].snapshot.id);
                                     if (getSportDescriptor(0) ==  'pickleballRG'){
                                       transaction.update(playerRef, {
@@ -188,7 +189,7 @@ Widget helperIcon(var context, String activeLadderId, List<PlayerList>? courtAss
 
                                     // print('Finalize: $pl ${movement![pl].rank} => ${movement![pl].afterWinLose}');
                                   }
-                                  DocumentReference ladderRef = FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId);
+                                  DocumentReference ladderRef = firestore.collection('Ladder').doc(activeLadderId);
                                   transaction.update(ladderRef, {
                                     'FreezeCheckIns': false,
                                     'FrozenDate': '',
@@ -215,14 +216,14 @@ Widget helperIcon(var context, String activeLadderId, List<PlayerList>? courtAss
                             onPressed: () async {
                               final navigator = Navigator.of(context);
                               if (courtAssignments != null) {
-                                await FirebaseFirestore.instance.runTransaction((transaction) async {
-                                  DocumentReference activeLadderRef = FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId);
+                                await firestore.runTransaction((transaction) async {
+                                  DocumentReference activeLadderRef = firestore.collection('Ladder').doc(activeLadderId);
 
                                   transaction.update(activeLadderRef, {
                                     'CurrentRound': 1,
                                   });
                                   for (var pl = 0; pl < courtAssignments.length; pl++) {
-                                    DocumentReference playerRef = FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Players').doc(courtAssignments[pl].snapshot.id);
+                                    DocumentReference playerRef = firestore.collection('Ladder').doc(activeLadderId).collection('Players').doc(courtAssignments[pl].snapshot.id);
                                     // print('clearing present for $activeLadderId / ${movement[pl].snapshot.id}');
                                     transaction.update(playerRef, {
                                       'Present': false,
@@ -246,7 +247,7 @@ Widget helperIcon(var context, String activeLadderId, List<PlayerList>? courtAss
                             onPressed: () {
                               writeAudit(user: loggedInUser, documentName: 'LadderConfig', action: 'Set FreezeCheckIns', newValue: false.toString(), oldValue: true.toString());
 
-                              FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({'FreezeCheckIns': false, 'FrozenDate': ''});
+                              firestore.collection('Ladder').doc(activeLadderId).update({'FreezeCheckIns': false, 'FrozenDate': ''});
                               writeAudit(user: activeUser.id, documentName: activeLadderId, action: 'unfreeze', newValue: true.toString(), oldValue: 'n/a');
                               Navigator.pop(context);
                               playerHomeInstance!.refresh();
@@ -262,13 +263,13 @@ Widget helperIcon(var context, String activeLadderId, List<PlayerList>? courtAss
                             icon: Icon(Icons.restart_alt),
                             onPressed: () async {
                               final navigator = Navigator.of(context);
-                              await FirebaseFirestore.instance.runTransaction((transaction) async {
+                              await firestore.runTransaction((transaction) async {
                                 // the Scores documents get initialized when the ladder is refrozen
-                                DocumentReference ladderRef = FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId);
+                                DocumentReference ladderRef = firestore.collection('Ladder').doc(activeLadderId);
                                 List<DocumentReference> playerDocs = List.empty(growable: true);
-                                var thePlayers = await FirebaseFirestore.instance.collection('Ladder/$activeLadderId/Players').get();
+                                var thePlayers = await firestore.collection('Ladder/$activeLadderId/Players').get();
                                 for (var subDoc in thePlayers.docs) {
-                                  DocumentReference tmpDoc = FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Players').doc(subDoc.id);
+                                  DocumentReference tmpDoc = firestore.collection('Ladder').doc(activeLadderId).collection('Players').doc(subDoc.id);
                                   playerDocs.add(tmpDoc);
                                 }
                                 // all of the DocumentReferences are done, and any required reading, so now we can do writes

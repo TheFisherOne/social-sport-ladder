@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:social_sport_ladder/constants/constants.dart';
 import 'package:social_sport_ladder/screens/login_page.dart';
 import '../Utilities/helper_icon.dart';
+import '../main.dart';
 import '../screens/audit_page.dart';
 import '../screens/calendar_page.dart';
 import '../screens/ladder_config_page.dart';
@@ -369,14 +370,19 @@ List<PlayerList>? sportTennisRGDetermineMovement(List<QueryDocumentSnapshot>? pl
       if (pl.courtNumber != lastCourtNumber) {
         if (lastWinner >= 0) {
           // exchange this winner with the loser from the higher court
-          var tmp = afterWinLose[lastPresent];
-          int loserRank = tmp.afterScores;
+          // the order this is done is very important to avoid confusion of pointers
+          // store the data before the swap
+          var tmpPlayer = afterWinLose[lastPresent];
+          int loserRank = tmpPlayer.afterScores;
           int winnerRank = afterWinLose[i].afterScores;
-          // print('swapping: i: $i lastPresent: $lastPresent ${afterWinLose[i].snapshot.id} ${afterWinLose[lastPresent].snapshot.id}');
-          tmp.afterWinLose = winnerRank;
+
+          // Swap players
           afterWinLose[lastPresent] = afterWinLose[i];
+          afterWinLose[i] = tmpPlayer;
+
+          // Update the `afterWinLose` fields
           afterWinLose[lastPresent].afterWinLose = loserRank;
-          afterWinLose[i] = tmp;
+          afterWinLose[i].afterWinLose = winnerRank;
         } else {
           afterWinLose[i].afterWinLose = afterWinLose[i].afterScores;
         }
@@ -390,14 +396,18 @@ List<PlayerList>? sportTennisRGDetermineMovement(List<QueryDocumentSnapshot>? pl
     } else {
       pl.afterWinLose = pl.afterScores;
     }
-    pl.newRank = pl.afterWinLose;
+  }
+
+  // being done in separate loop rather than inside a loop with the order changing
+  for (int i=0; i<startingList.length; i++) {
+    startingList[i].newRank = startingList[i].afterWinLose;
   }
   // for (int i=0; i<afterWinLose.length;i++){
   //   print('Start4: ${afterWinLose[i].rank} A1:${afterWinLose[i].afterDownOne}  A2: ${afterWinLose[i].afterDownTwo} '
   //       'A3:${afterWinLose[i].afterScores} A4: ${afterWinLose[i].afterWinLose} R: ${i+1}');
   // }
-  // for (int p=0; p<6; p++){
-  //   print('X4 $p ${startingList[p].snapshot.id} ${startingList[p].startingRank}  ${startingList[p].afterWinLose}');
+  // for (int p=0; p<startingList.length; p++){
+  //   print('X4 $p ${startingList[p].snapshot.id} ${startingList[p].startingRank}  ${startingList[p].afterWinLose} ${startingList[p].newRank} ');
   // }
   return startingList;
 }
@@ -673,7 +683,7 @@ class CourtAssignmentsRgStandard{
 
 
 
-void sportTennisRGprepareForScoreEntry(List<QueryDocumentSnapshot>? players) {
+sportTennisRGprepareForScoreEntry(List<QueryDocumentSnapshot>? players) async {
   // this should be called once by the person switching the mode of the ladder
   CourtAssignmentsRgStandard courtAssignments = CourtAssignmentsRgStandard(players!);
   String currentDate = DateFormat('yyyy.MM.dd').format(DateTime.now());
@@ -682,14 +692,14 @@ void sportTennisRGprepareForScoreEntry(List<QueryDocumentSnapshot>? players) {
   String dateStr = '${currentDate}_${currentRound.toString()}';
   writeAudit(user: activeUser.id, documentName: 'LadderConfig', action: 'Set FreezeCheckIns', newValue: true.toString(), oldValue: false.toString());
 
-  FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
+  await firestore.collection('Ladder').doc(activeLadderId).update({
     'FreezeCheckIns': true,
     'FrozenDate': dateStr,
   });
 
   // have to update all players even ones not assigned to a court
   for (QueryDocumentSnapshot player in players){
-    FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Players').doc(player.id).update({
+    await firestore.collection('Ladder').doc(activeLadderId).collection('Players').doc(player.id).update({
       'TotalScore':0,
       'MatchScores': '',
       'StartingOrder': 0,
@@ -711,12 +721,12 @@ void sportTennisRGprepareForScoreEntry(List<QueryDocumentSnapshot>? players) {
       players += crt[j]!.id;
       ranks += crt[j]!.get('Rank').toString();
       gameScores += (courtAssignments.playersOnEachCourt[court].length == 4) ? ',,' : ',,,,';
-      FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Players').doc(crt[j]!.id).update({
+      await firestore.collection('Ladder').doc(activeLadderId).collection('Players').doc(crt[j]!.id).update({
         'StartingOrder': j+1,
       });
     }
 
-    FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Scores').doc(docStr).set({
+    await firestore.collection('Ladder').doc(activeLadderId).collection('Scores').doc(docStr).set({
       'BeingEditedBy': '',
       'EditedSince': DateTime.now(),
       'GameScores': gameScores,
@@ -861,7 +871,7 @@ class _SportTennisRGState extends State<SportTennisRG> {
 
     //print('SportTennisRGPage build');
     return StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Players').orderBy('Rank').snapshots(),
+        stream: firestore.collection('Ladder').doc(activeLadderId).collection('Players').orderBy('Rank').snapshots(),
         builder: (BuildContext context, AsyncSnapshot<QuerySnapshot<Object?>> playerSnapshots) {
           // print('Ladder snapshot');
           if (playerSnapshots.error != null) {
@@ -927,7 +937,7 @@ class _SportTennisRGState extends State<SportTennisRG> {
                     }
                     return InkWell(
                       onTap: (getSportDescriptor(1)=='allowCourt5Change')?(){
-                        FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update({
+                        firestore.collection('Ladder').doc(activeLadderId).update({
                           'RandomCourtOf5': activeLadderDoc!.get('RandomCourtOf5')+1,
                         });
                       }:null,

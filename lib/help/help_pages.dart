@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 
@@ -77,7 +78,9 @@ class HelpPageState extends State<HelpPage>{
     if (_imageMap.containsKey(widget.page)){
       manual = widget.page;
     } else {
-      print('Help error: could not find manual ${widget.page}');
+      if (kDebugMode) {
+        print('Help error: could not find manual ${widget.page}');
+      }
     }
 
     return Scaffold(

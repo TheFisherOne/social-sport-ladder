@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:social_sport_ladder/constants/constants.dart';
 import '../Utilities/my_text_field.dart';
+import '../main.dart';
 
 
 class SuperAdmin extends StatefulWidget {
@@ -20,13 +21,13 @@ class _SuperAdminState extends State<SuperAdmin> {
 
   void rebuildLadders() {
     // if you want to see the print statements it seems like you have to be debugging it and put a breakpoint here
-    FirebaseFirestore.instance.runTransaction((transaction) async {
+    firestore.runTransaction((transaction) async {
       // first all of the globalUsers
-      CollectionReference globalUserCollectionRef = FirebaseFirestore.instance.collection('Users');
+      CollectionReference globalUserCollectionRef = firestore.collection('Users');
       QuerySnapshot globalUserSnapshot = await globalUserCollectionRef.get();
 
       // second the list of all ladders, will be using the id and the Admins field
-      CollectionReference laddersRef = FirebaseFirestore.instance.collection('Ladder');
+      CollectionReference laddersRef = firestore.collection('Ladder');
       QuerySnapshot snapshotLadders = await laddersRef.get();
 
       var emailLadders = {};
@@ -62,7 +63,7 @@ class _SuperAdminState extends State<SuperAdmin> {
           }
         }
 
-        CollectionReference playersRef = FirebaseFirestore.instance.collection('Ladder').doc(ladderName).collection('Players');
+        CollectionReference playersRef = firestore.collection('Ladder').doc(ladderName).collection('Players');
         QuerySnapshot snapshotPlayers = await playersRef.get();
 
         for (int playerIndex = 0; playerIndex < snapshotPlayers.docs.length; playerIndex++) {
@@ -87,11 +88,11 @@ class _SuperAdminState extends State<SuperAdmin> {
         List<String> friendLadders = snapshotLadders.docs[ladderIndex].get('LaddersThatCanView').split('|');
         for (int friend=0; friend<friendLadders.length; friend++){
           String friendLadder = friendLadders[friend];
-          print('rebuildLadders: processing LaddersThatCanView $friendLadder of ladder $ladderName');
+          // print('rebuildLadders: processing LaddersThatCanView $friendLadder of ladder $ladderName');
           if (friendLadder.isEmpty) continue;
 
 
-          CollectionReference playersRef = FirebaseFirestore.instance.collection('Ladder').doc(friendLadder).collection('Players');
+          CollectionReference playersRef = firestore.collection('Ladder').doc(friendLadder).collection('Players');
           QuerySnapshot ladderSnapshot = await playersRef.get();
           for (int playerIndex = 0; playerIndex < ladderSnapshot.docs.length; playerIndex++) {
             String user = ladderSnapshot.docs[playerIndex].id;
@@ -116,7 +117,7 @@ class _SuperAdminState extends State<SuperAdmin> {
         if (emailLadders.containsKey(email)) {
           if (emailLadders[email] != globalUserSnapshot.docs[index].get('Ladders')) {
             // print('updating $email to be ${emailLadders[email]}');
-            transaction.update(FirebaseFirestore.instance.collection('Users').doc(email), {
+            transaction.update(firestore.collection('Users').doc(email), {
               'Ladders': emailLadders[email],
             });
           }
@@ -124,7 +125,7 @@ class _SuperAdminState extends State<SuperAdmin> {
           String oldLadders = globalUserSnapshot.docs[index].get('Ladders');
           if (oldLadders.isNotEmpty) {
             // print('updating $email to be BLANK it was "$oldLadders"');
-            transaction.update(FirebaseFirestore.instance.collection('Users').doc(email), {
+            transaction.update(firestore.collection('Users').doc(email), {
               'Ladders': '',
             });
           }
@@ -137,7 +138,7 @@ class _SuperAdminState extends State<SuperAdmin> {
   }
 
   void createLadder(String newLadderName) async {
-    await FirebaseFirestore.instance.collection('Ladder').doc(newLadderName).set({
+    await firestore.collection('Ladder').doc(newLadderName).set({
       'Admins': '',
       'NonPlayingHelper': '',
       'CheckInStartHours': 0,
@@ -177,7 +178,7 @@ class _SuperAdminState extends State<SuperAdmin> {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('Ladder').snapshots(),
+        stream: firestore.collection('Ladder').snapshots(),
         builder: (BuildContext context, AsyncSnapshot<QuerySnapshot<Object?>> ladderSnapshots) {
           // print('Ladder snapshot');
           if (ladderSnapshots.error != null) {
@@ -281,9 +282,9 @@ class _SuperAdminState extends State<SuperAdmin> {
                     } catch (_) {
                       return;
                     }
-                    await FirebaseFirestore.instance.runTransaction((transaction) async {
+                    await firestore.runTransaction((transaction) async {
                     for (QueryDocumentSnapshot<Object?> doc in ladderSnapshots.data!.docs) {
-                      DocumentReference ladderRef = FirebaseFirestore.instance.collection('Ladder').doc(doc.id);
+                      DocumentReference ladderRef = firestore.collection('Ladder').doc(doc.id);
                       transaction.update(ladderRef, {
                         'RequiredSoftwareVersion': number,
                       });
@@ -292,7 +293,7 @@ class _SuperAdminState extends State<SuperAdmin> {
                     });
                     // for (QueryDocumentSnapshot<Object?> doc in ladderSnapshots.data!.docs) {
                     //   print('updating RequiredSoftwareVersion for ladder ${doc.id} to $number');
-                    //   await FirebaseFirestore.instance.collection('Ladder').doc(doc.id).update({
+                    //   await firestore.collection('Ladder').doc(doc.id).update({
                     //     'RequiredSoftwareVersion': number,
                     //   });
                     // }
@@ -314,9 +315,9 @@ class _SuperAdminState extends State<SuperAdmin> {
                 IconButton(
                     onPressed:
                     () {
-                      FirebaseFirestore.instance.collection('Ladder').get().then((QuerySnapshot ladder) {
+                      firestore.collection('Ladder').get().then((QuerySnapshot ladder) {
                         for (var doc in ladder.docs) {
-                          FirebaseFirestore.instance.collection('Ladder').doc(doc.id).update({
+                          firestore.collection('Ladder').doc(doc.id).update({
                             // 'CurrentRound': 1,
                             // 'RequiredSoftwareVersion': softwareVersion,
                             'NonPlayingHelper': '',
@@ -324,10 +325,10 @@ class _SuperAdminState extends State<SuperAdmin> {
                             // 'LowerLadder':'',
                           });
 
-                          // FirebaseFirestore.instance.collection('Ladder/${doc.id}/Players').get().then((QuerySnapshot player) {
+                          // firestore.collection('Ladder/${doc.id}/Players').get().then((QuerySnapshot player) {
                           //   for (var subDoc in player.docs) {
                           //     // print('Ladder: ${doc.id} and Player: ${subDoc.id}');
-                          //     FirebaseFirestore.instance.collection('Ladder').doc(doc.id).collection('Players').doc(subDoc.id)
+                          //     firestore.collection('Ladder').doc(doc.id).collection('Players').doc(subDoc.id)
                           //     .update({
                           //       'WaitListRank': 0,
                           //       // 'TotalScore':0,

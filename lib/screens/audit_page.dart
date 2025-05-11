@@ -10,6 +10,7 @@ import 'package:social_sport_ladder/screens/ladder_config_page.dart';
 import 'package:social_sport_ladder/screens/ladder_selection_page.dart';
 
 import '../Utilities/helper_icon.dart';
+import '../main.dart';
 import 'login_page.dart';
 
 
@@ -23,7 +24,7 @@ transactionAudit( { required Transaction transaction, required String user, requ
     'NewValue': newValue,
     'OldValue': oldValue ??'n/a',
   };
- transaction.set(FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Audit').doc(auditTime), newContents);
+ transaction.set(firestore.collection('Ladder').doc(activeLadderId).collection('Audit').doc(auditTime), newContents);
 }
 
 writeAudit({required String user, required String documentName,
@@ -38,7 +39,7 @@ writeAudit({required String user, required String documentName,
   };
 
 // print('writeAudit to $activeLadderId "$auditTime" ${DateTime.now()}');
-    FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Audit').doc(auditTime).set(newContents);
+    firestore.collection('Ladder').doc(activeLadderId).collection('Audit').doc(auditTime).set(newContents);
 
 }
 
@@ -66,9 +67,9 @@ class _AuditPageState extends State<AuditPage> {
       // now limit it to 500 at a time
       List toDeleteList = truncatedList.length>=500?truncatedList.sublist(0, 500):truncatedList;
       // print('attempt to shortenAuditLog by ${toDeleteList.length} entries using batch');
-      WriteBatch batch = FirebaseFirestore.instance.batch();
+      WriteBatch batch = firestore.batch();
       for (String auditId in toDeleteList){
-        DocumentReference docRef = FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Audit').doc(auditId);
+        DocumentReference docRef = firestore.collection('Ladder').doc(activeLadderId).collection('Audit').doc(auditId);
         batch.delete(docRef);
       }
       // Commit the batch
@@ -91,7 +92,7 @@ class _AuditPageState extends State<AuditPage> {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Audit').snapshots(),
+        stream: firestore.collection('Ladder').doc(activeLadderId).collection('Audit').snapshots(),
         builder: (BuildContext context, AsyncSnapshot<QuerySnapshot<Object?>> auditSnapshots) {
           // print('Ladder snapshot');
           if (auditSnapshots.error != null) {
@@ -131,7 +132,7 @@ class _AuditPageState extends State<AuditPage> {
           }
           bool isAdmin = activeLadderDoc!.get('Admins').split(',').contains(loggedInUser) || activeUser.amSuper;
 
-          print('filterText: $filterText');
+          // print('filterText: $filterText');
           return Scaffold(
               backgroundColor: Colors.green[50],
               appBar: AppBar(

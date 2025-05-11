@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../constants/constants.dart';
+import '../main.dart';
 import '../screens/ladder_selection_page.dart';
 import '../screens/login_page.dart';
 
@@ -20,7 +21,7 @@ class _UserStreamState extends State<UserStream> {
   Widget build(BuildContext context) {
 
     return StreamBuilder<DocumentSnapshot>(
-        stream: FirebaseFirestore.instance.collection('Users').doc(loggedInUser).snapshots(),
+        stream: firestore.collection('Users').doc(loggedInUser).snapshots(),
         builder: (BuildContext context, AsyncSnapshot<DocumentSnapshot<Object?>> snapshot) {
           // print('users snapshot');
           if (snapshot.error != null) {
@@ -41,7 +42,7 @@ class _UserStreamState extends State<UserStream> {
             }
             return const CircularProgressIndicator();
           }
-          print('rebuilding of UserStream');
+          //print('rebuilding of UserStream');
           loggedInUserDoc = snapshot.data;
 
           double usersFontSize = 30;

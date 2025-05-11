@@ -15,6 +15,7 @@ import '../Utilities/player_image.dart';
 import '../constants/constants.dart';
 // import '../sports/score_tennis_rg.dart';
 import '../help/help_pages.dart';
+import '../main.dart';
 import '../sports/sport_tennis_rg.dart';
 import 'audit_page.dart';
 import 'calendar_page.dart';
@@ -322,7 +323,7 @@ class _PlayerHomeState extends State<PlayerHome> {
                               }
 
                               writeAudit(user: activeUser.id, documentName: player.id, action: 'Set Present', newValue: newPresent.toString(), oldValue: player.get('Present').toString());
-                              FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Players').doc(player.id).update({
+                              firestore.collection('Ladder').doc(activeLadderId).collection('Players').doc(player.id).update({
                                 'Present': newPresent,
                                 'TimePresent': DateTime.now(),
                               });
@@ -506,7 +507,7 @@ class _PlayerHomeState extends State<PlayerHome> {
 
     // print('loggedInUserIsAdmin: $_loggedInUserIsAdmin');
     return StreamBuilder<DocumentSnapshot>(
-      stream: FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).snapshots(),
+      stream: firestore.collection('Ladder').doc(activeLadderId).snapshots(),
       builder: (BuildContext context, AsyncSnapshot<DocumentSnapshot<Object?>> ladderSnapshot) {
         if (ladderSnapshot.error != null) {
           String error = 'Snapshot error: ${ladderSnapshot.error.toString()} on getting activeladder $activeLadderId ';
@@ -533,7 +534,7 @@ class _PlayerHomeState extends State<PlayerHome> {
         }
 
         return StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Players').orderBy('Rank').snapshots(),
+            stream: firestore.collection('Ladder').doc(activeLadderId).collection('Players').orderBy('Rank').snapshots(),
             builder: (BuildContext context, AsyncSnapshot<QuerySnapshot<Object?>> playerSnapshots) {
               // print('Ladder snapshot');
               if (playerSnapshots.error != null) {
@@ -614,10 +615,10 @@ class _PlayerHomeState extends State<PlayerHome> {
                     //TODO: can not unfreeze if scores are entered
                     mayFreeze = true;
                   } else if (( minToStart < 5.0) && (numberOfHelpersPresent == 0)) {
-                      print('mayFreeze: special override, no helpers present, less than 5 minutes to go $nextPlayDate');
+                      // print('mayFreeze: special override, no helpers present, less than 5 minutes to go $nextPlayDate');
                       mayFreeze = true;
                   } else if (minToStart < 0.0)  {
-                    print('mayFreeze: special override, helpers present but start time has passed $nextPlayDate');
+                    // print('mayFreeze: special override, helpers present but start time has passed $nextPlayDate');
                     mayFreeze = true;
                   }
 

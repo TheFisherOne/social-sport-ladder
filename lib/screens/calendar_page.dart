@@ -15,6 +15,7 @@ import 'package:social_sport_ladder/sports/score_tennis_rg.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 import '../help/help_pages.dart';
+import '../main.dart';
 import 'audit_page.dart';
 import 'ladder_selection_page.dart';
 import 'login_page.dart';
@@ -47,7 +48,9 @@ bool mapContainsDateKey(var events, DateTime key) {
     result = FixedDateTimeFormatter('YYYY.MM.DD_hh:mm', isUtc: false).decode(daysOfPlayChecked.first);
   } catch (e) {
     if (kDebugMode) {
-      print('exception: $e from ${daysOfPlayChecked.first}');
+      if (testFirestore==null) {
+        print('exception: $e from ${daysOfPlayChecked.first}');
+      }
     }
   }
   return (result, daysOfPlayChecked.first.substring(16));
@@ -301,7 +304,7 @@ class CalendarPageState extends State<CalendarPage> {
       String oldValue = activeLadderDoc!.get('DaysOfPlay');
       if (newValue != oldValue) {
         writeAudit(user: loggedInUser, documentName: activeLadderId, action: 'Set DaysOfPlay', newValue: newValue, oldValue: oldValue);
-        FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).update(m1);
+        firestore.collection('Ladder').doc(activeLadderId).update(m1);
       }
     }
     if (typeOfCalendarEvent == EventTypes.standard) {
@@ -309,7 +312,7 @@ class CalendarPageState extends State<CalendarPage> {
       String oldValue = _playerDoc!.get('DaysAway');
       if (newValue != oldValue) {
         writeAudit(user: loggedInUser, documentName: _playerDoc!.id, action: 'Set DaysAway', newValue: newValue, oldValue: oldValue);
-        FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Players').doc(_playerDoc!.id).update(m3);
+        firestore.collection('Ladder').doc(activeLadderId).collection('Players').doc(_playerDoc!.id).update(m3);
       }
     }
     currentCalendarPage = null;
@@ -358,7 +361,7 @@ class CalendarPageState extends State<CalendarPage> {
   Future<void> listScoreDocs() async {
     DateTime timeLimit = DateTime.now().subtract(const Duration(days: 180));
     QuerySnapshot<Map<String, dynamic>> scores =
-        await FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Scores').where('EditedSince', isGreaterThanOrEqualTo: timeLimit).get();
+        await firestore.collection('Ladder').doc(activeLadderId).collection('Scores').where('EditedSince', isGreaterThanOrEqualTo: timeLimit).get();
     // print('listScoreDocs: found ${scores.docs.length} score docs');
     for (var doc in scores.docs) {
       _scoresList.add(doc);
@@ -787,7 +790,7 @@ class CalendarPageState extends State<CalendarPage> {
     try {
       if (typeOfCalendarEvent == EventTypes.standard) {
         return StreamBuilder<DocumentSnapshot>(
-            stream: FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Players').doc(clickedOnPlayerDoc!.id).snapshots(),
+            stream: firestore.collection('Ladder').doc(activeLadderId).collection('Players').doc(clickedOnPlayerDoc!.id).snapshots(),
             builder: (BuildContext context, AsyncSnapshot<DocumentSnapshot<Object?>> playerSnapshots) {
               if (playerSnapshots.error != null) {
                 String error = 'Snapshot error: ${playerSnapshots.error.toString()} on getting player ${clickedOnPlayerDoc!.id} ';

@@ -10,6 +10,7 @@ import 'package:social_sport_ladder/constants/constants.dart';
 import 'package:social_sport_ladder/screens/ladder_config_page.dart';
 import '../Utilities/helper_icon.dart';
 import '../Utilities/my_text_field.dart';
+import '../main.dart';
 import 'audit_page.dart';
 import 'ladder_selection_page.dart';
 
@@ -20,9 +21,9 @@ movePlayerDown(String fromLadder, String toLadder) async {
   // 3) deleteplayer from the fromLadder
   // 4) assume that the global user Ladders fields do not
 
-  CollectionReference toPlayerRef = FirebaseFirestore.instance.collection('Ladder').doc(toLadder).collection('Players');
-  CollectionReference fromPlayerRef = FirebaseFirestore.instance.collection('Ladder').doc(fromLadder).collection('Players');
-  await FirebaseFirestore.instance.runTransaction((transaction) async {
+  CollectionReference toPlayerRef = firestore.collection('Ladder').doc(toLadder).collection('Players');
+  CollectionReference fromPlayerRef = firestore.collection('Ladder').doc(fromLadder).collection('Players');
+  await firestore.runTransaction((transaction) async {
     QuerySnapshot? fromPlayerDocs = await fromPlayerRef.get();
     // get the last player
     int highestRank = 0;
@@ -46,7 +47,7 @@ movePlayerDown(String fromLadder, String toLadder) async {
       }
     }
 
-    DocumentReference fromUserRef = FirebaseFirestore.instance.collection('Users').doc(highestPlayerDoc!.id);
+    DocumentReference fromUserRef = firestore.collection('Users').doc(highestPlayerDoc!.id);
     DocumentSnapshot? userDoc = await fromUserRef.get();
     String laddersStr = userDoc.get('Ladders');
     String newLaddersStr = laddersStr.toString();
@@ -64,7 +65,7 @@ movePlayerDown(String fromLadder, String toLadder) async {
 
     // now start writing/updating after all of the reads have happened
     if (newLaddersStr != laddersStr) {
-      transaction.update(FirebaseFirestore.instance.collection('Users').doc(highestPlayerDoc.id), {
+      transaction.update(firestore.collection('Users').doc(highestPlayerDoc.id), {
         'Ladders': newLaddersStr,
       });
     }
@@ -73,13 +74,13 @@ movePlayerDown(String fromLadder, String toLadder) async {
     for (int i = 0; i < toPlayerDocs.docs.length; i++) {
       QueryDocumentSnapshot doc = toPlayerDocs.docs[i];
       // print('incrementing Ranks of ${doc.id} from ${toPlayerRanks[i]}');
-      transaction.update(FirebaseFirestore.instance.collection('Ladder').doc(toLadder).collection('Players').doc(doc.id), {
+      transaction.update(firestore.collection('Ladder').doc(toLadder).collection('Players').doc(doc.id), {
         'Rank': toPlayerRanks[i],
       });
     }
     // add in the new Player
     // print('creating copy of user ${highestPlayerDoc.id} in $toLadder');
-    transaction.set(FirebaseFirestore.instance.collection('Ladder').doc(toLadder).collection('Players').doc(highestPlayerDoc.id), {
+    transaction.set(firestore.collection('Ladder').doc(toLadder).collection('Players').doc(highestPlayerDoc.id), {
       'Helper': highestPlayerDoc.get('Helper'),
       'Name': highestPlayerDoc.get('Name'),
       'Present': false,
@@ -96,7 +97,7 @@ movePlayerDown(String fromLadder, String toLadder) async {
 
     // now delete it from the fromLadder
     // print('deleting user ${highestPlayerDoc.id} from ladder $fromLadder should be at end anyway');
-    transaction.delete(FirebaseFirestore.instance.collection('Ladder').doc(fromLadder).collection('Players').doc(highestPlayerDoc.id));
+    transaction.delete(firestore.collection('Ladder').doc(fromLadder).collection('Players').doc(highestPlayerDoc.id));
 
     transactionAudit(transaction: transaction, user: activeUser.id, documentName: highestPlayerDoc.id, action: 'Move player down to other ladder', newValue: toLadder, oldValue: fromLadder);
   });
@@ -104,9 +105,9 @@ movePlayerDown(String fromLadder, String toLadder) async {
 }
 
 movePlayerUp(String fromLadder, String toLadder) async {
-  CollectionReference toPlayerRef = FirebaseFirestore.instance.collection('Ladder').doc(toLadder).collection('Players');
-  CollectionReference fromPlayerRef = FirebaseFirestore.instance.collection('Ladder').doc(fromLadder).collection('Players');
-  await FirebaseFirestore.instance.runTransaction((transaction) async {
+  CollectionReference toPlayerRef = firestore.collection('Ladder').doc(toLadder).collection('Players');
+  CollectionReference fromPlayerRef = firestore.collection('Ladder').doc(fromLadder).collection('Players');
+  await firestore.runTransaction((transaction) async {
     QuerySnapshot toPlayerDocs = await toPlayerRef.get();
     // get the last player
     int highestRank = 0;
@@ -125,7 +126,7 @@ movePlayerUp(String fromLadder, String toLadder) async {
       }
       fromPlayerRanks.add(doc.get('Rank') - 1);
     }
-    DocumentReference fromUserRef = FirebaseFirestore.instance.collection('Users').doc(fromPlayerDoc!.id);
+    DocumentReference fromUserRef = firestore.collection('Users').doc(fromPlayerDoc!.id);
     DocumentSnapshot? userDoc = await fromUserRef.get();
     String laddersStr = userDoc.get('Ladders');
     String newLaddersStr = laddersStr.toString();
@@ -143,7 +144,7 @@ movePlayerUp(String fromLadder, String toLadder) async {
 
     // now start writing/updating after all of the reads have happened
     if (newLaddersStr != laddersStr) {
-      transaction.update(FirebaseFirestore.instance.collection('Users').doc(fromPlayerDoc.id), {
+      transaction.update(firestore.collection('Users').doc(fromPlayerDoc.id), {
         'Ladders': newLaddersStr,
       });
     }
@@ -151,13 +152,13 @@ movePlayerUp(String fromLadder, String toLadder) async {
     for (int i = 0; i < fromPlayerDocs.docs.length; i++) {
       QueryDocumentSnapshot doc = fromPlayerDocs.docs[i];
       // print('decrementing Ranks of ${doc.id} to ${fromPlayerRanks[i]}');
-      transaction.update(FirebaseFirestore.instance.collection('Ladder').doc(fromLadder).collection('Players').doc(doc.id), {
+      transaction.update(firestore.collection('Ladder').doc(fromLadder).collection('Players').doc(doc.id), {
         'Rank': fromPlayerRanks[i],
       });
     }
     // add in the new Player
     // print('creating copy of user ${fromPlayerDoc.id} in $toLadder');
-    transaction.set(FirebaseFirestore.instance.collection('Ladder').doc(toLadder).collection('Players').doc(fromPlayerDoc.id), {
+    transaction.set(firestore.collection('Ladder').doc(toLadder).collection('Players').doc(fromPlayerDoc.id), {
       'Helper': fromPlayerDoc.get('Helper'),
       'Name': fromPlayerDoc.get('Name'),
       'Present': false,
@@ -174,7 +175,7 @@ movePlayerUp(String fromLadder, String toLadder) async {
 
     // now delete it from the fromLadder
     // print('deleting user ${fromPlayerDoc.id} from ladder $fromLadder after shuffling other ranks');
-    transaction.delete(FirebaseFirestore.instance.collection('Ladder').doc(fromLadder).collection('Players').doc(fromPlayerDoc.id));
+    transaction.delete(firestore.collection('Ladder').doc(fromLadder).collection('Players').doc(fromPlayerDoc.id));
 
     transactionAudit(transaction: transaction, user: activeUser.id, documentName: fromPlayerDoc.id, action: 'Move player UP to other ladder', newValue: toLadder, oldValue: fromLadder);
   });
@@ -212,11 +213,11 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
     );
   }
   void addPlayer(BuildContext context, String newPlayerEmail) async {
-    DocumentReference globalUserRef = FirebaseFirestore.instance.collection('Users').doc(newPlayerEmail);
+    DocumentReference globalUserRef = firestore.collection('Users').doc(newPlayerEmail);
     String displayName = 'New Player';
-    DocumentReference ladderRef = FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId);
+    DocumentReference ladderRef = firestore.collection('Ladder').doc(activeLadderId);
 
-    await FirebaseFirestore.instance.runTransaction((transaction) async {
+    await firestore.runTransaction((transaction) async {
       var globalUserDoc = await globalUserRef.get();
       var ladderDoc = await ladderRef.get();
       String viewLadders = ladderDoc.get('LaddersThatCanView');
@@ -243,18 +244,18 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
           }
         }
 
-        transaction.update(FirebaseFirestore.instance.collection('Users').doc(newPlayerEmail), {
+        transaction.update(firestore.collection('Users').doc(newPlayerEmail), {
           'Ladders': newLadderList.join(','),
         });
       } else {
         // print('addPlayer: have to create new user $newPlayerName');
-        transaction.set(FirebaseFirestore.instance.collection('Users').doc(newPlayerEmail), {
+        transaction.set(firestore.collection('Users').doc(newPlayerEmail), {
           'Ladders': viewLadders,
         });
       }
 
       // print('addPlayer: $activeLadderId/$newPlayerEmail/$displayName');
-      transaction.set(FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Players').doc(newPlayerEmail), {
+      transaction.set(firestore.collection('Ladder').doc(activeLadderId).collection('Players').doc(newPlayerEmail), {
         'Helper': false,
         'Name': displayName,
         'Present': false,
@@ -319,13 +320,13 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
   void deletePlayer(String playerId, int newRank) {
     List<DocumentReference> playerRef = List.empty(growable: true);
     for (var doc in _players) {
-      DocumentReference docRef = FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Players').doc(doc.id);
+      DocumentReference docRef = firestore.collection('Ladder').doc(activeLadderId).collection('Players').doc(doc.id);
       playerRef.add(docRef);
     }
-    DocumentReference ladderRef = FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId);
-    DocumentReference globalUserRef = FirebaseFirestore.instance.collection('Users').doc(playerId);
+    DocumentReference ladderRef = firestore.collection('Ladder').doc(activeLadderId);
+    DocumentReference globalUserRef = firestore.collection('Users').doc(playerId);
 
-    FirebaseFirestore.instance.runTransaction((transaction) async {
+    firestore.runTransaction((transaction) async {
       var ladderDoc = await ladderRef.get();
       var globalUserDoc = await globalUserRef.get();
 
@@ -344,13 +345,13 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
         if (emails[index] == playerId) continue; // delete the current user at the end
         if (oldRanks[index] <= newRank) continue;
         // print('deletePlayer: setting rank of ${emails[index]} from ${oldRanks[index]} to ${oldRanks[index] - 1}');
-        transaction.update(FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Players').doc(emails[index]), {
+        transaction.update(firestore.collection('Ladder').doc(activeLadderId).collection('Players').doc(emails[index]), {
           'Rank': oldRanks[index] - 1,
         });
       }
 
       // print('deletePlayer deleting from Ladder $activeLadderId the Players $playerId');
-      transaction.delete(FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Players').doc(playerId));
+      transaction.delete(firestore.collection('Ladder').doc(activeLadderId).collection('Players').doc(playerId));
 
       if (!oldAdmins.contains(playerId)) {
         // we deleted the player, and it is not an admin on this ladder so we can remove it
@@ -365,7 +366,7 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
           }
         }
         // print('delete user, removing $activeLadderId from $ladders now "$newLadders"');
-        transaction.update(FirebaseFirestore.instance.collection('Users').doc(playerId), {
+        transaction.update(firestore.collection('Users').doc(playerId), {
           'Ladders': newLadders,
         });
 
@@ -387,11 +388,11 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
 
     List<DocumentReference> playerRef = List.empty(growable: true);
     for (var doc in _players) {
-      DocumentReference docRef = FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Players').doc(doc.id);
+      DocumentReference docRef = firestore.collection('Ladder').doc(activeLadderId).collection('Players').doc(doc.id);
       playerRef.add(docRef);
     }
 
-    FirebaseFirestore.instance.runTransaction((transaction) async {
+    firestore.runTransaction((transaction) async {
       List<int> oldRanks = List.empty(growable: true);
       List<String> emails = List.empty(growable: true);
 
@@ -407,19 +408,19 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
           if (oldRanks[index] < newRank) continue;
           if (oldRanks[index] > oldRank) continue;
           // print('changing $index ${emails[index]} from ${oldRanks[index]} to PLUS 1');
-          transaction.update(FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Players').doc(emails[index]), {
+          transaction.update(firestore.collection('Ladder').doc(activeLadderId).collection('Players').doc(emails[index]), {
             'Rank': oldRanks[index] + 1,
           });
         } else if (newRank > oldRank) {
           if (oldRanks[index] < oldRank) continue;
           if (oldRanks[index] > newRank) continue;
           // print('changing $index ${emails[index]} from ${oldRanks[index]} to less 1');
-          transaction.update(FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Players').doc(emails[index]), {
+          transaction.update(firestore.collection('Ladder').doc(activeLadderId).collection('Players').doc(emails[index]), {
             'Rank': oldRanks[index] - 1,
           });
         }
         // print('changing final $playerId to $newRank');
-        transaction.update(FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Players').doc(playerId), {
+        transaction.update(firestore.collection('Ladder').doc(activeLadderId).collection('Players').doc(playerId), {
           'Rank': newRank,
         });
 
@@ -593,7 +594,7 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
                       for (int i=0; i<waitList.length;i++) {
                         if (waitList[i].get('WaitListRank') != oldRank) {
                           // print('waitList: id: ${waitList[i].id} newWaitListRank: $nextRank');
-                          FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Players').doc(waitList[i].id).update({
+                          firestore.collection('Ladder').doc(activeLadderId).collection('Players').doc(waitList[i].id).update({
                             'WaitListRank': nextRank,
                           });
                           nextRank++;
@@ -607,7 +608,7 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
                       // print('updating ${playerDoc.id} to $newRank');
                       writeAudit(user: activeUser.id, documentName: playerDoc.id, action: 'Wish List Rank', newValue: newRank.toString(),
                           oldValue: oldRank.toString());
-                      FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Players').doc(playerDoc.id).update({
+                      firestore.collection('Ladder').doc(activeLadderId).collection('Players').doc(playerDoc.id).update({
                         'WaitListRank': newRank,
                       });
                     }
@@ -637,11 +638,11 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
                   String newValue = entry.trim().replaceAll(RegExp(r' \s+'), ' ');
                   writeAudit(user: activeUser.id, documentName: playerDoc.id, action: 'Set Name', newValue: newValue, oldValue: playerDoc.get('Name'));
                   // print('ready to update');
-                  FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Players').doc(playerDoc.id).update({
+                  firestore.collection('Ladder').doc(activeLadderId).collection('Players').doc(playerDoc.id).update({
                     'Name': newValue,
                   });
                   //remember the last name used for each email to make it easier to add an existing player to a new ladder
-                  FirebaseFirestore.instance.collection('Users').doc(playerDoc.id).update({
+                  firestore.collection('Users').doc(playerDoc.id).update({
                     'DisplayName': newValue,
                   });
                 },
@@ -658,7 +659,7 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
                   child: Checkbox(
                       value: playerDoc.get('Helper'),
                       onChanged: (val) {
-                        FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Players').doc(playerDoc.id).update({
+                        firestore.collection('Ladder').doc(activeLadderId).collection('Players').doc(playerDoc.id).update({
                           'Helper': val,
                         });
                         writeAudit(
@@ -687,7 +688,7 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
                       int newRank = maxWaitListRank+1;
                       writeAudit(user: activeUser.id, documentName: playerDoc.id, action: 'Wish List Rank', newValue: newRank.toString(),
                           oldValue: '0');
-                      FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Players').doc(playerDoc.id).update({
+                      firestore.collection('Ladder').doc(activeLadderId).collection('Players').doc(playerDoc.id).update({
                         'WaitListRank': newRank,
                       });
 
@@ -752,7 +753,7 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('Ladder').doc(activeLadderId).collection('Players').snapshots(),
+        stream: firestore.collection('Ladder').doc(activeLadderId).collection('Players').snapshots(),
         builder: (BuildContext context, AsyncSnapshot<QuerySnapshot<Object?>> playerSnapshots) {
           // print('Ladder snapshot');
           if (playerSnapshots.error != null) {
