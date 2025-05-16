@@ -404,6 +404,8 @@ class _PlayerHomeState extends State<PlayerHome> {
                     ),
                   ),
                 ):SizedBox(width: 1,),
+                if ((player.get('WeeksAwayWithoutNotice')>=3)||(player.get('WeeksAway')>=7))
+                  Text('Weeks Away wihout Notice: ${player.get('WeeksAwayWithoutNotice')} / total Away ${player.get('WeeksAway')}', style: errorNameStyle,),
               ],
             ),
             const SizedBox(width: 10),
@@ -478,6 +480,8 @@ class _PlayerHomeState extends State<PlayerHome> {
           },
           child: Row(children: [
             icon,
+            if (player.get('WeeksRegistered')<=0) Icon(Icons.fiber_new, color: Colors.green,),
+            if ((player.get('WeeksAwayWithoutNotice')>=3)||(player.get('WeeksAway')>=7)) Icon(Icons.warning, color: Colors.red,),
             Text(
               ' $rank${(player.get('WaitListRank')>0)?"w${player.get('WaitListRank')}":""}: ${player.get('Name')}',
               style: isUserRow ? nameBoldStyle : ((player.get('Helper') ?? false) ? italicNameStyle : nameStyle),

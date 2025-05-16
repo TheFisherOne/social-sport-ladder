@@ -317,29 +317,32 @@ class _SuperAdminState extends State<SuperAdmin> {
                     () {
                       firestore.collection('Ladder').get().then((QuerySnapshot ladder) {
                         for (var doc in ladder.docs) {
-                          firestore.collection('Ladder').doc(doc.id).update({
-                            // 'CurrentRound': 1,
-                            // 'RequiredSoftwareVersion': softwareVersion,
-                            'NonPlayingHelper': '',
-                            // 'HigherLadder':'',
-                            // 'LowerLadder':'',
-                          });
-
-                          // firestore.collection('Ladder/${doc.id}/Players').get().then((QuerySnapshot player) {
-                          //   for (var subDoc in player.docs) {
-                          //     // print('Ladder: ${doc.id} and Player: ${subDoc.id}');
-                          //     firestore.collection('Ladder').doc(doc.id).collection('Players').doc(subDoc.id)
-                          //     .update({
-                          //       'WaitListRank': 0,
-                          //       // 'TotalScore':0,
-                          //       // 'StartingOrder': 0,
-                          //       // 'Score1': FieldValue.delete(),
-                          //       // 'Score2': FieldValue.delete(),
-                          //       // 'LaddersThatCanView': FieldValue.delete(),
-                          //
-                          //     });
-                          //   }
+                          // firestore.collection('Ladder').doc(doc.id).update({
+                          //   // 'CurrentRound': 1,
+                          //   // 'RequiredSoftwareVersion': softwareVersion,
+                          //   'NonPlayingHelper': '',
+                          //   // 'HigherLadder':'',
+                          //   // 'LowerLadder':'',
                           // });
+
+                          firestore.collection('Ladder/${doc.id}/Players').get().then((QuerySnapshot player) {
+                            for (var subDoc in player.docs) {
+                              // print('Ladder: ${doc.id} and Player: ${subDoc.id}');
+                              firestore.collection('Ladder').doc(doc.id).collection('Players').doc(subDoc.id)
+                              .update({
+                                // 'WeeksRegistered':0,
+                                // 'WeeksAway':0,
+                                // 'WeeksAwayWithOutNotice':FieldValue.delete(),
+                                // 'WeeksAwayWithoutNotice':0,
+                                // 'TotalScore':0,
+                                // 'StartingOrder': 0,
+                                // 'Score1': FieldValue.delete(),
+                                // 'Score2': FieldValue.delete(),
+                                // 'LaddersThatCanView': FieldValue.delete(),
+
+                              });
+                            }
+                          });
                         }
                       });
                     },

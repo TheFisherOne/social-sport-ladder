@@ -416,11 +416,14 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
 
                   DateTime? nextPlay;
                   String note;
+                  String numDaysAwayStr='Admin did not configure';
                   (nextPlay, note) = getNextPlayDateTime(availableDocs[row]);
-                  int daysAway = daysBetween(DateTime.now(), nextPlay!);
+                  if (nextPlay !=null){
+                  int daysAway = daysBetween(DateTime.now(), nextPlay);
                   // print('Row:$row ${availableDocs[row].id} daysAway: $daysAway  nextPlay:  $nextPlay');
                   String timeToPlay = DateFormat('h:mma').format(nextPlay);
-                  String numDaysAwayStr;
+
+
                   if (daysAway == 1) {
                     numDaysAwayStr = '(Tomorrow) @ $timeToPlay';
                     nextPlay2 = note;
@@ -435,7 +438,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                     nextPlay2 = note;
                   }
                   nextPlay1 = ' ${DateFormat('E yyyy.MM.dd').format(nextPlay)} $numDaysAwayStr';
-                                  // print('building ladder selection entry: row: $row ${availableDocs[row].get('DisplayName')}');
+                  }                                 // print('building ladder selection entry: row: $row ${availableDocs[row].get('DisplayName')}');
                   return Container(
                       // height: 350,
                       decoration: BoxDecoration(

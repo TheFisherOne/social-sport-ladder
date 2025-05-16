@@ -215,75 +215,106 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
   }
 
   void addPlayer(BuildContext context, String newPlayerEmail, {String newDisplayName = ''}) async {
+    int newRank = -1;
     DocumentReference globalUserRef = firestore.collection('Users').doc(newPlayerEmail);
     String displayName = 'New Player';
     DocumentReference ladderRef = firestore.collection('Ladder').doc(activeLadderId);
+    // print('addPlayer: $newPlayerEmail');
 
-    await firestore.runTransaction((transaction) async {
-      var globalUserDoc = await globalUserRef.get();
-      var ladderDoc = await ladderRef.get();
-      String viewLadders = ladderDoc.get('LaddersThatCanView');
-      if (viewLadders.isEmpty) {
-        viewLadders = activeLadderId;
-      } else {
-        viewLadders = '$activeLadderId,$viewLadders';
-      }
-
-      if (globalUserDoc.exists) {
-        try {
-          displayName = globalUserDoc.get('DisplayName');
-        } catch (_) {}
-
-        List<String> newLadderList = [];
-        List<String> laddersToAdd = viewLadders.split(',');
-        String ladderStr = globalUserDoc.get('Ladders');
-        if (ladderStr.isNotEmpty) {
-          newLadderList = ladderStr.split(',');
+    try {
+      await firestore.runTransaction((transaction) async {
+        var globalUserDoc = await globalUserRef.get();
+        var ladderDoc = await ladderRef.get();
+        String viewLadders = ladderDoc.get('LaddersThatCanView');
+        if (viewLadders.isEmpty) {
+          viewLadders = activeLadderId;
+        } else {
+          viewLadders = '$activeLadderId,$viewLadders';
         }
-        for (int i = 0; i < laddersToAdd.length; i++) {
-          if (!newLadderList.contains(laddersToAdd[i])) {
-            newLadderList.add(laddersToAdd[i]);
+
+        if (globalUserDoc.exists) {
+          try {
+            displayName = globalUserDoc.get('DisplayName');
+          } catch (_) {}
+
+          // print('addPlayer: Name:"$displayName"');
+          List<String> newLadderList = [];
+          List<String> laddersToAdd = viewLadders.split(',');
+          String ladderStr = globalUserDoc.get('Ladders');
+          if (ladderStr.isNotEmpty) {
+            newLadderList = ladderStr.split(',');
           }
+          for (int i = 0; i < laddersToAdd.length; i++) {
+            if (!newLadderList.contains(laddersToAdd[i])) {
+              newLadderList.add(laddersToAdd[i]);
+            }
+          }
+
+          String lastRanks = '';
+          try {
+            lastRanks = globalUserDoc.get('LastRanks');
+          } catch (_) {}
+
+          List<String> lastRanksList = lastRanks.split('|');
+          String foundPrevRank = lastRanksList.firstWhere((item)=>item.startsWith('$activeLadderId:'), orElse: () => '');
+
+          if (foundPrevRank.isNotEmpty) {
+            lastRanksList.removeWhere((item) => item.startsWith('$activeLadderId:'));
+            newRank = int.parse(foundPrevRank.split(':')[1]);
+            // print('addPlayer: found record of last rank:"$foundPrevRank" newRank: $newRank');
+
+          }
+
+          // print('addPlayer start update Ladders');
+          transaction.update(firestore.collection('Users').doc(newPlayerEmail), {
+            'Ladders': newLadderList.join(','),
+            'LastRanks': lastRanksList.join('|'),
+          });
+          // print('addPlayer done update Ladders');
+        } else {
+          // print('addPlayer: have to create new user $newPlayerName');
+          transaction.set(firestore.collection('Users').doc(newPlayerEmail), {
+            'Ladders': viewLadders,
+          });
         }
 
-        transaction.update(firestore.collection('Users').doc(newPlayerEmail), {
-          'Ladders': newLadderList.join(','),
-        });
-      } else {
-        // print('addPlayer: have to create new user $newPlayerName');
-        transaction.set(firestore.collection('Users').doc(newPlayerEmail), {
-          'Ladders': viewLadders,
-        });
-      }
+        if (newDisplayName.isNotEmpty) {
+          displayName = newDisplayName;
+        }
 
-      if (newDisplayName.isNotEmpty) {
-        displayName = newDisplayName;
-      }
+        // print('addPlayer: $activeLadderId/$newPlayerEmail/$displayName');
+        transaction.set(firestore.collection('Ladder').doc(activeLadderId).collection('Players').doc(newPlayerEmail), {
+          'Helper': false,
+          'Name': displayName,
+          'Present': false,
+          'Rank': _players.length + 1,
+          'ScoreLastUpdatedBy': '',
+          'TimePresent': DateTime.now(),
+          'WillPlayInput': 0,
+          'DaysAway': '',
+          'StartingOrder': 0,
+          'TotalScore': 0,
+          'WaitListRank': 0,
+          'WeeksRegistered':0,
+          'WeeksAway':0,
+          'WeeksAwayWithNotice':0,
+        });
 
-      // print('addPlayer: $activeLadderId/$newPlayerEmail/$displayName');
-      transaction.set(firestore.collection('Ladder').doc(activeLadderId).collection('Players').doc(newPlayerEmail), {
-        'Helper': false,
-        'Name': displayName,
-        'Present': false,
-        'Rank': _players.length + 1,
-        'ScoreLastUpdatedBy': '',
-        'TimePresent': DateTime.now(),
-        'WillPlayInput': 0,
-        'DaysAway': '',
-        'StartingOrder': 0,
-        'TotalScore': 0,
-        'WaitListRank': 0,
+        // print('addPlayer: audit');
+        transactionAudit(
+          transaction: transaction,
+          user: activeUser.id,
+          documentName: newPlayerEmail,
+          action: 'CreateUser',
+          newValue: 'Create',
+        );
       });
-
-      transactionAudit(
-        transaction: transaction,
-        user: activeUser.id,
-        documentName: newPlayerEmail,
-        action: 'CreateUser',
-        newValue: 'Create',
-      );
-    });
-    // print('addPlayer, calling firebase to create user with email and password, $newPlayerName');
+    } catch(e,stackTrace){
+      if (kDebugMode) {
+        print('ERROR on addPlayer $e\n$stackTrace');
+      }
+    }
+    // print('addPlayer, calling firebase to create user with email and password, $newPlayerEmail');
     // final navigator = Navigator.of(context);
     await FirebaseAuth.instance
         .createUserWithEmailAndPassword(
@@ -328,6 +359,10 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
         });
       }
     });
+    // print('addPlayer: return');
+    if (newRank > 0){
+      changeRank(newPlayerEmail, _players.length + 1, newRank);
+    }
     return;
   }
 
@@ -340,48 +375,58 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
     DocumentReference ladderRef = firestore.collection('Ladder').doc(activeLadderId);
     DocumentReference globalUserRef = firestore.collection('Users').doc(playerId);
 
-    firestore.runTransaction((transaction) async {
-      var ladderDoc = await ladderRef.get();
-      var globalUserDoc = await globalUserRef.get();
+    try {
+      firestore.runTransaction((transaction) async {
+        var ladderDoc = await ladderRef.get();
+        var globalUserDoc = await globalUserRef.get();
 
-      List<String> oldAdmins = ladderDoc.get('Admins').split(',');
-      List<String> ladders = globalUserDoc.get('Ladders').split(',');
+        List<String> oldAdmins = ladderDoc.get('Admins').split(',');
+        List<String> ladders = globalUserDoc.get('Ladders').split(',');
+        String lastRanks = '';
+        try {
+          lastRanks = globalUserDoc.get('LastRanks');
+        } catch (_) {}
 
-      List<int> oldRanks = List.empty(growable: true);
-      List<String> emails = List.empty(growable: true);
+        List<int> oldRanks = List.empty(growable: true);
+        List<String> emails = List.empty(growable: true);
 
-      for (var ref in playerRef) {
-        var doc = await transaction.get(ref);
-        oldRanks.add(doc.get('Rank'));
-        emails.add(doc.id);
-      }
-      for (int index = 0; index < oldRanks.length; index++) {
-        if (emails[index] == playerId) continue; // delete the current user at the end
-        if (oldRanks[index] <= newRank) continue;
-        // print('deletePlayer: setting rank of ${emails[index]} from ${oldRanks[index]} to ${oldRanks[index] - 1}');
-        transaction.update(firestore.collection('Ladder').doc(activeLadderId).collection('Players').doc(emails[index]), {
-          'Rank': oldRanks[index] - 1,
-        });
-      }
+        for (var ref in playerRef) {
+          var doc = await transaction.get(ref);
+          oldRanks.add(doc.get('Rank'));
+          emails.add(doc.id);
+        }
+        for (int index = 0; index < oldRanks.length; index++) {
+          if (emails[index] == playerId) continue; // delete the current user at the end
+          if (oldRanks[index] <= newRank) continue;
+          // print('deletePlayer: setting rank of ${emails[index]} from ${oldRanks[index]} to ${oldRanks[index] - 1}');
+          transaction.update(firestore.collection('Ladder').doc(activeLadderId).collection('Players').doc(emails[index]), {
+            'Rank': oldRanks[index] - 1,
+          });
+        }
 
-      // print('deletePlayer deleting from Ladder $activeLadderId the Players $playerId');
-      transaction.delete(firestore.collection('Ladder').doc(activeLadderId).collection('Players').doc(playerId));
+        // print('deletePlayer deleting from Ladder $activeLadderId the Players $playerId');
+        transaction.delete(firestore.collection('Ladder').doc(activeLadderId).collection('Players').doc(playerId));
 
-      if (!oldAdmins.contains(playerId)) {
-        // we deleted the player, and it is not an admin on this ladder so we can remove it
-        String newLadders = "";
-        for (var lad in ladders) {
-          if (lad != activeLadderId) {
-            if (newLadders.isEmpty) {
-              newLadders = lad;
-            } else {
-              newLadders = '$newLadders,$lad';
+        if (!oldAdmins.contains(playerId)) {
+          // we deleted the player, and it is not an admin on this ladder so we can remove it
+          String newLadders = "";
+          for (var lad in ladders) {
+            if (lad != activeLadderId) {
+              if (newLadders.isEmpty) {
+                newLadders = lad;
+              } else {
+                newLadders = '$newLadders,$lad';
+              }
             }
           }
+          // print('delete user, removing $activeLadderId from $ladders now "$newLadders"');
+          transaction.update(firestore.collection('Users').doc(playerId), {
+            'Ladders': newLadders,
+          });
         }
-        // print('delete user, removing $activeLadderId from $ladders now "$newLadders"');
+        // print('deletePlayer: $newRank');
         transaction.update(firestore.collection('Users').doc(playerId), {
-          'Ladders': newLadders,
+          'LastRanks': '$lastRanks${lastRanks.isEmpty ? "" : "|"}$activeLadderId:$newRank',
         });
 
         transactionAudit(
@@ -391,8 +436,12 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
           action: 'DeleteUser',
           newValue: 'Delete',
         );
+      });
+    } catch(e,stackTrace){
+      if (kDebugMode) {
+        print('ERROR on deletePlayer $e\n$stackTrace');
       }
-    });
+    }
   }
 
   void changeRank(String playerId, int oldRank, int newRank) {
@@ -850,7 +899,7 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
                                 for (int j = 0; j < _players.length; j++) {
                                   if (_players[j].id == word[2]) {
                                     playerAlreadyExists = word[2];
-                                    print('trying to insert player that is already there ${line[i]}');
+                                    // print('trying to insert player that is already there ${line[i]}');
                                     break;
                                   }
                                 }

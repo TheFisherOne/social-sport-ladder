@@ -172,22 +172,22 @@ Widget helperIcon(var context, String activeLadderId, List<PlayerList>? courtAss
                                   for (var pl = 0; pl < courtAssignments.length; pl++) {
                                     DocumentReference playerRef = firestore.collection('Ladder').doc(activeLadderId)
                                         .collection('Players').doc(courtAssignments[pl].snapshot.id);
-                                    if (getSportDescriptor(0) ==  'pickleballRG'){
-                                      transaction.update(playerRef, {
-                                        'Rank': courtAssignments[pl].afterWinLose,
-                                        // 'Present': false,
-                                        'ScoresConfirmed': false,
-                                      });
-                                    } else {
-                                      transaction.update(playerRef, {
-                                        'Rank': courtAssignments[pl].afterWinLose,
-                                        // 'EndingRanks':'',
-                                        'Present': false,
-                                        'ScoresConfirmed': false,
-                                      });
+                                    Map<String, dynamic> playerData = {
+                                      'Rank': courtAssignments[pl].afterWinLose,
+                                      'ScoresConfirmed': false,
+                                      'WeeksRegistered': FieldValue.increment(1),
+                                    };
+                                    if (getSportDescriptor(0) !=  'pickleballRG'){
+                                      playerData['Present'] = false;
                                     }
+                                    if( !courtAssignments[pl].present){
+                                      playerData['WeeksAway'] = FieldValue.increment(1);
 
-                                    // print('Finalize: $pl ${movement![pl].rank} => ${movement![pl].afterWinLose}');
+                                      if ( !courtAssignments[pl].markedAway) {
+                                        playerData['WeeksAwayWithoutNotice'] = FieldValue.increment(1);
+                                      }
+                                    }
+                                    transaction.update(playerRef, playerData);
                                   }
                                   DocumentReference ladderRef = firestore.collection('Ladder').doc(activeLadderId);
                                   transaction.update(ladderRef, {
@@ -329,6 +329,31 @@ Widget helperIcon(var context, String activeLadderId, List<PlayerList>? courtAss
                               },
                               label:  Text('Move Top Player up to higher ladder ${activeLadderDoc!.get('HigherLadder')}')
                           ),
+                        if (activeUser.admin)
+                        TextButton.icon(
+                            icon: Icon(Icons.lock_reset),
+                            onPressed: () async {
+                              final navigator = Navigator.of(context);
+                              if (courtAssignments != null) {
+                                await firestore.runTransaction((transaction) async {
+
+                                  for (var pl = 0; pl < courtAssignments.length; pl++) {
+                                    DocumentReference playerRef = firestore.collection('Ladder').doc(activeLadderId).collection('Players').doc(courtAssignments[pl].snapshot.id);
+                                    // print('clearing present for $activeLadderId / ${movement[pl].snapshot.id}');
+                                    transaction.update(playerRef, {
+                                      'WeeksAway': 0,
+                                      'WeeksAwayWithoutNotice':0,
+                                    });
+
+                                  }
+                                  transactionAudit(transaction: transaction, user: activeUser.id, documentName: activeLadderId, action: 'Reset Weeks Away Stat', newValue: 'true', oldValue: 'n/a');
+                                });
+                              }
+                              navigator.pop();
+                              navigator.pop();
+                            },
+                            label:  Text('Reset WeeksAway and WeeksAwayWithoutNotice stats'),
+                        ),
                       ],
                     ),
                     actions: [
