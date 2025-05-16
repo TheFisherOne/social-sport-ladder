@@ -10,26 +10,26 @@ import '../screens/calendar_page.dart';
 
 reloadWithNewVersion(double reqSoftwareVersion) {
   if (kIsWeb) {
-    // html.window.location.reload();
-    final timestamp = DateTime
-        .now()
-        .millisecondsSinceEpoch;
-    String newURL = '${web.window.location.href}?v=$timestamp';
+    // final timestamp = DateTime
+    //     .now()
+    //     .millisecondsSinceEpoch;
+    // String newURL = '${web.window.location.href}?v=$timestamp';
     // String newURL = '${html.window.location.pathname}?v=$timestamp';
     if (kDebugMode) {
-      print('NEED NEW VERSION OF THE SOFTWARE $reqSoftwareVersion > $softwareVersion $newURL');
+      print('NEED NEW VERSION OF THE SOFTWARE $reqSoftwareVersion > $softwareVersion');
     }
-    web.window.location.replace(newURL);
+    web.window.location.reload();
+    // web.window.location.replace(newURL);
     // html.window.location.reload();
 
-    Future.delayed(Duration(milliseconds: 1000), () {
-      // if (html.window.location.href != newURL) {
-      //   html.window.location.href = newURL;
-      // }
-      if (web.window.location.href != newURL) {
-        web.window.location.href = newURL;
-      }
-    });
+    // Future.delayed(Duration(milliseconds: 1000), () {
+    //   // if (html.window.location.href != newURL) {
+    //   //   html.window.location.href = newURL;
+    //   // }
+    //   if (web.window.location.href != newURL) {
+    //     web.window.location.href = newURL;
+    //   }
+    // });
     return Text('YOU MUST FORCE A RELOAD you need V$reqSoftwareVersion', style: nameStyle,);
   }
 }

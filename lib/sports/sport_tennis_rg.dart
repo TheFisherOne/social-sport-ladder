@@ -581,7 +581,7 @@ class CourtAssignmentsRgStandard{
       int courtsOf5LeftToAssign = courtsOfFive;
       int randomSeed = activeLadderDoc!.get('RandomCourtOf5') % 1000;
 
-      if (getSportDescriptor(2) == 'consecutiveCourtsOf5'){
+      if (sportDescriptorIncludes('consecutiveCourtsOf5')) {
         int courtOfFive = randomSeed % numberOnCourt.length;
         for (int i=0; i<courtsOf5LeftToAssign; i++)
         {
@@ -624,7 +624,7 @@ class CourtAssignmentsRgStandard{
 
     // now shuffle the courtNames around to each court that is playing
     shuffledCourtNames = usedCourtNames.toList();
-    if (getSportDescriptor(1)=='rg_mens') {
+    if (getSportDescriptor(1) == 'rg_mens') {
       if (activeLadderDoc!.get('RandomCourtOf5') > 1000) {
         int numToMove = usedCourtNames.length - 3;
         if (numToMove > 0) {
@@ -638,7 +638,7 @@ class CourtAssignmentsRgStandard{
           shuffledCourtNames = newNames;
         }
       }
-    } else if (getSportDescriptor(1)=='rg_womens') {
+    } else if (getSportDescriptor(1) == 'rg_womens') {
       // print('before: $shuffledCourtNames');
       // var saveList = shuffledCourtNames.toList();
       List<int> numbers = List.generate(shuffledCourtNames.length, (index) => index);
@@ -664,11 +664,11 @@ class CourtAssignmentsRgStandard{
       }
       shuffledCourtNames = newNames;
       // print('after shuffle: $shuffledCourtNames');
-    }else if (getSportDescriptor(0)=='pickleballRG') {
+    }else if (getSportDescriptor(0) == 'pickleballRG') {
       // do no shuffle
-    }else if (getSportDescriptor(0)=='badmintonRG') {
+    }else if (getSportDescriptor(0) == 'badmintonRG') {
       // do no shuffle
-    } else if (getSportDescriptor(1)=='rg_singles') {
+    } else if (getSportDescriptor(1) == 'rg_singles') {
       // do no shuffle
     }else {
       if (kDebugMode) {
@@ -932,11 +932,8 @@ class _SportTennisRGState extends State<SportTennisRG> {
                   courtColor = courtColors[playerNum % courtColors.length];
 
                   if (row==0) {
-                    if (getSportDescriptor(1)=='allowCourt5Change'){
-
-                    }
                     return InkWell(
-                      onTap: (getSportDescriptor(1)=='allowCourt5Change')?(){
+                      onTap: (sportDescriptorIncludes('allowCourt5Change'))?(){
                         firestore.collection('Ladder').doc(activeLadderId).update({
                           'RandomCourtOf5': activeLadderDoc!.get('RandomCourtOf5')+1,
                         });

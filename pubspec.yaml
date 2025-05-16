@@ -39,6 +39,7 @@ dependencies:
 #  sign_in_button:
   intl:
   image_picker:
+  file_selector:
   image:
   cached_network_image:
   file_saver:

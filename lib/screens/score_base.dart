@@ -33,6 +33,14 @@ String getSportDescriptor(int index){
   List<String> tmpList = activeLadderDoc!.get('SportDescriptor').split('|');
   return (index < tmpList.length)? tmpList[index]: '';
 }
+bool sportDescriptorIncludes(String descriptor){
+  List<String> tmpList = activeLadderDoc!.get('SportDescriptor').split('|');
+  if (tmpList.length <= 2) return false;
+  tmpList.removeAt(0);
+  tmpList.removeAt(0);// remove the sport, and the 2nd parameter which is clarifier for sport to just leave the options
+  if (tmpList.contains(descriptor)) return true;
+  return false;
+}
 
 prepareForScoreEntry(DocumentSnapshot activeLadderDoc, List<QueryDocumentSnapshot>? players) async {
 

@@ -1,6 +1,9 @@
+import 'dart:convert';
 import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:file_saver/file_saver.dart';
+import 'package:file_selector/file_selector.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -208,11 +211,10 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
   String generateRandomString(int numChars) {
     const String characters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     Random random = Random();
-    return String.fromCharCodes(
-        List.generate(numChars, (_) => characters.codeUnitAt(random.nextInt(characters.length)))
-    );
+    return String.fromCharCodes(List.generate(numChars, (_) => characters.codeUnitAt(random.nextInt(characters.length))));
   }
-  void addPlayer(BuildContext context, String newPlayerEmail) async {
+
+  void addPlayer(BuildContext context, String newPlayerEmail, {String newDisplayName = ''}) async {
     DocumentReference globalUserRef = firestore.collection('Users').doc(newPlayerEmail);
     String displayName = 'New Player';
     DocumentReference ladderRef = firestore.collection('Ladder').doc(activeLadderId);
@@ -254,6 +256,10 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
         });
       }
 
+      if (newDisplayName.isNotEmpty) {
+        displayName = newDisplayName;
+      }
+
       // print('addPlayer: $activeLadderId/$newPlayerEmail/$displayName');
       transaction.set(firestore.collection('Ladder').doc(activeLadderId).collection('Players').doc(newPlayerEmail), {
         'Helper': false,
@@ -279,9 +285,17 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
     });
     // print('addPlayer, calling firebase to create user with email and password, $newPlayerName');
     // final navigator = Navigator.of(context);
-    await FirebaseAuth.instance.createUserWithEmailAndPassword(email: newPlayerEmail, password: generateRandomString(12),).then((userCredential) {
+    await FirebaseAuth.instance
+        .createUserWithEmailAndPassword(
+      email: newPlayerEmail,
+      password: generateRandomString(12),
+    )
+        .then((userCredential) {
       // print('addPlayer, create user with email and password, $newPlayerName returned without error');
       if (!context.mounted) return;
+
+      // this is only set when importing names from a csv file
+      if (newDisplayName.isNotEmpty) return;
 
       final _ = showDialog<bool>(
         context: context,
@@ -574,24 +588,24 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
                     List<QueryDocumentSnapshot> waitList = [];
                     for (var pl in _players) {
                       int tmp = pl.get('WaitListRank');
-                      if (tmp>0){
+                      if (tmp > 0) {
                         waitList.add(pl);
                       }
-                      if ( tmp > maxWaitListRank) {
+                      if (tmp > maxWaitListRank) {
                         maxWaitListRank = tmp;
                       }
                     }
 
-                    waitList.sort((a,b)=>a.get('WaitListRank').compareTo(b.get('WaitListRank')));
+                    waitList.sort((a, b) => a.get('WaitListRank').compareTo(b.get('WaitListRank')));
 
                     try {
                       newRank = int.parse(_waitListRankController.text);
                     } catch (_) {}
                     // print('newRank $newRank max: $maxWaitListRank');
-                    if (newRank == 0){
+                    if (newRank == 0) {
                       //shuffle required
-                      int nextRank=1;
-                      for (int i=0; i<waitList.length;i++) {
+                      int nextRank = 1;
+                      for (int i = 0; i < waitList.length; i++) {
                         if (waitList[i].get('WaitListRank') != oldRank) {
                           // print('waitList: id: ${waitList[i].id} newWaitListRank: $nextRank');
                           firestore.collection('Ladder').doc(activeLadderId).collection('Players').doc(waitList[i].id).update({
@@ -606,8 +620,7 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
                         newRank = maxWaitListRank + 1;
                       }
                       // print('updating ${playerDoc.id} to $newRank');
-                      writeAudit(user: activeUser.id, documentName: playerDoc.id, action: 'Wish List Rank', newValue: newRank.toString(),
-                          oldValue: oldRank.toString());
+                      writeAudit(user: activeUser.id, documentName: playerDoc.id, action: 'Wish List Rank', newValue: newRank.toString(), oldValue: oldRank.toString());
                       firestore.collection('Ladder').doc(activeLadderId).collection('Players').doc(playerDoc.id).update({
                         'WaitListRank': newRank,
                       });
@@ -671,28 +684,26 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
                       }),
                 ),
                 if (playerDoc.get('WaitListRank') == 0)
-                makeDoubleConfirmationButton(
-                    buttonText: 'WISHLIST',
-                    buttonColor: Colors.green,
-                    dialogTitle: 'Move User ${playerDoc.id} to end of Wait List ',
-                    dialogQuestion: 'Are you sure you want to move "${playerDoc.get('Name')}" to wait list?',
-                    disabled: false,
-                    onOk: () async {
-                      int maxWaitListRank = 0;
-                      for (var pl in _players) {
-                        int tmp = pl.get('WaitListRank');
-                        if ( tmp > maxWaitListRank) {
-                          maxWaitListRank = tmp;
+                  makeDoubleConfirmationButton(
+                      buttonText: 'WISHLIST',
+                      buttonColor: Colors.green,
+                      dialogTitle: 'Move User ${playerDoc.id} to end of Wait List ',
+                      dialogQuestion: 'Are you sure you want to move "${playerDoc.get('Name')}" to wait list?',
+                      disabled: false,
+                      onOk: () async {
+                        int maxWaitListRank = 0;
+                        for (var pl in _players) {
+                          int tmp = pl.get('WaitListRank');
+                          if (tmp > maxWaitListRank) {
+                            maxWaitListRank = tmp;
+                          }
                         }
-                      }
-                      int newRank = maxWaitListRank+1;
-                      writeAudit(user: activeUser.id, documentName: playerDoc.id, action: 'Wish List Rank', newValue: newRank.toString(),
-                          oldValue: '0');
-                      firestore.collection('Ladder').doc(activeLadderId).collection('Players').doc(playerDoc.id).update({
-                        'WaitListRank': newRank,
-                      });
-
-                    }),
+                        int newRank = maxWaitListRank + 1;
+                        writeAudit(user: activeUser.id, documentName: playerDoc.id, action: 'Wish List Rank', newValue: newRank.toString(), oldValue: '0');
+                        firestore.collection('Ladder').doc(activeLadderId).collection('Players').doc(playerDoc.id).update({
+                          'WaitListRank': newRank,
+                        });
+                      }),
                 const SizedBox(width: 50),
                 makeDoubleConfirmationButton(
                     buttonText: 'DELETE',
@@ -715,7 +726,7 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
           });
         },
         child: Text(
-          ' ${playerDoc.get('Rank')}${(playerDoc.get('WaitListRank')>0)?"w${playerDoc.get('WaitListRank')}":""}: ${playerDoc.get("Name")} / ${playerDoc.id}',
+          ' ${playerDoc.get('Rank')}${(playerDoc.get('WaitListRank') > 0) ? "w${playerDoc.get('WaitListRank')}" : ""}: ${playerDoc.get("Name")} / ${playerDoc.id}',
           style: (countDuplicateNames > 1) ? errorNameStyle : nameStyle,
         ));
   }
@@ -773,77 +784,197 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
             return const CircularProgressIndicator();
           }
           _players = playerSnapshots.data!.docs;
-          try{
-          if (_sortBy == 'email') {
-            _players.sort((a, b) => a.id.compareTo(b.id));
-          } else {
-            _players.sort((a, b) => a.get(_sortBy).compareTo(b.get(_sortBy)));
-          }
-          return Scaffold(
-            backgroundColor: Colors.green[50],
-            appBar: AppBar(
-              title: Text('Players: $activeLadderId'),
-              backgroundColor: Colors.green[400],
-              elevation: 0.0,
-              // automaticallyImplyLeading: false,
-            ),
-            body: SingleChildScrollView(
-              key: PageStorageKey('playerScrollView'),
-              scrollDirection: Axis.vertical,
-              child: Column(
-                children: [
-                  Text(
-                    'DisplayName: ${activeLadderDoc!.get('DisplayName')}',
-                    style: nameStyle,
-                  ),
-                  sortAdjustRow(),
-                  ListView.separated(
-                    key: PageStorageKey('playerListView'),
-                    scrollDirection: Axis.vertical,
-                    shrinkWrap: true,
-                    physics: const ScrollPhysics(),
-                    separatorBuilder: (context, index) => const Divider(color: Colors.black),
-                    padding: const EdgeInsets.all(8),
-                    itemCount: _players.length + 1, //for last divider line
-                    itemBuilder: (BuildContext context, int row) {
-                      if (row == _players.length) {
-                        return MyTextField(
-                          labelText: 'Add New Player',
-                          helperText: 'Enter the email for the new player',
-                          controller: _newEmailController,
-                          inputFormatters: [LowerCaseTextInputFormatter()],
-                          keyboardType: TextInputType.emailAddress,
-                          entryOK: (entry) {
-                            // print('Create new Player onChanged:new value=$value');
-                            String newValue = entry.trim().replaceAll(RegExp(r' \s+'), ' ');
+          try {
+            if (_sortBy == 'email') {
+              _players.sort((a, b) => a.id.compareTo(b.id));
+            } else {
+              _players.sort((a, b) => a.get(_sortBy).compareTo(b.get(_sortBy)));
+            }
+            return Scaffold(
+              backgroundColor: Colors.green[50],
+              appBar: AppBar(
+                title: Text('Players: $activeLadderId'),
+                backgroundColor: Colors.green[400],
+                elevation: 0.0,
+                // automaticallyImplyLeading: false,
+                actions: [
+                  IconButton(
+                      onPressed: () {
+                        String result = 'Rank,Name,Email,Helper,WaitListRank,\n';
+                        for (int row = 0; row < _players.length; row++) {
+                          String line = '${_players[row].get('Rank')},${_players[row].get('Name')},${_players[row].id},${_players[row].get('Helper')},${_players[row].get('WaitListRank')},';
+                          result += '$line\n';
+                        }
 
-                            if (!newValue.isValidEmail()) {
-                              return 'not a valid email';
-                            }
-                            // check for a duplicate name
-                            for (QueryDocumentSnapshot<Object?> doc in _players) {
-                              if (newValue == doc.id) {
-                                return 'that player ID is in use';
+                        FileSaver.instance.saveFile(
+                          name: 'playerList_${activeLadderId}_${DateTime.now().toString().replaceAll('.', '_').replaceAll(' ', '_')}.csv',
+                          bytes: utf8.encode(result),
+                        );
+                      },
+                      icon: Icon(
+                        Icons.file_download,
+                        color: Colors.blue,
+                      )),
+                  SizedBox(
+                    width: 10,
+                  ),
+                  IconButton(
+                      onPressed: () async {
+                        // Specify allowed file types (CSV format)
+                        const XTypeGroup csvTypeGroup = XTypeGroup(
+                          label: 'CSV files',
+                          extensions: ['csv'],
+                        );
+
+                        final XFile? file = await openFile(
+                          acceptedTypeGroups: [csvTypeGroup], // Restrict to CSV files
+                        );
+                        if (file != null) {
+                          String result = await file.readAsString();
+                          List<String> line = result.split('\n');
+                          if (kDebugMode) {
+                            print('import file ${file.name} with ${line.length - 1} data lines and header line:\n ${line[0]}');
+                          }
+                          // see if it matches the current _players
+                          String playerAlreadyExists = '';
+                          for (int i = 1; i < line.length; i++) {
+                            if (playerAlreadyExists.isNotEmpty) break;
+                            List<String> word = line[i].split(',');
+                            if (word.length >= 3) {
+                              // WaitListRank is optional, Rank and Helper are ignored need to skip blank lines
+                              if (!word[2].isValidEmail()) {
+                                if (kDebugMode) {
+                                  print('Invalid email address on line $i: ${word[2]}');
+                                }
+                              } else {
+                                for (int j = 0; j < _players.length; j++) {
+                                  if (_players[j].id == word[2]) {
+                                    playerAlreadyExists = word[2];
+                                    print('trying to insert player that is already there ${line[i]}');
+                                    break;
+                                  }
+                                }
+                              }
+                              if (playerAlreadyExists.isNotEmpty) {
+                                if (!context.mounted) return;
+
+                                return showDialog(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                    title: Text('Duplicate Player email'),
+                                    content: Text('all emails have to be new emails\n$playerAlreadyExists\nRank(ignored),Name,Email'),
+                                    actions: [
+                                      TextButton(
+                                          onPressed: () {
+                                            Navigator.pop(context);
+                                          },
+                                          child: const Text('cancel')),
+                                    ],
+                                  ),
+                                );
+                              }
+                              // now add the players
+                              for (int i = 1; i < line.length; i++) {
+                                if (playerAlreadyExists.isNotEmpty) break;
+                                List<String> word = line[i].split(',');
+                                if (word.length >= 3) {
+                                  if (kDebugMode) {
+                                    print('addPlayer name: ${word[1]}, email:${word[2]}');
+                                  }
+                                  // context not really used
+                                  if (!context.mounted) return;
+                                  addPlayer(context, word[2], newDisplayName: word[1]);
+                                }
+                              }
+                              // if (word[2] != _players[i - 1].id) {
+                              //   if (kDebugMode) {
+                              //     print('email mismatch found on line $i: ${word[2]} != ${_players[i - 1].id}');
+                              //   }
+                              // }
+                              // if (word[1] != _players[i - 1].get('Name')) {
+                              //   if (kDebugMode) {
+                              //     print('name mismatch found on line $i ${_players[i - 1].id}: ${word[1]} != ${_players[i - 1].get('Name')}');
+                              //   }
+                              // }
+                              // if (word[3] != _players[i - 1].get('Helper').toString()) {
+                              //   if (kDebugMode) {
+                              //     print('helper mismatch found on line $i ${_players[i - 1].id}: ${word[3]} != ${_players[i - 1].get('Helper').toString()}');
+                              //   }
+                              // }
+                            } else {
+                              if (kDebugMode) {
+                                print('skipping line ${i + 1}: ${line[i]}');
                               }
                             }
-                            return null;
-                          },
-                          onIconClicked: (entry) {
-                            String newValue = entry.trim().replaceAll(RegExp(r' \s+').toString().toLowerCase(), ' ');
-                            addPlayer(context, newValue);
-                          },
-                          initialValue: '',
-                        );
-                      }
-
-                      return playerLine(row);
-                    },
+                          }
+                        }
+                      },
+                      icon: Icon(
+                        Icons.import_contacts,
+                        color: Colors.red,
+                      )),
+                  SizedBox(
+                    width: 10,
                   ),
-                  Text(_errorText, style: errorNameStyle),
                 ],
               ),
-            ),
-          );
+              body: SingleChildScrollView(
+                key: PageStorageKey('playerScrollView'),
+                scrollDirection: Axis.vertical,
+                child: Column(
+                  children: [
+                    Text(
+                      'DisplayName: ${activeLadderDoc!.get('DisplayName')}',
+                      style: nameStyle,
+                    ),
+                    sortAdjustRow(),
+                    ListView.separated(
+                      key: PageStorageKey('playerListView'),
+                      scrollDirection: Axis.vertical,
+                      shrinkWrap: true,
+                      physics: const ScrollPhysics(),
+                      separatorBuilder: (context, index) => const Divider(color: Colors.black),
+                      padding: const EdgeInsets.all(8),
+                      itemCount: _players.length + 1, //for last divider line
+                      itemBuilder: (BuildContext context, int row) {
+                        if (row == _players.length) {
+                          return MyTextField(
+                            labelText: 'Add New Player',
+                            helperText: 'Enter the email for the new player',
+                            controller: _newEmailController,
+                            inputFormatters: [LowerCaseTextInputFormatter()],
+                            keyboardType: TextInputType.emailAddress,
+                            entryOK: (entry) {
+                              // print('Create new Player onChanged:new value=$value');
+                              String newValue = entry.trim().replaceAll(RegExp(r' \s+'), ' ');
+
+                              if (!newValue.isValidEmail()) {
+                                return 'not a valid email';
+                              }
+                              // check for a duplicate name
+                              for (QueryDocumentSnapshot<Object?> doc in _players) {
+                                if (newValue == doc.id) {
+                                  return 'that player ID is in use';
+                                }
+                              }
+                              return null;
+                            },
+                            onIconClicked: (entry) {
+                              String newValue = entry.trim().replaceAll(RegExp(r' \s+').toString().toLowerCase(), ' ');
+                              addPlayer(context, newValue);
+                            },
+                            initialValue: '',
+                          );
+                        }
+
+                        return playerLine(row);
+                      },
+                    ),
+                    Text(_errorText, style: errorNameStyle),
+                  ],
+                ),
+              ),
+            );
           } catch (e, stackTrace) {
             return Text('player config EXCEPTION: $e\n$stackTrace', style: TextStyle(color: Colors.red));
           }

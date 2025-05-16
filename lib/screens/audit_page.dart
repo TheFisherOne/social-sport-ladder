@@ -185,8 +185,6 @@ class _AuditPageState extends State<AuditPage> {
                             FileSaver.instance.saveFile(
                               name: 'auditLog_${activeLadderId}_${DateTime.now().toString().replaceAll('.','_').replaceAll(' ','_')}.csv',
                               bytes: utf8.encode(result),
-
-
                             );
                           },
                           child: Text('Download audit log',
