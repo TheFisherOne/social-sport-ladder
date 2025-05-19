@@ -122,12 +122,12 @@ Widget headerSummary(List<QueryDocumentSnapshot>? players, List<PlayerList> assi
             children: [
               Text('Present: ${PlayerList.numPresent} out of ${PlayerList.numExpected} expected', style: nameStyle),
               Text('Courts of 4=${PlayerList.numCourtsOf4}  Courts of 5=${PlayerList.numCourtsOf5}', style: nameStyle),
-              if (PlayerList.numCourtsOf6>0)
-              Text('Courts of 6=${PlayerList.numCourtsOf6}', style: nameStyle),
-
-              (PlayerList.numCourts == (PlayerList.numCourtsOf4+PlayerList.numCourtsOf5+PlayerList.numCourtsOf6))?
-              Text('Courts used ${PlayerList.numCourts} of ${PlayerList.totalCourtsAvailable} available', style: nameStyle):SizedBox(height: 1,),
-
+              if (PlayerList.numCourtsOf6 > 0) Text('Courts of 6=${PlayerList.numCourtsOf6}', style: nameStyle),
+              (PlayerList.numCourts == (PlayerList.numCourtsOf4 + PlayerList.numCourtsOf5 + PlayerList.numCourtsOf6))
+                  ? Text('Courts used ${PlayerList.numCourts} of ${PlayerList.totalCourtsAvailable} available', style: nameStyle)
+                  : SizedBox(
+                      height: 1,
+                    ),
               if ((PlayerList.numUnassigned > 0) && (PlayerList.numCourtsOf5 == PlayerList.numCourts) && (PlayerList.numCourts == PlayerList.totalCourtsAvailable))
                 Text(
                   'Players not on court ${PlayerList.numUnassigned}:marked (Last)\nall available courts are full',
@@ -141,13 +141,11 @@ Widget headerSummary(List<QueryDocumentSnapshot>? players, List<PlayerList> assi
             ],
           )
         : Text(
-            '${PlayerList.numPresent}/${PlayerList.numExpected} 4=${PlayerList.numCourtsOf4} 5=${PlayerList.numCourtsOf5} ${(PlayerList.numCourtsOf6>0)?'6=${PlayerList.numCourtsOf6}':''} $unAssignedStr',
+            '${PlayerList.numPresent}/${PlayerList.numExpected} 4=${PlayerList.numCourtsOf4} 5=${PlayerList.numCourtsOf5} ${(PlayerList.numCourtsOf6 > 0) ? '6=${PlayerList.numCourtsOf6}' : ''} $unAssignedStr',
             style: nameStyle,
           ),
   );
 }
-
-
 
 class PlayerHome extends StatefulWidget {
   const PlayerHome({super.key});
@@ -206,7 +204,6 @@ class _PlayerHomeState extends State<PlayerHome> {
       return (Icons.airplanemode_active, 'You have marked yourself as away for $nextPlayDateStr');
     }
 
-
     // print(' ${dayOfPlay.substring(0, 8)} != ${DateFormat('yyyyMMdd').format(DateTime.now())}');
     if ((timeNow.year != nextPlayDate.year) || (timeNow.month != nextPlayDate.month) || (timeNow.day != nextPlayDate.day)) {
       return (Icons.access_time, 'It is not yet the day of the ladder $nextPlayDate');
@@ -229,8 +226,8 @@ class _PlayerHomeState extends State<PlayerHome> {
         return (Icons.check_box, 'Checked in and ready to play');
       }
       if (player.id == activeUser.id) {
-        if (player.get('WaitListRank')>0){
-          if (player.get('WaitListRank') <= activeLadderDoc!.get('NumberFromWaitList')){
+        if (player.get('WaitListRank') > 0) {
+          if (player.get('WaitListRank') <= activeLadderDoc!.get('NumberFromWaitList')) {
             return (Icons.check_box_outline_blank, 'Ready to check in from wait list if you are going to play');
           } else {
             return (Icons.edit_off, 'You are on the wait list and not enabled to play this week');
@@ -247,9 +244,9 @@ class _PlayerHomeState extends State<PlayerHome> {
       }
     }
 
-    String loggedInPlayerName='Guest';
-    if (loggedInPlayerDoc != null){
-      loggedInPlayerName=loggedInPlayerDoc!.get('Name');
+    String loggedInPlayerName = 'Guest';
+    if (loggedInPlayerDoc != null) {
+      loggedInPlayerName = loggedInPlayerDoc!.get('Name');
     }
     return (Icons.access_time, 'You are logged in as "$loggedInPlayerName"" you can not change the player "${player.get('Name')}"');
   }
@@ -307,6 +304,7 @@ class _PlayerHomeState extends State<PlayerHome> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                if (player.id == activeUser.id)
                 Text('${_loc.getLastDistanceAway().toStringAsFixed(1)}m away'),
                 Container(
                   height: 50,
@@ -335,77 +333,94 @@ class _PlayerHomeState extends State<PlayerHome> {
                     ),
                   ),
                 ),
-                SizedBox(height: 10,),
+                SizedBox(
+                  height: 10,
+                ),
                 InkWell(
                   onTap: (activeUser.admin || (loggedInUser == player.id))
                       ? () async {
-                    // print('Select Picture');
-                    XFile? pickedFile;
-                    try {
-                      pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
-                    } catch (e) {
-                      if (kDebugMode) {
-                        print('Exception while picking image $e');
-                      }
-                    }
-                    if (pickedFile == null) {
-                      // print('No file picked');
-                      return;
-                    } else {
-                      await uploadPlayerPicture(pickedFile, player.id);
-                      setState(() {
-                        if (kDebugMode) {
-                          print('picture uploaded for player ${player.id}');
-                        }
-                      });
+                          // print('Select Picture');
+                          XFile? pickedFile;
+                          try {
+                            pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
+                          } catch (e) {
+                            if (kDebugMode) {
+                              print('Exception while picking image $e');
+                            }
+                          }
+                          if (pickedFile == null) {
+                            // print('No file picked');
+                            return;
+                          } else {
+                            await uploadPlayerPicture(pickedFile, player.id);
+                            setState(() {
+                              if (kDebugMode) {
+                                print('picture uploaded for player ${player.id}');
+                              }
+                            });
 
-                      // print(pickedFile.path);
-                    }
-                  }
+                            // print(pickedFile.path);
+                          }
+                        }
                       : null,
                   child: (playerImageCache.containsKey(player.id) && (playerImageCache[player.id] != null) && enableImages)
                       ? Image.network(
-                    playerImageCache[player.id]!,
-                    width: 100,
-                  )
+                          playerImageCache[player.id]!,
+                          width: 100,
+                        )
                       : Container(
-                    decoration: BoxDecoration(
-                      border: Border.all(color: activeLadderBackgroundColor, width: 5),
-                      borderRadius: BorderRadius.circular(15.0),
-                      color: activeLadderBackgroundColor.withValues(alpha:0.1),//withValues(alpha:0.1),
-                    ),
-                    width: 100,
-                    height: 100,
-                    child: Center(
-                        child: Text(
-                          enableImages ? "Please\nupload\npicture" : 'Images\nhidden',
-                          // style: nameStyle,
-                        )),
-                  ),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: activeLadderBackgroundColor, width: 5),
+                            borderRadius: BorderRadius.circular(15.0),
+                            color: Color.lerp(activeLadderBackgroundColor, Colors.white,0.8),
+                          ),
+                          width: 100,
+                          height: 100,
+                          child: Center(
+                              child: Text(
+                            enableImages ? "Please\nupload\npicture" : 'Images\nhidden',
+                            // style: nameStyle,
+                          )),
+                        ),
                 ),
                 SizedBox(height: 10),
-                (activeUser.helper || (loggedInUser == player.id))?Container(
-                  height: max(60,appFontSize*2.7),
-                  // width: 50,
-                  color: (player.id == activeUser.id) ? Colors.green.shade100 : Colors.blue.shade100,
-                  child: Padding(
-                    padding: const EdgeInsets.all(0.0),
-                    child: Row(
-                      children: [
-                        InkWell(
-                          onTap: () {
-                            typeOfCalendarEvent = EventTypes.standard;
-                            Navigator.push(context, MaterialPageRoute(builder: (context) => CalendarPage(fullPlayerList: _players,)));
-                          },
-                          child: const Icon(Icons.edit_calendar, size: 60, color: Colors.green),
+                (activeUser.helper || (loggedInUser == player.id))
+                    ? Container(
+                        height: max(60, appFontSize * 2.7),
+                        // width: 50,
+                        color: (player.id == activeUser.id) ? Colors.green.shade100 : Colors.blue.shade100,
+                        child: Padding(
+                          padding: const EdgeInsets.all(0.0),
+                          child: Row(
+                            children: [
+                              InkWell(
+                                onTap: () {
+                                  typeOfCalendarEvent = EventTypes.standard;
+                                  Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (context) => CalendarPage(
+                                                fullPlayerList: _players,
+                                              )));
+                                },
+                                child: const Icon(Icons.edit_calendar, size: 60, color: Colors.green),
+                              ),
+                              Text(
+                                'Calendar:\nfor Away',
+                                style: nameStyle,
+                              ),
+                            ],
+                          ),
                         ),
-                        Text('Calendar:\nfor Away', style: nameStyle,),
-                      ],
-                    ),
+                      )
+                    : SizedBox(
+                        width: 1,
+                      ),
+                if ((player.get('WeeksAwayWithoutNotice') >= 3) || (player.get('WeeksAway') >= 7))
+                  Text(
+                    'Weeks Away wihout Notice: ${player.get('WeeksAwayWithoutNotice')} / total Away ${player.get('WeeksAway')}',
+                    style: errorNameStyle,
                   ),
-                ):SizedBox(width: 1,),
-                if ((player.get('WeeksAwayWithoutNotice')>=3)||(player.get('WeeksAway')>=7))
-                  Text('Weeks Away wihout Notice: ${player.get('WeeksAwayWithoutNotice')} / total Away ${player.get('WeeksAway')}', style: errorNameStyle,),
               ],
             ),
             const SizedBox(width: 10),
@@ -423,7 +438,10 @@ class _PlayerHomeState extends State<PlayerHome> {
 
   Widget buildPlayerLine(int row, List<PlayerList>? courtAssignments) {
     if (_players == null || row >= _players!.length) {
-      return Text('ERROR loading Player for row $row', style: nameStyle,);
+      return Text(
+        'ERROR loading Player for row $row',
+        style: nameStyle,
+      );
     }
 
     QueryDocumentSnapshot player = _players![row];
@@ -450,11 +468,9 @@ class _PlayerHomeState extends State<PlayerHome> {
       icon = Icon(Icons.refresh, color: Colors.green);
     } else if (player.get('Present')) {
       icon = Icon(Icons.check_box, color: Colors.black);
-    }
-    else if (plAssignment!.markedAway) {
+    } else if (plAssignment!.markedAway) {
       icon = const Icon(Icons.horizontal_rule, color: Colors.black);
-    }
-    else {
+    } else {
       icon = Icon(Icons.check_box_outline_blank, color: Colors.black);
     }
 
@@ -467,7 +483,6 @@ class _PlayerHomeState extends State<PlayerHome> {
               if (_clickedOnRank != row) {
                 setState(() {
                   _clickedOnRank = row;
-
                 });
               } else {
                 setState(() {
@@ -478,18 +493,34 @@ class _PlayerHomeState extends State<PlayerHome> {
               }
             });
           },
-          child: Row(children: [
+          child: Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
             icon,
-            if (player.get('WeeksRegistered')<=0) Icon(Icons.fiber_new, color: Colors.green,),
-            if ((player.get('WeeksAwayWithoutNotice')>=3)||(player.get('WeeksAway')>=7)) Icon(Icons.warning, color: Colors.red,),
-            Text(
-              ' $rank${(player.get('WaitListRank')>0)?"w${player.get('WaitListRank')}":""}: ${player.get('Name')}',
-              style: isUserRow ? nameBoldStyle : ((player.get('Helper') ?? false) ? italicNameStyle : nameStyle),
+            if (player.get('WeeksRegistered') <= 0)
+              Icon(
+                Icons.fiber_new,
+                color: Colors.green,
+              ),
+            if ((player.get('WeeksAwayWithoutNotice') >= 3) || (player.get('WeeksAway') >= 7))
+              Icon(
+                Icons.warning,
+                color: Colors.red,
+              ),
+            Expanded(
+              child: Text(
+                ' $rank${(player.get('WaitListRank') > 0) ? "w${player.get('WaitListRank')}" : ""}: ${player.get('Name')}',
+                style: isUserRow ? nameBoldStyle : ((player.get('Helper') ?? false) ? italicNameStyle : nameStyle),
+              ),
             ),
           ]),
         ),
         // if ((_clickedOnRank == row) && ((player.id == loggedInUser) || activeLadderDoc!.get('Admins').split(",").contains(loggedInUser) || player.get('Helper') || loggedInUserIsSuper))
-        (_clickedOnRank == row)?unfrozenSubLine(player):SizedBox(height: 1,),
+        (_clickedOnRank == row)
+            ? unfrozenSubLine(player)
+            : SizedBox(
+                height: 1,
+              ),
       ],
     );
   }
@@ -529,202 +560,211 @@ class _PlayerHomeState extends State<PlayerHome> {
           return const CircularProgressIndicator();
         }
 
-        try{
-        activeLadderDoc = ladderSnapshot.data!;
-        activeLadderBackgroundColor = colorFromString((activeLadderDoc!.get('Color') ?? "brown").toLowerCase());
+        try {
+          activeLadderDoc = ladderSnapshot.data!;
+          activeLadderBackgroundColor = stringToColor(activeLadderDoc!.get('Color'))??Colors.pink;
 
-        if (activeLadderDoc!.get('FreezeCheckIns')){
-          return SportTennisRG();
-        }
+          if (activeLadderDoc!.get('FreezeCheckIns')) {
+            return SportTennisRG();
+          }
 
-        return StreamBuilder<QuerySnapshot>(
-            stream: firestore.collection('Ladder').doc(activeLadderId).collection('Players').orderBy('Rank').snapshots(),
-            builder: (BuildContext context, AsyncSnapshot<QuerySnapshot<Object?>> playerSnapshots) {
-              // print('Ladder snapshot');
-              if (playerSnapshots.error != null) {
-                String error = 'Snapshot error: ${playerSnapshots.error.toString()} on getting global ladders ';
-                if (kDebugMode) {
-                  print(error);
+          return StreamBuilder<QuerySnapshot>(
+              stream: firestore.collection('Ladder').doc(activeLadderId).collection('Players').orderBy('Rank').snapshots(),
+              builder: (BuildContext context, AsyncSnapshot<QuerySnapshot<Object?>> playerSnapshots) {
+                // print('Ladder snapshot');
+                if (playerSnapshots.error != null) {
+                  String error = 'Snapshot error: ${playerSnapshots.error.toString()} on getting global ladders ';
+                  if (kDebugMode) {
+                    print(error);
+                  }
+                  return Text(error);
                 }
-                return Text(error);
-              }
-              // print('in StreamBuilder ladder 0');
-              if (!playerSnapshots.hasData || (playerSnapshots.connectionState != ConnectionState.active)) {
-                // print('ladder_selection_page getting user $loggedInUser but hasData is false');
-                return const CircularProgressIndicator();
-              }
-              if (playerSnapshots.data == null) {
-                // print('ladder_selection_page getting user global ladder but data is null');
-                return const CircularProgressIndicator();
-              }
-              _players = playerSnapshots.data!.docs;
-
-              // if (activeLadderDoc!.get('FreezeCheckIns')){
-              //   Future.delayed(Duration(milliseconds:500),(){
-              //     if (!context.mounted) return;
-              //     prepareForScoreEntry(activeLadderDoc!, _players);
-              //     showFrozenLadderPage(context, activeLadderDoc!, true);
-              //   });
-              //   return Text('Switching to frozen view');
-              // }
-              loggedInPlayerDoc = null;
-              int numberOfHelpersPresent = 0;
-              int numberOfPlayersPresent = 0;
-
-              for (var player in _players!) {
-                if (player.id == loggedInUser) {
-                  loggedInPlayerDoc = player;
-                  activeUser.canBeHelper = loggedInPlayerDoc!.get('Helper');
+                // print('in StreamBuilder ladder 0');
+                if (!playerSnapshots.hasData || (playerSnapshots.connectionState != ConnectionState.active)) {
+                  // print('ladder_selection_page getting user $loggedInUser but hasData is false');
+                  return const CircularProgressIndicator();
                 }
-                if (player.get('Present')) {
-                  numberOfPlayersPresent++;
-                  if (player.get('Helper')) {
-                    numberOfHelpersPresent += 1;
+                if (playerSnapshots.data == null) {
+                  // print('ladder_selection_page getting user global ladder but data is null');
+                  return const CircularProgressIndicator();
+                }
+                _players = playerSnapshots.data!.docs;
+
+                // if (activeLadderDoc!.get('FreezeCheckIns')){
+                //   Future.delayed(Duration(milliseconds:500),(){
+                //     if (!context.mounted) return;
+                //     prepareForScoreEntry(activeLadderDoc!, _players);
+                //     showFrozenLadderPage(context, activeLadderDoc!, true);
+                //   });
+                //   return Text('Switching to frozen view');
+                // }
+                loggedInPlayerDoc = null;
+                int numberOfHelpersPresent = 0;
+                int numberOfPlayersPresent = 0;
+
+                for (var player in _players!) {
+                  if (player.id == loggedInUser) {
+                    loggedInPlayerDoc = player;
+                    activeUser.canBeHelper = loggedInPlayerDoc!.get('Helper');
+                  }
+                  if (player.get('Present')) {
+                    numberOfPlayersPresent++;
+                    if (player.get('Helper')) {
+                      numberOfHelpersPresent += 1;
+                    }
                   }
                 }
-              }
-              List<String> nonPlayingHelperStr = activeLadderDoc!.get('NonPlayingHelper').split(',');
-              // print('nonPlayingHelper: $nonPlayingHelperStr activeUser: ${activeUser.id}');
-              if (nonPlayingHelperStr.contains(activeUser.id)){
+                List<String> nonPlayingHelperStr = activeLadderDoc!.get('NonPlayingHelper').split(',');
+                // print('nonPlayingHelper: $nonPlayingHelperStr activeUser: ${activeUser.id}');
+                if (nonPlayingHelperStr.contains(activeUser.id)) {
                   activeUser.canBeHelper = true;
                   // print('setting canBeHelper to true');
-              }
-              if (!activeUser.canBeHelper) {
-                activeUser.helperEnabled = false;
-              }
-
-              // if the logged in user is not one of the players, then they are either an admin or a nonPlayingHelper
-              // default admins to admin enabled.
-              if (loggedInPlayerDoc == null ){
-                if (activeUser.canBeAdmin){
-                  activeUser.adminEnabled = true;
                 }
-              }
-              if (!activeUser.canBeAdmin ) {
-                activeUser.adminEnabled = false;
-              }
-              DateTime? nextPlayDate;
-              (nextPlayDate, _) = getNextPlayDateTime(activeLadderDoc!);
-              DateTime timeNow = DateTime.now();
-              bool mayFreeze = false;
-              int minToStart = 9999;
-              if (nextPlayDate!=null) {
-                minToStart = nextPlayDate.difference(timeNow).inMinutes;
-              }
+                if (!activeUser.canBeHelper) {
+                  activeUser.helperEnabled = false;
+                }
 
-              if (numberOfPlayersPresent>=4) {
-                if (activeUser.admin) mayFreeze = true;
-                if (minToStart < 10)  {
-                  if (activeUser.helper) {
-                    //TODO: can not unfreeze if scores are entered
-                    mayFreeze = true;
-                  } else if (( minToStart < 5.0) && (numberOfHelpersPresent == 0)) {
+                // if the logged in user is not one of the players, then they are either an admin or a nonPlayingHelper
+                // default admins to admin enabled.
+                if (loggedInPlayerDoc == null) {
+                  if (activeUser.canBeAdmin) {
+                    activeUser.adminEnabled = true;
+                  }
+                }
+                if (!activeUser.canBeAdmin) {
+                  activeUser.adminEnabled = false;
+                }
+                DateTime? nextPlayDate;
+                (nextPlayDate, _) = getNextPlayDateTime(activeLadderDoc!);
+                DateTime timeNow = DateTime.now();
+                bool mayFreeze = false;
+                int minToStart = 9999;
+                if (nextPlayDate != null) {
+                  minToStart = nextPlayDate.difference(timeNow).inMinutes;
+                }
+
+                if (numberOfPlayersPresent >= 4) {
+                  if (activeUser.admin) mayFreeze = true;
+                  if (minToStart < 10) {
+                    if (activeUser.helper) {
+                      //TODO: can not unfreeze if scores are entered
+                      mayFreeze = true;
+                    } else if ((minToStart < 5.0) && (numberOfHelpersPresent == 0)) {
                       // print('mayFreeze: special override, no helpers present, less than 5 minutes to go $nextPlayDate');
                       mayFreeze = true;
-                  } else if (minToStart < 0.0)  {
-                    // print('mayFreeze: special override, helpers present but start time has passed $nextPlayDate');
-                    mayFreeze = true;
+                    } else if (minToStart < 0.0) {
+                      // print('mayFreeze: special override, helpers present but start time has passed $nextPlayDate');
+                      mayFreeze = true;
+                    }
                   }
-
                 }
-              }
-              // print('mayFreeze: $mayFreeze, nextDate $nextPlayDate, now: ${DateTime.now()}');
-              List<PlayerList>? courtAssignments = determineMovement( activeLadderDoc!, _players );//getCourtAssignmentNumbers(_players);
-              return Scaffold(
-                backgroundColor: activeLadderBackgroundColor.withValues(alpha:0.1),//withValues(alpha:0.1), //Colors.green[50],
-                appBar: AppBar(
-                  title: Text('${activeLadderDoc!.get('DisplayName') ?? 'No DisplayName attr'}'),
-                  backgroundColor: activeLadderBackgroundColor.withValues(alpha:0.7),//withValues(alpha:0.7), //Colors.green[400],
-                  elevation: 0.0,
-                  automaticallyImplyLeading: true,
-                  actions: [
-                    IconButton.filled(
-                        style: IconButton.styleFrom(backgroundColor: Colors.white),
-                        padding: EdgeInsets.zero,
-                        onPressed: () {
-                          Navigator.push(context, MaterialPageRoute(builder: (context) => HelpPage(page:'Player')));
-                        },
-                        icon: Icon(Icons.help, color: Colors.green,
-                        size: 30,)),
-                    activeUser.admin
-                        ? Padding(
-                            padding: const EdgeInsets.all(5.0),
-                            child: IconButton.filled(
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(),
-                              icon: const Icon(Icons.supervisor_account, size: 30),
-                              onPressed: () {
-                                Navigator.push(context, MaterialPageRoute(builder: (context) => const ConfigPage()));
-                              },
-                              enableFeedback: true,
-                              color: Colors.redAccent,
-                              style: IconButton.styleFrom(backgroundColor: Colors.white),
-                            ),
-                          )
-                        : const SizedBox(width: 2),
-                    SizedBox(width: activeUser.admin ? 10 : 1),
-                    if (mayFreeze)
-                      Padding(
-                        padding: const EdgeInsets.all(5.0),
-                        child: IconButton.filled(
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                          icon: Icon(
-                            (activeLadderDoc!.get('FreezeCheckIns') ?? false) ? Icons.pause : Icons.play_arrow,
-                            size: 30,
-                          ),
-                          onPressed: () async {
-                            prepareForScoreEntry(activeLadderDoc!,_players);
-
-                            // showFrozenLadderPage(context, activeLadderDoc!, true);
-                          },
-                          enableFeedback: true,
-                          color: Colors.green,
+                // print('mayFreeze: $mayFreeze, nextDate $nextPlayDate, now: ${DateTime.now()}');
+                List<PlayerList>? courtAssignments = determineMovement(activeLadderDoc!, _players); //getCourtAssignmentNumbers(_players);
+                return Scaffold(
+                  backgroundColor: Color.lerp(activeLadderBackgroundColor, Colors.white,0.8),
+                  appBar: AppBar(
+                    title: Text('${activeLadderDoc!.get('DisplayName') ?? 'No DisplayName attr'}'),
+                    backgroundColor: Color.lerp(activeLadderBackgroundColor, Colors.white,0.3),
+                    elevation: 0.0,
+                    automaticallyImplyLeading: true,
+                    actions: [
+                      IconButton.filled(
                           style: IconButton.styleFrom(backgroundColor: Colors.white),
-                        ),
-                      ),
-                    const SizedBox(width: 10),
-                    ( activeUser.mayGetHelperIcon)?
-                    helperIcon(context, activeLadderId,courtAssignments):SizedBox(width:1),
-                    SizedBox(width: 20),
-                  ],
-                ),
-                body: SingleChildScrollView(
-                  key: PageStorageKey('playerScrollView'),
-                  scrollDirection: Axis.vertical,
-                  child: Column(
-                    children: [
-                      (urlCache.containsKey(activeLadderId) && (urlCache[activeLadderId] != null) && enableImages)
-                          ? Image.network(
-                              urlCache[activeLadderId]!,
-                              height: 100,
+                          padding: EdgeInsets.zero,
+                          onPressed: () {
+                            Navigator.push(context, MaterialPageRoute(builder: (context) => HelpPage(page: 'Player')));
+                          },
+                          icon: Icon(
+                            Icons.help,
+                            color: Colors.green,
+                            size: 30,
+                          )),
+                      activeUser.admin
+                          ? Padding(
+                              padding: const EdgeInsets.all(5.0),
+                              child: IconButton.filled(
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                                icon: const Icon(Icons.supervisor_account, size: 30),
+                                onPressed: () {
+                                  Navigator.push(context, MaterialPageRoute(builder: (context) => const ConfigPage()));
+                                },
+                                enableFeedback: true,
+                                color: Colors.redAccent,
+                                style: IconButton.styleFrom(backgroundColor: Colors.white),
+                              ),
                             )
-                          : const SizedBox(
-                              height: 100,
+                          : const SizedBox(width: 2),
+                      SizedBox(width: activeUser.admin ? 10 : 1),
+                      if (mayFreeze)
+                        Padding(
+                          padding: const EdgeInsets.all(5.0),
+                          child: IconButton.filled(
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            icon: Icon(
+                              (activeLadderDoc!.get('FreezeCheckIns') ?? false) ? Icons.pause : Icons.play_arrow,
+                              size: 30,
                             ),
-                      (courtAssignments!=null)?
-                      headerSummary(_players, courtAssignments):Text('. . . . . ', style: nameStyle,),
-                      (courtAssignments!=null)?
-                      ListView.separated(
-                        key: PageStorageKey('playerListView'),
-                        scrollDirection: Axis.vertical,
-                        shrinkWrap: true,
-                        physics: const ScrollPhysics(),
-                        separatorBuilder: (context, index) => const Divider(color: Colors.black),
-                        padding: const EdgeInsets.all(8),
-                        itemCount: _players!.length + 1, //for last divider line
-                        itemBuilder: (BuildContext context, int row) {
-                          if (row == _players!.length) {
-                            return const Text("END OF PLAYER LIST");
-                          }
-                          return buildPlayerLine(row, courtAssignments);
-                        },
-                      ):Text('Administrator Config error: ${PlayerList.errorString}', style: nameStyle,),
+                            onPressed: () async {
+                              prepareForScoreEntry(activeLadderDoc!, _players);
+
+                              // showFrozenLadderPage(context, activeLadderDoc!, true);
+                            },
+                            enableFeedback: true,
+                            color: Colors.green,
+                            style: IconButton.styleFrom(backgroundColor: Colors.white),
+                          ),
+                        ),
+                      const SizedBox(width: 10),
+                      (activeUser.mayGetHelperIcon) ? helperIcon(context, activeLadderId, courtAssignments) : SizedBox(width: 1),
+                      SizedBox(width: 20),
                     ],
                   ),
-                ),
-              );
-            });
+                  body: SingleChildScrollView(
+                    key: PageStorageKey('playerScrollView'),
+                    scrollDirection: Axis.vertical,
+                    child: Column(
+                      children: [
+                        (urlCache.containsKey(activeLadderId) && (urlCache[activeLadderId] != null) && enableImages)
+                            ? Image.network(
+                                urlCache[activeLadderId]!,
+                                height: 100,
+                              )
+                            : const SizedBox(
+                                height: 100,
+                              ),
+                        (courtAssignments != null)
+                            ? headerSummary(_players, courtAssignments)
+                            : Text(
+                                '. . . . . ',
+                                style: nameStyle,
+                              ),
+                        (courtAssignments != null)
+                            ? ListView.separated(
+                                key: PageStorageKey('playerListView'),
+                                scrollDirection: Axis.vertical,
+                                shrinkWrap: true,
+                                physics: const ScrollPhysics(),
+                                separatorBuilder: (context, index) => const Divider(color: Colors.black),
+                                padding: const EdgeInsets.all(8),
+                                itemCount: _players!.length + 1, //for last divider line
+                                itemBuilder: (BuildContext context, int row) {
+                                  if (row == _players!.length) {
+                                    return const Text("END OF PLAYER LIST");
+                                  }
+                                  return buildPlayerLine(row, courtAssignments);
+                                },
+                              )
+                            : Text(
+                                'Administrator Config error: ${PlayerList.errorString}',
+                                style: nameStyle,
+                              ),
+                      ],
+                    ),
+                  ),
+                );
+              });
         } catch (e, stackTrace) {
           return Text('player home EXCEPTION: $e\n$stackTrace', style: TextStyle(color: Colors.red));
         }

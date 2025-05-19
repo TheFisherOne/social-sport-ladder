@@ -51,6 +51,7 @@ dependencies:
   convert:
   provider:
   web: ^1.1.1
+  permission_handler: ^11.3.1
 
 
 

@@ -9,7 +9,7 @@ import 'Utilities/helper_icon.dart';
 import 'Utilities/user_stream.dart';
 import 'constants/firebase_setup2.dart';
 
-var testFirestore; // included for test code normally null
+dynamic testFirestore; // included for test code normally null
 late FirebaseFirestore firestore;
 
 String xorString(String s1,String s2){

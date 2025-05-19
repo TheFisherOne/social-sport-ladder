@@ -53,13 +53,14 @@ class LoginPageState extends State<LoginPage> {
 
   void _sendPasswordReset() {
     String email = _emailController.text;
+
     // print('_sendPasswordReset: $email');
     FirebaseAuth.instance.sendPasswordResetEmail(email: email).then((value) {
       if (kDebugMode) {
         print('RESET Password for $email');
       }
       setState(() {
-        _passwordResetError = 'Email sent to $email';
+        _passwordResetError = 'Email sent to $email (if it is a registered email)';
         _passwordResetAskedFor = true;
         _resetTimer = Timer(Duration(seconds:30), (){
           setState(() {

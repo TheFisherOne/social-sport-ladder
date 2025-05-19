@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../screens/ladder_config_page.dart';
+import 'package:permission_handler/permission_handler.dart' as mobile_permissions;
 
 
 class LocationService {
@@ -91,7 +93,7 @@ class LocationService {
     return R * c * 1000;
   }
   bool isLocationOk( Position where) {
-    double allowedDistance = activeLadderDoc!.get('MetersFromLatLong');
+    double allowedDistance = (activeLadderDoc!.get('MetersFromLatLong') as num).toDouble();
     if (allowedDistance <= 0.0) return true; // this is disabled
 
     double distance = measureDistance(activeLadderDoc!.get('Latitude'), activeLadderDoc!.get('Longitude'), where.latitude, where.longitude);
@@ -126,7 +128,73 @@ class LocationService {
     _timer?.cancel();
     _timer=null;
   }
+  bool _notificationsEnabled = false;
   void init() async {
+    bool canProceedWithLocation = false;
+    if (Platform.isAndroid) {
+      // --- Step 1: Request Notification Permission (for Android 13+) ---
+      // This is crucial because Geolocator's background service needs it.
+      var notificationStatus = await mobile_permissions.Permission.notification.request();
+      if (kDebugMode) {
+        print('Notification permission status: $notificationStatus');
+      }
+      _notificationsEnabled = notificationStatus.isGranted;
+
+      if (!_notificationsEnabled) {
+        if (kDebugMode) {
+          print('POST_NOTIFICATIONS permission not granted. Location services requiring foreground notification might fail or not start.');
+        }
+        // Decide how to handle this:
+        // 1. Don't start location services that need the notification.
+        // 2. Inform the user and guide them to grant permission.
+        // For now, we'll prevent proceeding if notification perm is vital for the geolocator's foreground service.
+        canProceedWithLocation = false;
+      } else {
+        canProceedWithLocation = true;
+      }
+    } else {
+      // For non-Android platforms, or Android < 13 (where manifest permission is enough
+      // and permission_handler might return .granted by default for .notification
+      // if not applicable for runtime request)
+      _notificationsEnabled = true; // Assume enabled or not needed for this specific issue
+      canProceedWithLocation = true;
+    }
+    if (canProceedWithLocation) {
+      bool locationServicesEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!locationServicesEnabled) {
+        if (kDebugMode) {
+          print('Location services are disabled.');
+        }
+        // Optionally, prompt user to enable location services:
+        // await Geolocator.openLocationSettings();
+        // return; // Or handle appropriately
+      }
+
+      mobile_permissions.PermissionStatus locationPermissionStatus = await mobile_permissions.Permission.location.status; // Using permission_handler for consistency
+
+      if (locationPermissionStatus.isDenied) {
+        locationPermissionStatus = await mobile_permissions.Permission.location.request();
+      }
+
+      if (locationPermissionStatus.isGranted) {
+        if (kDebugMode) {
+          print('Location permission granted.');
+        }
+        // --- Step 3: Start your location-dependent operations ---
+        startTimer(); // Now it's safer to call this
+      } else {
+        if (kDebugMode) {
+          print('Location permission denied. Cannot start timer.');
+        }
+        // Handle location permission denial
+      }
+    } else {
+      if (kDebugMode) {
+        print('Cannot proceed with location services due to missing notification permission.');
+      }
+      // Handle the case where notification permission (required for foreground service) was not granted.
+    }
+
     await Geolocator.isLocationServiceEnabled();
 // Note: requestService() isn’t needed on web; skip or handle via permission
     LocationPermission permission = await Geolocator.checkPermission();

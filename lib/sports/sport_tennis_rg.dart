@@ -690,12 +690,7 @@ sportTennisRGprepareForScoreEntry(List<QueryDocumentSnapshot>? players) async {
   int currentRound = activeLadderDoc!.get('CurrentRound');
   int numCourts = courtAssignments.numberOnCourt.length;
   String dateStr = '${currentDate}_${currentRound.toString()}';
-  writeAudit(user: activeUser.id, documentName: 'LadderConfig', action: 'Set FreezeCheckIns', newValue: true.toString(), oldValue: false.toString());
 
-  await firestore.collection('Ladder').doc(activeLadderId).update({
-    'FreezeCheckIns': true,
-    'FrozenDate': dateStr,
-  });
 
   // have to update all players even ones not assigned to a court
   for (QueryDocumentSnapshot player in players){
@@ -736,6 +731,12 @@ sportTennisRGprepareForScoreEntry(List<QueryDocumentSnapshot>? players) async {
       'ScoresEnteredBy': '',
     });
   }
+  writeAudit(user: activeUser.id, documentName: 'LadderConfig', action: 'Set FreezeCheckIns', newValue: true.toString(), oldValue: false.toString());
+
+  await firestore.collection('Ladder').doc(activeLadderId).update({
+    'FreezeCheckIns': true,
+    'FrozenDate': dateStr,
+  });
 }
 
 List<Color> courtColors = [Colors.yellow, Colors.green, Colors.cyan, Colors.grey];
@@ -770,7 +771,7 @@ Widget courtTile(CourtAssignmentsRgStandard courtAssignments, int court, Color c
     decoration: BoxDecoration(
       border: Border.all(color: courtColor, width: 5),
       borderRadius: BorderRadius.circular(15.0),
-      color: courtColor.withValues(alpha:0.1),//withValues(alpha:0.1),
+      color: Color.lerp(courtColor, Colors.white,0.8)
     ),
     child: Padding(
       padding: const EdgeInsets.only(left: 8.0, right: 8, top: 2, bottom: 2),
@@ -865,7 +866,7 @@ class _SportTennisRGState extends State<SportTennisRG> {
     try {
       colorString = activeLadderDoc!.get('Color').toLowerCase();
     } catch (_) {}
-    activeLadderBackgroundColor = colorFromString(colorString);
+    activeLadderBackgroundColor = stringToColor(colorString)??Colors.pink;
     _dateStr = activeLadderDoc!.get('FrozenDate');
 
 
@@ -897,7 +898,7 @@ class _SportTennisRGState extends State<SportTennisRG> {
           _movement = sportTennisRGDetermineMovement(_players, _dateStr);
           AppBar thisAppBar = AppBar(
             title: Text('${activeLadderDoc!.get('DisplayName')}'),
-            backgroundColor: activeLadderBackgroundColor.withValues(alpha:0.7),//withValues(alpha:0.7), //withOpacity(0.7),
+            backgroundColor: Color.lerp(activeLadderBackgroundColor, Colors.white,0.3),
             elevation: 0.0,
             automaticallyImplyLeading: true,
             actions: [

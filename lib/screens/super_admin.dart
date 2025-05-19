@@ -276,9 +276,9 @@ class _SuperAdminState extends State<SuperAdmin> {
                     String newValue = entry.trim().replaceAll(RegExp(r' \s+'), ' ');
                     // print('creating ladder $newValue');
                     // createLadder(newValue);
-                    int number = 0;
+                    double number = 0.0;
                     try {
-                      number = int.parse(newValue);
+                      number = double.parse(newValue);
                     } catch (_) {
                       return;
                     }
@@ -330,7 +330,7 @@ class _SuperAdminState extends State<SuperAdmin> {
                               // print('Ladder: ${doc.id} and Player: ${subDoc.id}');
                               firestore.collection('Ladder').doc(doc.id).collection('Players').doc(subDoc.id)
                               .update({
-                                // 'WeeksRegistered':0,
+                                // 'WeeksRegistered':1,
                                 // 'WeeksAway':0,
                                 // 'WeeksAwayWithOutNotice':FieldValue.delete(),
                                 // 'WeeksAwayWithoutNotice':0,

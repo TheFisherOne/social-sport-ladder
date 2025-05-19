@@ -1302,7 +1302,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                               color: Colors.red,
                             ),
                             Text(
-                              'Save Changes',
+                              'Save',
                               style: errorNameStyle,
                             ),
                           ]),

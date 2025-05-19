@@ -24,18 +24,6 @@ List<String>? availableLadders;
 String activeLadderId = '';
 
 Map<String,String?> urlCache = {};
-Color colorFromString(String colorString) {
-  const colorMap = {
-    'red': Colors.red,
-    'blue': Colors.blue,
-    'green': Colors.green,
-    'brown': Colors.brown,
-    'purple': Colors.purple,
-    'yellow': Colors.yellow,
-  };
-
-  return colorMap[colorString.toLowerCase()] ?? Colors.brown;
-}
 
 Future<bool> getLadderImage(String ladderId, {bool overrideCache = false}) async {
   if (!overrideCache && (urlCache.containsKey(ladderId)) || !enableImages) {
@@ -256,7 +244,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
         return Scaffold(
           backgroundColor: Colors.brown[50],
           appBar: AppBar(
-            title: Text('V$softwareVersion\n$loggedInUser', style: nameStyle,
+            title: Text('V$softwareVersion\n$loggedInUser', //style: nameStyle,
             // softWrap: true,
             //     overflow: TextOverflow.visible,
             ),
@@ -399,14 +387,14 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                   }
                   // activeLadderId = activeLadderDoc!.id;
 
-                  double reqSoftwareVersion = availableDocs[row].get('RequiredSoftwareVersion');
+                  double reqSoftwareVersion = (availableDocs[row].get('RequiredSoftwareVersion') as num).toDouble();
                   if (reqSoftwareVersion > softwareVersion) {
-                    reloadHtml(reqSoftwareVersion);
+                    return reloadHtml(reqSoftwareVersion);
                   }
 
                   bool disabled = availableDocs[row].get('Disabled');
 
-                  activeLadderBackgroundColor = colorFromString(availableDocs[row].get('Color').toLowerCase());
+                  activeLadderBackgroundColor = stringToColor(availableDocs[row].get('Color'))??Colors.pink;
 
                   String message = availableDocs[row].get('Message');
                   // print('message: $row $message');
@@ -444,7 +432,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                       decoration: BoxDecoration(
                         border: Border.all(color: activeLadderBackgroundColor, width: 5),
                         borderRadius: BorderRadius.circular(15.0),
-                        color: activeLadderBackgroundColor.withValues(alpha: 0.1), //withValues(alpha:0.1),
+                        color: Color.lerp(activeLadderBackgroundColor, Colors.white,0.8),
                       ),
                       child: Padding(
                         padding: const EdgeInsets.only(left: 8.0, right: 8, top: 2, bottom: 2),
@@ -463,7 +451,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                                   try {
                                     colorString = availableDocs[row].get('Color').toLowerCase();
                                   } catch (_) {}
-                                  activeLadderBackgroundColor = colorFromString(colorString);
+                                  activeLadderBackgroundColor = stringToColor(colorString)??Colors.pink;
 
                                   Navigator.push(context, MaterialPageRoute(builder: (context) => const PlayerHome()));
 
@@ -486,7 +474,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                                 decoration: BoxDecoration(
                                   border: Border.all(color: activeLadderBackgroundColor, width: 5),
                                   borderRadius: BorderRadius.circular(15.0),
-                                  color: activeLadderBackgroundColor.withValues(alpha:0.1), //withValues(alpha:0.1),
+                                  color: Color.lerp(activeLadderBackgroundColor, Colors.white,0.8)
                                 ),
                                 child: Padding(
                                   padding: const EdgeInsets.all(8.0),

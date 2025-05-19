@@ -29,7 +29,7 @@ initActiveLadderDoc(FakeFirebaseFirestore instance, {Map<String, dynamic> overri
     'Longitude': 0.0,
     'LowerLadder': '',
     'Message': 'test only ladder',
-    'MetersFromLatLong': 0,
+    'MetersFromLatLong': 0.0,
     'NextDate': DateTime(2030),
     'NonPlayingHelper': '',
     'NumberFromWaitList': 0,

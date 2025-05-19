@@ -8,7 +8,7 @@ import 'package:flutter/material.dart';
 import '../constants/constants.dart';
 import '../screens/calendar_page.dart';
 
-reloadWithNewVersion(double reqSoftwareVersion) {
+Text reloadWithNewVersion(double reqSoftwareVersion) {
   if (kIsWeb) {
     // final timestamp = DateTime
     //     .now()
@@ -19,6 +19,12 @@ reloadWithNewVersion(double reqSoftwareVersion) {
       print('NEED NEW VERSION OF THE SOFTWARE $reqSoftwareVersion > $softwareVersion');
     }
     web.window.location.reload();
+
+    // print('trying web.window.location.assign to force reload');
+    // final timestamp = DateTime.now().millisecondsSinceEpoch;
+    // final newURL = '${web.window.location.href}?v=$timestamp';
+    // web.window.location.assign(newURL);
+
     // web.window.location.replace(newURL);
     // html.window.location.reload();
 
@@ -30,10 +36,11 @@ reloadWithNewVersion(double reqSoftwareVersion) {
     //     web.window.location.href = newURL;
     //   }
     // });
-    return Text('YOU MUST FORCE A RELOAD you need V$reqSoftwareVersion', style: nameStyle,);
   }
+  return Text('YOU MUST FORCE A RELOAD you need V$reqSoftwareVersion', style: nameStyle,);
+
 }
-void reloadHtml(double reqSoftwareVersion) {
+Text reloadHtml(double reqSoftwareVersion) {
   // if (web.window.navigator.serviceWorker != null) {
   //   web.window.navigator.serviceWorker!.getRegistrations().then((registrations) {
   //     for (var reg in registrations) {
@@ -45,7 +52,7 @@ void reloadHtml(double reqSoftwareVersion) {
   //   });
   // } else
   {
-    reloadWithNewVersion(reqSoftwareVersion);
+    return reloadWithNewVersion(reqSoftwareVersion);
   }
 }
 downloadCsvFile(Event event) async {
