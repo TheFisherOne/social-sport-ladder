@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -167,6 +168,7 @@ class _PlayerHomeState extends State<PlayerHome> {
   void initState() {
     _loc.init();
     super.initState();
+    waitingForFreezeCheckins = false;
   }
 
   @override
@@ -535,6 +537,8 @@ class _PlayerHomeState extends State<PlayerHome> {
     }
   }
 
+  bool waitingForFreezeCheckins = false;
+
   Color activeLadderBackgroundColor = Colors.brown;
   @override
   Widget build(BuildContext context) {
@@ -559,12 +563,14 @@ class _PlayerHomeState extends State<PlayerHome> {
           // print('ladder_selection_page getting user global ladder but data is null');
           return const CircularProgressIndicator();
         }
-
+        developer.log('${DateTime.now()} player_home StreamBuilder');
         try {
           activeLadderDoc = ladderSnapshot.data!;
           activeLadderBackgroundColor = stringToColor(activeLadderDoc!.get('Color'))??Colors.pink;
 
           if (activeLadderDoc!.get('FreezeCheckIns')) {
+            waitingForFreezeCheckins = false;
+            developer.log('${DateTime.now()} player_home StreamBuilder FROZEN');
             return SportTennisRG();
           }
 
@@ -703,12 +709,16 @@ class _PlayerHomeState extends State<PlayerHome> {
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),
                             icon: Icon(
-                              (activeLadderDoc!.get('FreezeCheckIns') ?? false) ? Icons.pause : Icons.play_arrow,
+                              waitingForFreezeCheckins?Icons.hourglass_bottom:((activeLadderDoc!.get('FreezeCheckIns') ?? false) ? Icons.pause : Icons.play_arrow),
                               size: 30,
                             ),
                             onPressed: () async {
+                              setState(() {
+                                waitingForFreezeCheckins = true;
+                              });
+                              developer.log('${DateTime.now()} FreezeCheckIns pressed',name:'stage1');
                               prepareForScoreEntry(activeLadderDoc!, _players);
-
+                              developer.log('${DateTime.now()} FreezeCheckIns pressed',name:'after prepareForScoreEntry');
                               // showFrozenLadderPage(context, activeLadderDoc!, true);
                             },
                             enableFeedback: true,

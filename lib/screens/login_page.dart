@@ -52,6 +52,10 @@ class LoginPageState extends State<LoginPage> {
   }
 
   void _sendPasswordReset() {
+    setState(() {
+      _passwordResetError = 'waiting for email to be sent';
+    });
+
     String email = _emailController.text;
 
     // print('_sendPasswordReset: $email');
@@ -336,7 +340,7 @@ class LoginPageState extends State<LoginPage> {
                     ? RoundedButton(
                         key: Key('PasswordReset'),
                         backgroundColor: Colors.lightGreen,
-                        onTap: (emailErrorText != null) || (_emailController.text.isEmpty) ? null : _sendPasswordReset,
+                        onTap: (_passwordResetError.isNotEmpty) || (_emailController.text.isEmpty) ? null : _sendPasswordReset,
                         text: 'Send Password Reset Email',
                       )
                     : Text('Enter email if you have forgotten your password', style: nameStyle),

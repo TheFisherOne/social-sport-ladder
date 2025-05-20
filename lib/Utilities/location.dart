@@ -131,7 +131,7 @@ class LocationService {
   bool _notificationsEnabled = false;
   void init() async {
     bool canProceedWithLocation = false;
-    if (Platform.isAndroid) {
+    if ((!kIsWeb)&&(Platform.isAndroid)) {
       // --- Step 1: Request Notification Permission (for Android 13+) ---
       // This is crucial because Geolocator's background service needs it.
       var notificationStatus = await mobile_permissions.Permission.notification.request();
