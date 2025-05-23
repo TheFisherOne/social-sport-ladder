@@ -34,18 +34,18 @@ Future<bool> getLadderImage(String ladderId, {bool overrideCache = false}) async
   // by putting an entry in the cache even though it is null, we should only ask once
   urlCache[ladderId] = null;
   String filename = 'LadderImage/$ladderId.jpg';
-
+  try {
   final storage = FirebaseStorage.instance;
   final ref = storage.ref(filename);
   // print('getLadderImage: for $filename');
-  try {
+
     final url = await ref.getDownloadURL();
     // print('URL: $url');
     urlCache[ladderId] = url;
     // print('Image $filename downloaded successfully! $url');
   } catch (e) {
     if (e is FirebaseException) {
-      // print('FirebaseException: ${e.code} - ${e.message}');
+      // print('"$filename" FirebaseException: ${e.code} - ${e.message}');
     } else if (e is SocketException) {
       if (kDebugMode) {
         print('SocketException: ${e.message}');
@@ -88,14 +88,27 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
     super.dispose();
   }
 
-  _getLadderImage(String ladderId) async {
-    if (await getLadderImage(ladderId)) {
-      // print('_getLadderImage: doing setState for $ladderId');
-      if (mounted) {
-        setState(() {});
+  _getAllLadderImages(List<QueryDocumentSnapshot<Object?>> availableDocs) async {
+    bool oneLoaded = false;
+    for (int i = 0; i < availableDocs.length; i++) {
+      if (await getLadderImage(availableDocs[i].id)){
+        oneLoaded = true;
       }
     }
+    if (oneLoaded) {
+      refresh();
+    }
   }
+
+  // _getLadderImage(String ladderId) async {
+  //   if (await getLadderImage(ladderId)) {
+  //     print('_getLadderImage: doing setState for $ladderId');
+  //     if (mounted) {
+  //       setState(() {});
+  //       print('doing setState on ladder $ladderId');
+  //     }
+  //   }
+  // }
 
   refresh() => setState(() {});
   int _buildCount = 0;
@@ -236,15 +249,17 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
           }
         }
         availableDocs.sort((a, b) => a.get('DisplayName').compareTo(b.get('DisplayName')));
-        for (int i = 0; i < availableDocs.length; i++) {
-          _getLadderImage(availableDocs[i].id);
-          // print('DisplayName: ${availableDocs[i].get('DisplayName')}');
-        }
+
+        _getAllLadderImages(availableDocs);
+        // for (int i = 0; i < availableDocs.length; i++) {
+        //   _getLadderImage(availableDocs[i].id);
+        //   print('"${availableDocs[i].id}" DisplayName: ${availableDocs[i].get('DisplayName')}');
+        // }
         // print('urlCache: $urlCache');
         return Scaffold(
           backgroundColor: Colors.brown[50],
           appBar: AppBar(
-            title: Text('V$softwareVersion\n$loggedInUser', //style: nameStyle,
+            title: Text('V$softwareVersion\n$loggedInUser', style: smallStyle,
             // softWrap: true,
             //     overflow: TextOverflow.visible,
             ),

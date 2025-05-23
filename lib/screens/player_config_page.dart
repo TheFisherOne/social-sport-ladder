@@ -297,7 +297,7 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
           'WaitListRank': 0,
           'WeeksRegistered':0,
           'WeeksAway':0,
-          'WeeksAwayWithNotice':0,
+          'WeeksAwayWithoutNotice':0,
         });
 
         // print('addPlayer: audit');
@@ -849,9 +849,10 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
                 actions: [
                   IconButton(
                       onPressed: () {
-                        String result = 'Rank,Name,Email,Helper,WaitListRank,\n';
+                        String result = 'Rank,Name,Email,Helper,WaitListRank,WeeksAwayWithoutNotice,WeeksAway,WeeksPlayed\n';
                         for (int row = 0; row < _players.length; row++) {
-                          String line = '${_players[row].get('Rank')},${_players[row].get('Name')},${_players[row].id},${_players[row].get('Helper')},${_players[row].get('WaitListRank')},';
+                          String line = '${_players[row].get('Rank')},${_players[row].get('Name')},${_players[row].id},${_players[row].get('Helper')},${_players[row].get('WaitListRank')},'
+                          '${_players[row].get('DaysAwayWithoutNotice')},${_players[row].get('WeeksAway')},${activeLadderDoc!.get('WeeksPlayed')}';
                           result += '$line\n';
                         }
 

@@ -49,7 +49,7 @@ class ActiveUser {
 
 }
 String buildCsv(List<PlayerList>? courtAssignments){
-  String result='Rank,NewR,Present,Unassigned,Away,Player Name,Score,Pos,Court#,CourtName,aw+-,tot+-,TimePresent,Scr1,Scr2,Scr3,Scr4,Scr5\n';
+  String result='Rank,NewR,Present,Unassigned,Away,Player Name,Score,Pos,Court#,CourtName,aw+-,tot+-,TimePresent,Scr1,Scr2,Scr3,Scr4,Scr5,WeeksAwayWithoutNotice,WeeksAway,WeeksPlayed\n';
   for(int i=0; i< courtAssignments!.length; i++){
     PlayerList pl = courtAssignments[i];
     List<String> matchScores =  pl.snapshot.get('MatchScores').split('|');
@@ -60,7 +60,8 @@ String buildCsv(List<PlayerList>? courtAssignments){
     result += '${pl.startingRank},${pl.newRank},${pl.present?'true':''},${pl.unassigned?'true':''},${pl.markedAway?'true':''},${pl.snapshot.get('Name')},'
         '${pl.totalScore},${pl.startingOrder},${pl.courtNumber>=0?pl.courtNumber+1:''},${pl.courtNumber>=0?PlayerList.usedCourtNames[pl.courtNumber]:''},'
         '${pl.startingRank-pl.afterDownTwo},${pl.startingRank-pl.afterWinLose},'
-        '${pl.present?DateFormat('yyyy.MM.dd_HH:mm:ss').format(pl.snapshot.get('TimePresent').toDate()):''},$matchScoreStr\n';
+        '${pl.present?DateFormat('yyyy.MM.dd_HH:mm:ss').format(pl.snapshot.get('TimePresent').toDate()):''},$matchScoreStr,'
+        '${pl.snapshot.get('WeeksAwayWithoutNotice')},${pl.snapshot.get('WeeksAway')},${activeLadderDoc!.get('WeeksPlayed')}\n';
   }
   return result;
 }
@@ -202,6 +203,7 @@ Widget helperIcon(var context, String activeLadderId, List<PlayerList>? courtAss
                                         'CurrentRound': currentRound,
                                         'DaysOfPlay': newDaysOfPlay.join('|'),
                                         'NumberFromWaitlist':0,
+                                        'WeeksPlayed': FieldValue.increment(1),
                                       });
                                       writeAudit(user: activeUser.id, documentName: activeLadderId, action: 'Finalize and move', newValue: true.toString(), oldValue: 'n/a');
                                     });
@@ -343,14 +345,18 @@ Widget helperIcon(var context, String activeLadderId, List<PlayerList>? courtAss
                                     await firestore.runTransaction((transaction) async {
 
                                       for (var pl = 0; pl < courtAssignments.length; pl++) {
+                                        DocumentReference ladderRef = firestore.collection('Ladder').doc(activeLadderId);
                                         DocumentReference playerRef = firestore.collection('Ladder').doc(activeLadderId).collection('Players').doc(courtAssignments[pl].snapshot.id);
                                         // print('clearing present for $activeLadderId / ${movement[pl].snapshot.id}');
                                         transaction.update(playerRef, {
                                           'WeeksAway': 0,
                                           'WeeksAwayWithoutNotice':0,
                                         });
-
+                                        transaction.update(ladderRef, {
+                                          'WeeksPlayed': 0,
+                                        });
                                       }
+
                                       transactionAudit(transaction: transaction, user: activeUser.id, documentName: activeLadderId, action: 'Reset Weeks Away Stat', newValue: 'true', oldValue: 'n/a');
                                     });
                                   }

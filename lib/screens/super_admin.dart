@@ -164,6 +164,7 @@ class _SuperAdminState extends State<SuperAdmin> {
       'LaddersThatCanView': '',
       'HigherLadder': '',
       'LowerLadder': '',
+      'WeeksPlayed': 0,
     });
   }
 
@@ -317,13 +318,13 @@ class _SuperAdminState extends State<SuperAdmin> {
                     () {
                       firestore.collection('Ladder').get().then((QuerySnapshot ladder) {
                         for (var doc in ladder.docs) {
-                          // firestore.collection('Ladder').doc(doc.id).update({
-                          //   // 'CurrentRound': 1,
-                          //   // 'RequiredSoftwareVersion': softwareVersion,
-                          //   'NonPlayingHelper': '',
-                          //   // 'HigherLadder':'',
-                          //   // 'LowerLadder':'',
-                          // });
+                          firestore.collection('Ladder').doc(doc.id).update({
+                            // 'CurrentRound': 1,
+                            // 'RequiredSoftwareVersion': softwareVersion,
+                            // 'WeeksPlayed': 0,
+                            // 'HigherLadder':'',
+                            // 'LowerLadder':'',
+                          });
 
                           firestore.collection('Ladder/${doc.id}/Players').get().then((QuerySnapshot player) {
                             for (var subDoc in player.docs) {

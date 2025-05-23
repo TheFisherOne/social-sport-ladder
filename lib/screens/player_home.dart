@@ -306,8 +306,9 @@ class _PlayerHomeState extends State<PlayerHome> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (player.id == activeUser.id)
-                Text('${_loc.getLastDistanceAway().toStringAsFixed(1)}m away'),
+                if ((player.id == activeUser.id) &&
+                    (((checkBoxIcon == Icons.check_box) || (checkBoxIcon == Icons.check_box_outline_blank)) || activeUser.admin))
+                Text('you are ${_loc.getLastDistanceAway().toStringAsFixed(1)}m away'),
                 Container(
                   height: 50,
                   width: 50,
@@ -418,9 +419,11 @@ class _PlayerHomeState extends State<PlayerHome> {
                     : SizedBox(
                         width: 1,
                       ),
-                if ((player.get('WeeksAwayWithoutNotice') >= 3) || (player.get('WeeksAway') >= 7))
+                if (((player.get('WeeksAwayWithoutNotice') >= 3) || (player.get('WeeksAway') >= 7))
+                    || (loggedInUser == player.id) || activeUser.admin)
                   Text(
-                    'Weeks Away wihout Notice: ${player.get('WeeksAwayWithoutNotice')} / total Away ${player.get('WeeksAway')}',
+                    'No Notice: ${player.get('WeeksAwayWithoutNotice')}\ntotal Away ${player.get('WeeksAway')}\n'
+                    'Total weeks: ${activeLadderDoc!.get('WeeksPlayed')}',
                     style: errorNameStyle,
                   ),
               ],

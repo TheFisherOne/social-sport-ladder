@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 // if you want to enable images in android studio you must edit cors.json to include the write port number for localhost:12345
 // then run gsutil cores set cors.json gs://social-sport-ladder.appspot.com
 // which is in batch file cors.refresh
-bool enableImages = false;
+bool enableImages = true;
 const String fireStoreCollectionName = "social-sport-ladder";
-const int softwareVersion = 81;
+const int softwareVersion = 82;
 
 //colors
 Color surfaceColor = Colors.grey.shade300;
@@ -28,6 +28,7 @@ class LowerCaseTextInputFormatter extends TextInputFormatter {
 double appFontSize = 12;
 
 var nameStyle = TextStyle(decoration: TextDecoration.none, fontSize: appFontSize, fontWeight: FontWeight.normal);
+var smallStyle = TextStyle(decoration: TextDecoration.none, fontSize: 16, fontWeight: FontWeight.normal);
 var nameBigStyle = TextStyle(decoration: TextDecoration.none, fontSize: appFontSize*1.3, fontWeight: FontWeight.normal);
 var nameBigRedStyle = TextStyle(decoration: TextDecoration.none, fontSize: appFontSize*1.3, fontWeight: FontWeight.normal, color:Colors.red);
 var nameStrikeThruStyle = TextStyle(decoration: TextDecoration.lineThrough, fontSize: appFontSize, fontWeight: FontWeight.normal);
