@@ -54,6 +54,7 @@ class LoginPageState extends State<LoginPage> {
   void _sendPasswordReset() {
     setState(() {
       _passwordResetError = 'waiting for email to be sent';
+      _loginErrorString = '';
     });
 
     String email = _emailController.text;

@@ -1243,53 +1243,67 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                           onTap: () async {
                             String gameScoresStr = saveWorkingScores();
                             String thisUser = activeUser.id;
-                            await firestore.runTransaction((transaction) async {
-                              List<int> scores = List.empty(growable: true);
-                              List<String> matchScores = List.empty(growable: true);
+                            try {
+                              await firestore.runTransaction((transaction) async {
+                                List<int> scores = List.empty(growable: true);
+                                List<String> matchScores = List.empty(growable: true);
 
-                              DocumentReference scoreDoc = firestore.collection('Ladder').doc(widget.ladderName).collection('Scores').doc(_scoreDocStr);
-                              for (int play = 0; play < _gameScores.length; play++) {
-                                int score = 0;
-                                String matchScore = '';
-                                for (int i = 0; i < _gameScores[0].length; i++) {
-                                  if (i != 0) matchScore += '|';
-                                  if (_gameScores[play][i] != null) {
-                                    score += _gameScores[play][i]!;
-                                    matchScore += _gameScores[play][i]!.toString();
+                                DocumentReference scoreDoc = firestore.collection('Ladder').doc(widget.ladderName).collection('Scores').doc(_scoreDocStr);
+                                for (int play = 0; play < _gameScores.length; play++) {
+                                  int score = 0;
+                                  String matchScore = '';
+                                  for (int i = 0; i < _gameScores[0].length; i++) {
+                                    if (i != 0) matchScore += '|';
+                                    if (_gameScores[play][i] != null) {
+                                      score += _gameScores[play][i]!;
+                                      matchScore += _gameScores[play][i]!.toString();
+                                    }
                                   }
+                                  scores.add(score);
+                                  matchScores.add(matchScore);
+                                  // playerRefs.add(firestore.collection('Ladder').doc(widget.ladderName).collection('Players').doc(_playerList[play]));
                                 }
-                                scores.add(score);
-                                matchScores.add(matchScore);
-                                // playerRefs.add(firestore.collection('Ladder').doc(widget.ladderName).collection('Players').doc(_playerList[play]));
-                              }
-                              DocumentSnapshot scoreSnapshot = await scoreDoc.get();
-                              // must handle case of this user no longer the active score enterer
-                              if (scoreSnapshot.get('BeingEditedBy') != thisUser) return;
+                                DocumentSnapshot scoreSnapshot = await transaction.get(scoreDoc);
+                                // must handle case of this user no longer the active score enterer
+                                if (!scoreSnapshot.exists || scoreSnapshot.get('BeingEditedBy') != thisUser) {
+                                  if (kDebugMode) {
+                                    print('this user $thisUser got kicked out by: ${scoreSnapshot.get('BeingEditedBy')}');
+                                  }
+                                  return; // Abort the transaction
+                                }
 
-                              for (int play = 0; play < scores.length; play++) {
-                                transaction.update(firestore.collection('Ladder').doc(widget.ladderName).collection('Players').doc(_playerList[play]), {
-                                  'TotalScore': scores[play],
-                                  'StartingOrder': play + 1,
-                                  'ScoresConfirmed': false,
-                                  'MatchScores': matchScores[play],
+                                for (int play = 0; play < scores.length; play++) {
+                                  transaction.update(firestore.collection('Ladder').doc(widget.ladderName).collection('Players').doc(_playerList[play]), {
+                                    'TotalScore': scores[play],
+                                    'StartingOrder': play + 1,
+                                    'ScoresConfirmed': false,
+                                    'MatchScores': matchScores[play],
+                                  });
+                                }
+                                transactionAudit(
+                                    transaction: transaction,
+                                    user: activeUser.id,
+                                    documentName: '${widget.ladderName}/$_scoreDocStr',
+                                    action: 'EnterScore',
+                                    newValue: gameScoresStr,
+                                    oldValue: _gameScoresStr);
+                                String newScoresEnteredBy = scoreSnapshot.get('ScoresEnteredBy');
+                                if (newScoresEnteredBy.isNotEmpty) newScoresEnteredBy += '|';
+                                transaction.update(firestore.collection('Ladder').doc(widget.ladderName).collection('Scores').doc(_scoreDocStr), {
+                                  'BeingEditedBy': '',
+                                  'ScoresEnteredBy': '$newScoresEnteredBy$_beingEditedById',
+                                  'GameScores': gameScoresStr,
+                                  // 'EndingRanks': endingRanksStr,
                                 });
-                              }
-                              transactionAudit(
-                                  transaction: transaction,
-                                  user: activeUser.id,
-                                  documentName: '${widget.ladderName}/$_scoreDocStr',
-                                  action: 'EnterScore',
-                                  newValue: gameScoresStr,
-                                  oldValue: _gameScoresStr);
-                              String newScoresEnteredBy = thisUser;
-                              if (newScoresEnteredBy.isNotEmpty) newScoresEnteredBy += '|';
-                              transaction.update(firestore.collection('Ladder').doc(widget.ladderName).collection('Scores').doc(_scoreDocStr), {
-                                'BeingEditedBy': '',
-                                'ScoresEnteredBy': '$newScoresEnteredBy$_beingEditedById',
-                                'GameScores': gameScoresStr,
-                                // 'EndingRanks': endingRanksStr,
                               });
-                            });
+                            } catch (e) {
+                              // Handle transaction failure
+                              if (kDebugMode) {
+                                print('Error saving scores: $e');
+                              }
+                              return; // skip the clearing
+                            }
+
                             setState(() {
                               cancelWorkingScores();
                               _anyScoresToSave = false;
@@ -1343,7 +1357,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                             }
                           : null,
                       child: Text(
-                        'Kick out $_beingEditedByName',
+                        _isOverrideEditorEnabled?'Kick out $_beingEditedByName':'waiting 30 sec\nfor $_beingEditedByName',
                         style: nameStyle,
                       )),
                 if (_beingEditedByName.isNotEmpty)

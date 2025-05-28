@@ -5,7 +5,6 @@ import 'package:social_sport_ladder/constants/constants.dart';
 import '../Utilities/my_text_field.dart';
 import '../main.dart';
 
-
 class SuperAdmin extends StatefulWidget {
   const SuperAdmin({super.key});
 
@@ -86,11 +85,10 @@ class _SuperAdminState extends State<SuperAdmin> {
         String ladderName = snapshotLadders.docs[ladderIndex].id;
         // print('LaddersThatCanView: $ladderName  ${snapshotLadders.docs[ladderIndex].get('LaddersThatCanView')}');
         List<String> friendLadders = snapshotLadders.docs[ladderIndex].get('LaddersThatCanView').split('|');
-        for (int friend=0; friend<friendLadders.length; friend++){
+        for (int friend = 0; friend < friendLadders.length; friend++) {
           String friendLadder = friendLadders[friend];
           // print('rebuildLadders: processing LaddersThatCanView $friendLadder of ladder $ladderName');
           if (friendLadder.isEmpty) continue;
-
 
           CollectionReference playersRef = firestore.collection('Ladder').doc(friendLadder).collection('Players');
           QuerySnapshot ladderSnapshot = await playersRef.get();
@@ -284,13 +282,12 @@ class _SuperAdminState extends State<SuperAdmin> {
                       return;
                     }
                     await firestore.runTransaction((transaction) async {
-                    for (QueryDocumentSnapshot<Object?> doc in ladderSnapshots.data!.docs) {
-                      DocumentReference ladderRef = firestore.collection('Ladder').doc(doc.id);
-                      transaction.update(ladderRef, {
-                        'RequiredSoftwareVersion': number,
-                      });
-                    }
-
+                      for (QueryDocumentSnapshot<Object?> doc in ladderSnapshots.data!.docs) {
+                        DocumentReference ladderRef = firestore.collection('Ladder').doc(doc.id);
+                        transaction.update(ladderRef, {
+                          'RequiredSoftwareVersion': number,
+                        });
+                      }
                     });
                     // for (QueryDocumentSnapshot<Object?> doc in ladderSnapshots.data!.docs) {
                     //   print('updating RequiredSoftwareVersion for ladder ${doc.id} to $number');
@@ -306,49 +303,73 @@ class _SuperAdminState extends State<SuperAdmin> {
                   },
                   initialValue: '',
                 ),
-                Row(children: [
+                Row(
+                  children: [
+                    Text(
+                      'empty n/a',
+                      style: nameStyle,
+                    ),
+                    IconButton(
+                      onPressed: () async {
+                        try {
+                          int batchCount =0;
+                          // Get all ladder documents
+                          QuerySnapshot ladderSnapshot = await firestore.collection('Ladder').get();
 
+                          WriteBatch batch = firestore.batch();
 
-                Text(
-                  'empty n/a',
-                  style: nameStyle,
-                ),
-                IconButton(
-                    onPressed:
-                    () {
-                      firestore.collection('Ladder').get().then((QuerySnapshot ladder) {
-                        for (var doc in ladder.docs) {
-                          firestore.collection('Ladder').doc(doc.id).update({
-                            // 'CurrentRound': 1,
-                            // 'RequiredSoftwareVersion': softwareVersion,
-                            // 'WeeksPlayed': 0,
-                            // 'HigherLadder':'',
-                            // 'LowerLadder':'',
-                          });
+                          for (var ladderDoc in ladderSnapshot.docs) {
+                            String ladderId = ladderDoc.id;
+                            // Get all player documents for the current ladder
+                            QuerySnapshot playerSnapshot = await firestore.collection('Ladder').doc(ladderId).collection('Players').get();
 
-                          firestore.collection('Ladder/${doc.id}/Players').get().then((QuerySnapshot player) {
-                            for (var subDoc in player.docs) {
-                              // print('Ladder: ${doc.id} and Player: ${subDoc.id}');
-                              firestore.collection('Ladder').doc(doc.id).collection('Players').doc(subDoc.id)
-                              .update({
-                                // 'WeeksRegistered':1,
-                                // 'WeeksAway':0,
-                                // 'WeeksAwayWithOutNotice':FieldValue.delete(),
-                                // 'WeeksAwayWithoutNotice':0,
-                                // 'TotalScore':0,
-                                // 'StartingOrder': 0,
-                                // 'Score1': FieldValue.delete(),
-                                // 'Score2': FieldValue.delete(),
-                                // 'LaddersThatCanView': FieldValue.delete(),
-
-                              });
+                            for (var playerDoc in playerSnapshot.docs) {
+                              String playerId = playerDoc.id;
+                              DocumentReference playerRef = firestore.collection('Ladder').doc(ladderId).collection('Players').doc(playerId);
+                              Map<String, dynamic>? playerData = playerDoc.data() as Map<String, dynamic>?;
+                              if (playerData == null) continue;
+                              if (playerData.containsKey('WeeksAwayWithOutNotice') ||
+                                  (playerDoc.get('WeeksRegistered') != 1) ||
+                                  (playerDoc.get('WeeksAway') != 0) ||
+                                  (playerDoc.get('WeeksAwayWithoutNotice') != 0)) {
+                                if (kDebugMode) {
+                                  print('update doc ${playerDoc.id}  count:$batchCount');
+                                }
+                                batchCount ++;
+                                batch.update(playerRef, {
+                                  // 'WeeksRegistered': 1,
+                                  // 'WeeksAway': 0,
+                                  // 'WeeksAwayWithOutNotice': FieldValue.delete(),
+                                  // 'WeeksAwayWithoutNotice': 0,
+                                });
+                                if (batchCount > 300 ){
+                                  await batch.commit();
+                                  if (kDebugMode) {
+                                    print('Successfully updated $batchCount player documents.');
+                                  }
+                                  batchCount = 0;
+                                  batch = firestore.batch();
+                                }
+                              }
                             }
-                          });
+                          }
+
+                          // Commit the batched write
+                          await batch.commit();
+                          if (kDebugMode) {
+                            print('Successfully updated player documents.');
+                          }
+                        } catch (e) {
+                          if (kDebugMode) {
+                            print('Error updating player documents: $e');
+                          }
+                          // Handle the error appropriately, e.g., show a snackbar to the user
                         }
-                      });
-                    },
-                    icon: Icon(Icons.check)),
-                ],),
+                      },
+                      icon: Icon(Icons.check),
+                    )
+                  ],
+                ),
               ],
             ),
           );
