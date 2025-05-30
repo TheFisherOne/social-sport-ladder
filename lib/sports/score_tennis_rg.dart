@@ -440,6 +440,42 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
     return lowerRank;
   }
 
+  updateBeingEditedBy(){
+    if (_beingEditedById.isEmpty) {
+      // Get the document reference and make sure it is empty before updating it
+      DocumentReference scoreDocRef = firestore
+          .collection('Ladder')
+          .doc(activeLadderId) // Assuming activeLadderId is available and correct
+          .collection('Scores')
+          .doc(widget.scoreDoc.id);
+      firestore.runTransaction((transaction) async {
+        // 1. Read the document within the transaction
+        DocumentSnapshot freshScoreDoc = await transaction.get(scoreDocRef);
+
+        // 2. Check if the document exists
+        if (!freshScoreDoc.exists) {
+          if (kDebugMode) {
+            print('score document does not exist in scoreBox');
+          }
+          return;
+        }
+        final data = freshScoreDoc.data() as Map<String, dynamic>?;
+        String currentBeingEditedBy = "";
+        if (data != null && data.containsKey('BeingEditedBy')) {
+          currentBeingEditedBy = data['BeingEditedBy'] as String;
+        }
+
+        // 4. Conditionally update
+        if (currentBeingEditedBy.isEmpty) {
+          // 'BeingEditedBy' is empty, so we can claim it
+          transaction.update(scoreDocRef, {
+            'BeingEditedBy': activeUser.id,
+          });
+        }
+      });
+    }
+  }
+
   @override
   void initState() {
     // print('initState of score_tennis_rg.dart');
@@ -541,15 +577,12 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                     }
                     _workingGameScores[playerNum][gameNum] = workingValue;
 
-                    if (_beingEditedById != activeUser.id) {
-                      await firestore.collection('Ladder').doc(activeLadderId).collection('Scores').doc(widget.scoreDoc.id).update({
-                        'BeingEditedBy': activeUser.id,
-                      });
-                      _neverEdited = false;
-                    }
+                    updateBeingEditedBy();
+
                     setState(() {
                       _beingEditedById = activeUser.id;
                       _anyScoresToSave = true;
+                      _neverEdited = false;
                     });
 
                     // print('workingGameScores2: $_workingGameScores');
@@ -732,12 +765,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
       _workingGameScores[i][game] = newScores[i];
     }
     _anyScoresToSave = true;
-    if (_beingEditedById != activeUser.id) {
-      await firestore.collection('Ladder').doc(activeLadderId).collection('Scores').doc(widget.scoreDoc.id).update({
-        'BeingEditedBy': activeUser.id,
-      });
-      _neverEdited = false;
-    }
+    updateBeingEditedBy();
     setState(() {});
   }
 
@@ -754,12 +782,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
     }
     _anyScoresToSave = true;
 
-    if (_beingEditedById != activeUser.id) {
-      await firestore.collection('Ladder').doc(activeLadderId).collection('Scores').doc(widget.scoreDoc.id).update({
-        'BeingEditedBy': activeUser.id,
-      });
-      _neverEdited = false;
-    }
+    updateBeingEditedBy();
     setState(() {});
   }
 
@@ -1357,7 +1380,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                             }
                           : null,
                       child: Text(
-                        _isOverrideEditorEnabled?'Kick out $_beingEditedByName':'waiting 30 sec\nfor $_beingEditedByName',
+                        _isOverrideEditorEnabled ? 'Kick out $_beingEditedByName' : 'waiting 30 sec\nfor $_beingEditedByName',
                         style: nameStyle,
                       )),
                 if (_beingEditedByName.isNotEmpty)

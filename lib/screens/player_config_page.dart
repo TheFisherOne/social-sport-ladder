@@ -96,6 +96,9 @@ movePlayerDown(String fromLadder, String toLadder) async {
       'TotalScore': 0,
       'ScoresConfirmed': false,
       'WaitListRank': highestPlayerDoc.get('WaitListRank'),
+      'WeeksRegistered':highestPlayerDoc.get('WeeksRegistered'),
+      'WeeksAway':highestPlayerDoc.get('WeeksAway'),
+      'WeeksAwayWithoutNotice':highestPlayerDoc.get('WeeksAwayWithoutNotice'),
     });
 
     // now delete it from the fromLadder
@@ -174,6 +177,9 @@ movePlayerUp(String fromLadder, String toLadder) async {
       'TotalScore': 0,
       'ScoresConfirmed': false,
       'WaitListRank': fromPlayerDoc.get('WaitListRank'),
+      'WeeksRegistered':fromPlayerDoc.get('WeeksRegistered'),
+      'WeeksAway':fromPlayerDoc.get('WeeksAway'),
+      'WeeksAwayWithoutNotice':fromPlayerDoc.get('WeeksAwayWithoutNotice'),
     });
 
     // now delete it from the fromLadder
