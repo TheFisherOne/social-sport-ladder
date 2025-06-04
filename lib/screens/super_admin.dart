@@ -29,12 +29,20 @@ class _SuperAdminState extends State<SuperAdmin> {
       CollectionReference laddersRef = firestore.collection('Ladder');
       QuerySnapshot snapshotLadders = await laddersRef.get();
 
+      // for (int ladderIndex = 0; ladderIndex < snapshotLadders.docs.length; ladderIndex++) {
+      //   print('ladder:$ladderIndex  ${snapshotLadders.docs[ladderIndex].id} ${snapshotLadders.docs[ladderIndex].get('DisplayName')}' );
+      // }
+      List<QueryDocumentSnapshot<Object?>> sortedLadders = snapshotLadders.docs;
+      sortedLadders.sort((a, b) => a.get('DisplayName').compareTo(b.get('DisplayName')));
+      // for (int ladderIndex = 0; ladderIndex < sortedLadders.length; ladderIndex++) {
+      //   print('sortedLadder:$ladderIndex  ${sortedLadders[ladderIndex].id} ${sortedLadders[ladderIndex].get('DisplayName')}' );
+      // }
       var emailLadders = {};
 
-      String debugEmail =  'albertacarkeys@outlook.com';//'';
+      String debugEmail =  'xxxxdouglasfisher99@gmail.com';
 
-      for (int ladderIndex = 0; ladderIndex < snapshotLadders.docs.length; ladderIndex++) {
-        String ladderName = snapshotLadders.docs[ladderIndex].id;
+      for (int ladderIndex = 0; ladderIndex < sortedLadders.length; ladderIndex++) {
+        String ladderName = sortedLadders[ladderIndex].id;
         CollectionReference playersRef = firestore.collection('Ladder').doc(ladderName).collection('Players');
         QuerySnapshot snapshotPlayers = await playersRef.get();
 
@@ -53,10 +61,10 @@ class _SuperAdminState extends State<SuperAdmin> {
           }
         }
       }
-      for (int ladderIndex = 0; ladderIndex < snapshotLadders.docs.length; ladderIndex++) {
-        String ladderName = snapshotLadders.docs[ladderIndex].id;
+      for (int ladderIndex = 0; ladderIndex < sortedLadders.length; ladderIndex++) {
+        String ladderName = sortedLadders[ladderIndex].id;
         // print('rebuildLadders: reading from ladder $ladderName');
-        List<String> admins = snapshotLadders.docs[ladderIndex].get('Admins').split(',');
+        List<String> admins = sortedLadders[ladderIndex].get('Admins').split(',');
         for (String user in admins) {
           if ((user == debugEmail) && kDebugMode) {
             print('ladder:$ladderName adding player $user as  an admin');
@@ -71,9 +79,9 @@ class _SuperAdminState extends State<SuperAdmin> {
           }
         }
       }
-      for (int ladderIndex = 0; ladderIndex < snapshotLadders.docs.length; ladderIndex++) {
-        String ladderName = snapshotLadders.docs[ladderIndex].id;
-        List<String> helpers = snapshotLadders.docs[ladderIndex].get('NonPlayingHelper').split(',');
+      for (int ladderIndex = 0; ladderIndex < sortedLadders.length; ladderIndex++) {
+        String ladderName = sortedLadders[ladderIndex].id;
+        List<String> helpers = sortedLadders[ladderIndex].get('NonPlayingHelper').split(',');
         for (String user in helpers) {
           if ((user == debugEmail) && kDebugMode) {
             print('ladder:$ladderName adding player $user as  a NonPlayingHelper');
@@ -93,10 +101,10 @@ class _SuperAdminState extends State<SuperAdmin> {
       // print('rebuildLadders: done reading players from each ladder');
 
       // now combine emails from 'LaddersThatCanView
-      for (int ladderIndex = 0; ladderIndex < snapshotLadders.docs.length; ladderIndex++) {
-        String ladderName = snapshotLadders.docs[ladderIndex].id;
-        // print('LaddersThatCanView: $ladderName  ${snapshotLadders.docs[ladderIndex].get('LaddersThatCanView')}');
-        List<String> friendLadders = snapshotLadders.docs[ladderIndex].get('LaddersThatCanView').split('|');
+      for (int ladderIndex = 0; ladderIndex < sortedLadders.length; ladderIndex++) {
+        String ladderName = sortedLadders[ladderIndex].id;
+        // print('LaddersThatCanView: $ladderName  ${sortedLadders[ladderIndex].get('LaddersThatCanView')}');
+        List<String> friendLadders = sortedLadders[ladderIndex].get('LaddersThatCanView').split('|');
         for (int friend = 0; friend < friendLadders.length; friend++) {
           String friendLadder = friendLadders[friend];
           // print('rebuildLadders: processing LaddersThatCanView $friendLadder of ladder $ladderName');

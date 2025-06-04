@@ -1,6 +1,5 @@
 import 'dart:io';
-import '../Utilities/html_none.dart'
-  if (dart.library.html ) '../Utilities/html_only.dart';
+import '../Utilities/html_none.dart' if (dart.library.html) '../Utilities/html_only.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -23,7 +22,7 @@ List<String>? availableLadders;
 
 String activeLadderId = '';
 
-Map<String,String?> urlCache = {};
+Map<String, String?> urlCache = {};
 
 Future<bool> getLadderImage(String ladderId, {bool overrideCache = false}) async {
   if (!overrideCache && (urlCache.containsKey(ladderId)) || !enableImages) {
@@ -35,9 +34,9 @@ Future<bool> getLadderImage(String ladderId, {bool overrideCache = false}) async
   urlCache[ladderId] = null;
   String filename = 'LadderImage/$ladderId.jpg';
   try {
-  final storage = FirebaseStorage.instance;
-  final ref = storage.ref(filename);
-  // print('getLadderImage: for $filename');
+    final storage = FirebaseStorage.instance;
+    final ref = storage.ref(filename);
+    // print('getLadderImage: for $filename');
 
     final url = await ref.getDownloadURL();
     // print('URL: $url');
@@ -91,7 +90,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
   _getAllLadderImages(List<QueryDocumentSnapshot<Object?>> availableDocs) async {
     bool oneLoaded = false;
     for (int i = 0; i < availableDocs.length; i++) {
-      if (await getLadderImage(availableDocs[i].id)){
+      if (await getLadderImage(availableDocs[i].id)) {
         oneLoaded = true;
       }
     }
@@ -146,99 +145,93 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
           child: Text(buttonText));
     }
 
-    try{
-    // print('ladder_selection_page.build _events: ${_events.length}');
-
-    if (loggedInUser.isEmpty) {
-      return const Text('LadderPage: but loggedInUser empty');
-    }
-    _buildCount++;
-    //print('ladder_selection_page: doing build #$_buildCount');
-    if (_buildCount > 1000) return const Text('Build Count exceeded');
-
     try {
-      activeUser.canBeSuper = loggedInUserDoc!.get('SuperUser');
-    } catch (_) {
-      activeUser.canBeSuper = false;
-    }
+      // print('ladder_selection_page.build _events: ${_events.length}');
 
-    if (_originalAppFontSize < 20) {
-      _originalAppFontSize = appFontSize;
-    }
+      if (loggedInUser.isEmpty) {
+        return const Text('LadderPage: but loggedInUser empty');
+      }
+      _buildCount++;
+      //print('ladder_selection_page: doing build #$_buildCount');
+      if (_buildCount > 1000) return const Text('Build Count exceeded');
 
-    bool userOk = false;
-    try {
-      _userLadders = loggedInUserDoc!.get('Ladders');
-      userOk = true;
-    } catch (_) {}
-    String errorText = 'Not a supported user "$loggedInUser"';
-    if (_userLadders.isEmpty) {
-      errorText = '"$loggedInUser" is not on any ladder';
-    }
-    if (_userLadders.isEmpty || !userOk) {
-      return Scaffold(
-        backgroundColor: Colors.brown[50],
-        appBar: AppBar(
-          title: const Text('Bad email'),
-          backgroundColor: Colors.brown[400],
-          elevation: 0.0,
-          automaticallyImplyLeading: false,
-          actions: [
-            Padding(
-              padding: const EdgeInsets.all(0.0),
-              child: makeDoubleConfirmationButton(
-                  buttonText: 'Log\nOut',
-                  dialogTitle: 'You will have to enter your password again',
-                  dialogQuestion: 'Are you sure you want to logout?\n${activeUser.id}',
-                  disabled: false,
-                  onOk: () {
-                    FirebaseAuth.instance.signOut();
-                    activeUser.id = '';
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => LoginPage(auth:FirebaseAuth.instance)));
-                  }),
-            ),
-          ],
-        ),
-        body: Text(errorText, style: nameStyle),
-      );
-    }
-    if (_lastLoggedInUser != activeUser.id) {
-      firestore.collection('Users').doc(activeUser.id).update({
-        'LastLogin': DateTime.now(),
-      });
-      _lastLoggedInUser = activeUser.id;
-    }
+      try {
+        activeUser.canBeSuper = loggedInUserDoc!.get('SuperUser');
+      } catch (_) {
+        activeUser.canBeSuper = false;
+      }
 
-    return StreamBuilder<QuerySnapshot>(
-      stream: firestore.collection('Ladder').snapshots(),
-      builder: (BuildContext context, AsyncSnapshot<QuerySnapshot<Object?>> snapshot) {
-        // print('Ladder snapshot');
-        if (snapshot.error != null) {
-          String error = 'Snapshot error: ${snapshot.error.toString()} on getting global ladders ';
-          if (kDebugMode) {
-            print(error);
+      if (_originalAppFontSize < 20) {
+        _originalAppFontSize = appFontSize;
+      }
+
+      bool userOk = false;
+      try {
+        _userLadders = loggedInUserDoc!.get('Ladders');
+        userOk = true;
+      } catch (_) {}
+      String errorText = 'Not a supported user "$loggedInUser"';
+      if (_userLadders.isEmpty) {
+        errorText = '"$loggedInUser" is not on any ladder';
+      }
+      if (_userLadders.isEmpty || !userOk) {
+        return Scaffold(
+          backgroundColor: Colors.brown[50],
+          appBar: AppBar(
+            title: const Text('Bad email'),
+            backgroundColor: Colors.brown[400],
+            elevation: 0.0,
+            automaticallyImplyLeading: false,
+            actions: [
+              Padding(
+                padding: const EdgeInsets.all(0.0),
+                child: makeDoubleConfirmationButton(
+                    buttonText: 'Log\nOut',
+                    dialogTitle: 'You will have to enter your password again',
+                    dialogQuestion: 'Are you sure you want to logout?\n${activeUser.id}',
+                    disabled: false,
+                    onOk: () {
+                      FirebaseAuth.instance.signOut();
+                      activeUser.id = '';
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => LoginPage(auth: FirebaseAuth.instance)));
+                    }),
+              ),
+            ],
+          ),
+          body: Text(errorText, style: nameStyle),
+        );
+      }
+      if (_lastLoggedInUser != activeUser.id) {
+        firestore.collection('Users').doc(activeUser.id).update({
+          'LastLogin': DateTime.now(),
+        });
+        _lastLoggedInUser = activeUser.id;
+      }
+
+      return StreamBuilder<QuerySnapshot>(
+        stream: firestore.collection('Ladder').snapshots(),
+        builder: (BuildContext context, AsyncSnapshot<QuerySnapshot<Object?>> snapshot) {
+          // print('Ladder snapshot');
+          if (snapshot.error != null) {
+            String error = 'Snapshot error: ${snapshot.error.toString()} on getting global ladders ';
+            if (kDebugMode) {
+              print(error);
+            }
+            return Text(error);
           }
-          return Text(error);
-        }
-        // print('in StreamBuilder ladder 0');
-        if (!snapshot.hasData || (snapshot.connectionState != ConnectionState.active)) {
-          // print('ladder_selection_page getting user $loggedInUser but hasData is false');
-          return const CircularProgressIndicator();
-        }
-        if (snapshot.data == null) {
-          // print('ladder_selection_page getting user global ladder but data is null');
-          return const CircularProgressIndicator();
-        }
-        // print('building Ladder snapshots with fontsize: $appFontSize ${nameStyle.fontSize}');
-        availableLadders = _userLadders.split(",");
-        List<QueryDocumentSnapshot<Object?>> availableDocs = List.empty(growable: true);
-
-        if (activeUser.canBeSuper) {
-          // print('number of ladders: ${snapshot.data!.docs.length}');
-          for (QueryDocumentSnapshot<Object?> doc in snapshot.data!.docs) {
-            availableDocs.add(doc);
+          // print('in StreamBuilder ladder 0');
+          if (!snapshot.hasData || (snapshot.connectionState != ConnectionState.active)) {
+            // print('ladder_selection_page getting user $loggedInUser but hasData is false');
+            return const CircularProgressIndicator();
           }
-        } else {
+          if (snapshot.data == null) {
+            // print('ladder_selection_page getting user global ladder but data is null');
+            return const CircularProgressIndicator();
+          }
+          // print('building Ladder snapshots with fontsize: $appFontSize ${nameStyle.fontSize}');
+          availableLadders = _userLadders.split(',');
+          List<QueryDocumentSnapshot<Object?>> availableDocs = List.empty(growable: true);
+
           for (String ladder in availableLadders!) {
             for (QueryDocumentSnapshot<Object?> doc in snapshot.data!.docs) {
               if ((doc.id == ladder) && (!doc.get('SuperDisabled'))) {
@@ -247,281 +240,293 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
               }
             }
           }
-        }
-        // availableDocs.sort((a, b) => a.get('DisplayName').compareTo(b.get('DisplayName')));
+          if (activeUser.canBeSuper) {
+            for (QueryDocumentSnapshot<Object?> doc in snapshot.data!.docs) {
+              bool needsToBeAdded = true;
+              for (String ladder in availableLadders!) {
+                if (doc.id == ladder) {
+                  needsToBeAdded = false;
+                }
+              }
+              if (needsToBeAdded) {
+                if (kDebugMode) {
+                  print('adding ladder because of being super admin ${doc.id}');
+                }
+                availableDocs.add(doc);
+              }
+            }
+          }
 
-        _getAllLadderImages(availableDocs);
-        // for (int i = 0; i < availableDocs.length; i++) {
-        //   _getLadderImage(availableDocs[i].id);
-        //   print('"${availableDocs[i].id}" DisplayName: ${availableDocs[i].get('DisplayName')}');
-        // }
-        // print('urlCache: $urlCache');
-        return Scaffold(
-          backgroundColor: Colors.brown[50],
-          appBar: AppBar(
-            title: Text('V$softwareVersion\n$loggedInUser', style: smallStyle,
-            // softWrap: true,
-            //     overflow: TextOverflow.visible,
-            ),
-            toolbarHeight: appFontSize*2.5,
-            backgroundColor: Colors.brown[400],
-            elevation: 0.0,
-            automaticallyImplyLeading: false,
-            // actionsIconTheme: IconThemeData(size: 20),
-            actions: [
-              IconButton(
-                  onPressed: () {
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => HelpPage(page: 'PickLadder')));
-                  },
-                  icon: Icon(
-                    Icons.help,
-                    color: Colors.green,
-                  )),
-              IconButton(
-                  onPressed: () {
-                    showDialog<String>(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: Text('Helper Functions'),
-                        content: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Saved FontSize is currently: $appFontSize', style: nameStyle),
-                            TextButton.icon(
-                              label: Text('Increase Font Size', style: nameStyle),
-                              onPressed: () {
-                                // print('appFontSize+: $appFontSize');
-                                double newFontSize = appFontSize + 1.0;
-                                if (newFontSize > 40) newFontSize = 40.0;
-                                setState(() {
-                                  setBaseFont(newFontSize);
-                                });
-                              },
-                              icon: Icon(Icons.text_increase, size: appFontSize * 1.25),
-                            ),
-                            TextButton.icon(
-                                label: Text('Decrease Font Size', style: nameStyle),
+          _getAllLadderImages(availableDocs);
+          // for (int i = 0; i < availableDocs.length; i++) {
+          //   _getLadderImage(availableDocs[i].id);
+          //   print('"${availableDocs[i].id}" DisplayName: ${availableDocs[i].get('DisplayName')}');
+          // }
+          // print('urlCache: $urlCache');
+          return Scaffold(
+            backgroundColor: Colors.brown[50],
+            appBar: AppBar(
+              title: Text(
+                'V$softwareVersion\n$loggedInUser', style: smallStyle,
+                // softWrap: true,
+                //     overflow: TextOverflow.visible,
+              ),
+              toolbarHeight: appFontSize * 2.5,
+              backgroundColor: Colors.brown[400],
+              elevation: 0.0,
+              automaticallyImplyLeading: false,
+              // actionsIconTheme: IconThemeData(size: 20),
+              actions: [
+                IconButton(
+                    onPressed: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => HelpPage(page: 'PickLadder')));
+                    },
+                    icon: Icon(
+                      Icons.help,
+                      color: Colors.green,
+                    )),
+                IconButton(
+                    onPressed: () {
+                      showDialog<String>(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: Text('Helper Functions'),
+                          content: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Saved FontSize is currently: $appFontSize', style: nameStyle),
+                              TextButton.icon(
+                                label: Text('Increase Font Size', style: nameStyle),
                                 onPressed: () {
-                                  // print('appFontSize-: $appFontSize');
-                                  double newFontSize = appFontSize - 1.0;
-                                  if (newFontSize < 15) newFontSize = 15.0;
+                                  // print('appFontSize+: $appFontSize');
+                                  double newFontSize = appFontSize + 1.0;
+                                  if (newFontSize > 40) newFontSize = 40.0;
                                   setState(() {
                                     setBaseFont(newFontSize);
                                   });
                                 },
-                                icon: Icon(Icons.text_decrease, size: appFontSize * 1.25)),
-                            TextButton.icon(
-                                label: Text('Save Font Size', style: nameStyle),
-                                onPressed: () {
-                                  // print('appFontSize save: $appFontSize');
-                                  firestore.collection('Users').doc(loggedInUserDoc!.id).update({
-                                    'FontSize': appFontSize,
-                                  });
-                                  _originalAppFontSize = appFontSize;
-                                  Navigator.of(context).pop();
-                                },
-                                icon: Icon(Icons.save, size: appFontSize * 1.25)),
-                            TextButton.icon(
-                                label: Text('Quit and restore original Font Size', style: nameStyle),
-                                onPressed: () {
-                                  setState(() {
-                                    setBaseFont(_originalAppFontSize);
-                                  });
-                                  Navigator.of(context).pop();
-                                },
-                                icon: Icon(Icons.cancel, size: appFontSize * 1.25)),
-                          ],
-                        ),
-                      ),
-                    );
-                    //.then((_) {
-                    //  print('Doing setState after dialog exits');
-                    //  setState(() {
-
-                    //  });
-                    //});
-
-                    // setState(() {
-                    //   double newFontSize=appFontSize+ 1.0;
-                    //   if (newFontSize > 40) newFontSize = 20.0;
-                    //   setBaseFont(newFontSize);
-                    //   // print('appFontSize: $appFontSize');
-                    //   firestore.collection('Users').doc(loggedInUserDoc!.id).update({
-                    //     'FontSize': appFontSize,
-                    //   });
-                    // });
-                  },
-                  icon: Icon(Icons.text_increase)),
-              if (activeUser.canBeSuper)
-                Padding(
-                  padding: const EdgeInsets.all(0.0),
-                  child: IconButton(
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                    icon: const Icon(Icons.supervisor_account),
-                    onPressed: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => const SuperAdmin()));
-                    },
-                    enableFeedback: true,
-                    color: Colors.redAccent,
-                  ),
-                ),
-              Padding(
-                padding: const EdgeInsets.all(0.0),
-                child: makeDoubleConfirmationButton(
-                    buttonText: 'Log\nOut',
-                    dialogTitle: 'You will have to enter your password again',
-                    dialogQuestion: 'Are you sure you want to logout?\n$loggedInUser',
-                    disabled: false,
-                    onOk: () {
-                      NavigatorState nav = Navigator.of(context);
-                      runLater() async {
-                        await FirebaseAuth.instance.signOut();
-                        loggedInUser = '';
-                        nav.push(MaterialPageRoute(builder: (context) => LoginPage(auth: FirebaseAuth.instance)));
-                      }
-
-                      runLater();
-                    }),
-              ),
-            ],
-          ),
-          body: ListView.separated(
-              separatorBuilder: (context, index) => const SizedBox(
-                    height: 12,
-                  ), //Divider(color: Colors.black),
-              padding: const EdgeInsets.all(8),
-              itemCount: availableDocs.length + 1, //for last divider line
-              itemBuilder: (BuildContext context, int row) {
-                try {
-                  if (row == availableDocs.length) {
-                    return const SizedBox(
-                      height: 1,
-                    );
-                  }
-                  // activeLadderId = activeLadderDoc!.id;
-
-                  double reqSoftwareVersion = (availableDocs[row].get('RequiredSoftwareVersion') as num).toDouble();
-                  if (reqSoftwareVersion > softwareVersion) {
-                    return reloadHtml(reqSoftwareVersion);
-                  }
-
-                  bool disabled = availableDocs[row].get('Disabled');
-
-                  activeLadderBackgroundColor = stringToColor(availableDocs[row].get('Color'))??Colors.pink;
-
-                  String message = availableDocs[row].get('Message');
-                  // print('message: $row $message');
-
-                  String nextPlay1 = '';
-                  String nextPlay2 = '';
-
-                  DateTime? nextPlay;
-                  String note;
-                  String numDaysAwayStr='Admin did not configure';
-                  (nextPlay, note) = getNextPlayDateTime(availableDocs[row]);
-                  if (nextPlay !=null){
-                  int daysAway = daysBetween(DateTime.now(), nextPlay);
-                  // print('Row:$row ${availableDocs[row].id} daysAway: $daysAway  nextPlay:  $nextPlay');
-                  String timeToPlay = DateFormat('h:mma').format(nextPlay);
-
-
-                  if (daysAway == 1) {
-                    numDaysAwayStr = '(Tomorrow) @ $timeToPlay';
-                    nextPlay2 = note;
-                  } else if (daysAway < 0) {
-                    numDaysAwayStr = '(next date is in the past!)';
-                    nextPlay2 = '';
-                  } else if (daysAway > 1) {
-                    numDaysAwayStr = '($daysAway days) @ $timeToPlay';
-                    nextPlay2 = note;
-                  } else {
-                    numDaysAwayStr = '(TODAY)  @ $timeToPlay';
-                    nextPlay2 = note;
-                  }
-                  nextPlay1 = ' ${DateFormat('E yyyy.MM.dd').format(nextPlay)} $numDaysAwayStr';
-                  }                                 // print('building ladder selection entry: row: $row ${availableDocs[row].get('DisplayName')}');
-                  return Container(
-                      // height: 350,
-                      decoration: BoxDecoration(
-                        border: Border.all(color: activeLadderBackgroundColor, width: 5),
-                        borderRadius: BorderRadius.circular(15.0),
-                        color: Color.lerp(activeLadderBackgroundColor, Colors.white,0.8),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.only(left: 8.0, right: 8, top: 2, bottom: 2),
-                        child: InkWell(
-                          onTap: (!disabled || availableDocs[row].get('Admins').split(',').contains(loggedInUser) || activeUser.canBeSuper)
-                              ? () {
-                                  activeLadderDoc = availableDocs[row];
-                                  activeLadderId = availableDocs[row].id;
-                                  activeUser.canBeAdmin = activeLadderDoc!.get('Admins').split(',').contains(activeUser.id);
-                                  //print('canBeAdmin: ${activeUser.canBeAdmin} ${activeLadderDoc!.get('Admins').split(',')}');
-                                  if (!activeUser.canBeAdmin && !activeUser.canBeSuper) {
-                                    activeUser.adminEnabled = false;
-                                  }
-
-                                  String colorString = '';
-                                  try {
-                                    colorString = availableDocs[row].get('Color').toLowerCase();
-                                  } catch (_) {}
-                                  activeLadderBackgroundColor = stringToColor(colorString)??Colors.pink;
-
-                                  Navigator.push(context, MaterialPageRoute(builder: (context) => const PlayerHome()));
-
-                                }
-                              : null,
-                          child: Column(
-                            children: [
-                              Text(' ${availableDocs[row].get('DisplayName')}', textAlign: TextAlign.start, style: disabled ? nameStrikeThruStyle : nameBigStyle),
-                              // SizedBox(height: 10),
-                              (urlCache.containsKey(availableDocs[row].id) && (urlCache[availableDocs[row].id] != null) && enableImages)
-                                  ? Image.network(
-                                      urlCache[availableDocs[row].id]!,
-                                      height: 100,
-                                    )
-                                  : const SizedBox(
-                                      height: 100,
-                                    ),
-                              Container(
-                                // height: 350,
-                                decoration: BoxDecoration(
-                                  border: Border.all(color: activeLadderBackgroundColor, width: 5),
-                                  borderRadius: BorderRadius.circular(15.0),
-                                  color: Color.lerp(activeLadderBackgroundColor, Colors.white,0.8)
-                                ),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(8.0),
-                                  child: Text(
-                                    message,
-                                    style: nameStyle,
-                                  ),
-                                ),
+                                icon: Icon(Icons.text_increase, size: appFontSize * 1.25),
                               ),
-                              Text(
-                                'Next Play:',
-                                style: nameStyle,
-                              ),
-                              Text(
-                                nextPlay1,
-                                style: nameStyle,
-                              ),
-                              Text(
-                                nextPlay2,
-                                style: nameStyle,
-                              ),
+                              TextButton.icon(
+                                  label: Text('Decrease Font Size', style: nameStyle),
+                                  onPressed: () {
+                                    // print('appFontSize-: $appFontSize');
+                                    double newFontSize = appFontSize - 1.0;
+                                    if (newFontSize < 15) newFontSize = 15.0;
+                                    setState(() {
+                                      setBaseFont(newFontSize);
+                                    });
+                                  },
+                                  icon: Icon(Icons.text_decrease, size: appFontSize * 1.25)),
+                              TextButton.icon(
+                                  label: Text('Save Font Size', style: nameStyle),
+                                  onPressed: () {
+                                    // print('appFontSize save: $appFontSize');
+                                    firestore.collection('Users').doc(loggedInUserDoc!.id).update({
+                                      'FontSize': appFontSize,
+                                    });
+                                    _originalAppFontSize = appFontSize;
+                                    Navigator.of(context).pop();
+                                  },
+                                  icon: Icon(Icons.save, size: appFontSize * 1.25)),
+                              TextButton.icon(
+                                  label: Text('Quit and restore original Font Size', style: nameStyle),
+                                  onPressed: () {
+                                    setState(() {
+                                      setBaseFont(_originalAppFontSize);
+                                    });
+                                    Navigator.of(context).pop();
+                                  },
+                                  icon: Icon(Icons.cancel, size: appFontSize * 1.25)),
                             ],
                           ),
                         ),
-                      ));
-                } catch (e, stackTrace) {
-                  return Text('Row: $row, EXCEPTION: $e\n$stackTrace', style: TextStyle(color: Colors.red));
-                }
-              }),
-        );
-      },
-    );
+                      );
+                      //.then((_) {
+                      //  print('Doing setState after dialog exits');
+                      //  setState(() {
+
+                      //  });
+                      //});
+
+                      // setState(() {
+                      //   double newFontSize=appFontSize+ 1.0;
+                      //   if (newFontSize > 40) newFontSize = 20.0;
+                      //   setBaseFont(newFontSize);
+                      //   // print('appFontSize: $appFontSize');
+                      //   firestore.collection('Users').doc(loggedInUserDoc!.id).update({
+                      //     'FontSize': appFontSize,
+                      //   });
+                      // });
+                    },
+                    icon: Icon(Icons.text_increase)),
+                if (activeUser.canBeSuper)
+                  Padding(
+                    padding: const EdgeInsets.all(0.0),
+                    child: IconButton(
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      icon: const Icon(Icons.supervisor_account),
+                      onPressed: () {
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => const SuperAdmin()));
+                      },
+                      enableFeedback: true,
+                      color: Colors.redAccent,
+                    ),
+                  ),
+                Padding(
+                  padding: const EdgeInsets.all(0.0),
+                  child: makeDoubleConfirmationButton(
+                      buttonText: 'Log\nOut',
+                      dialogTitle: 'You will have to enter your password again',
+                      dialogQuestion: 'Are you sure you want to logout?\n$loggedInUser',
+                      disabled: false,
+                      onOk: () {
+                        NavigatorState nav = Navigator.of(context);
+                        runLater() async {
+                          await FirebaseAuth.instance.signOut();
+                          loggedInUser = '';
+                          nav.push(MaterialPageRoute(builder: (context) => LoginPage(auth: FirebaseAuth.instance)));
+                        }
+
+                        runLater();
+                      }),
+                ),
+              ],
+            ),
+            body: ListView.separated(
+                separatorBuilder: (context, index) => const SizedBox(
+                      height: 12,
+                    ), //Divider(color: Colors.black),
+                padding: const EdgeInsets.all(8),
+                itemCount: availableDocs.length + 1, //for last divider line
+                itemBuilder: (BuildContext context, int row) {
+                  try {
+                    if (row == availableDocs.length) {
+                      return const SizedBox(
+                        height: 1,
+                      );
+                    }
+                    // activeLadderId = activeLadderDoc!.id;
+
+                    double reqSoftwareVersion = (availableDocs[row].get('RequiredSoftwareVersion') as num).toDouble();
+                    if (reqSoftwareVersion > softwareVersion) {
+                      return reloadHtml(reqSoftwareVersion);
+                    }
+
+                    bool disabled = availableDocs[row].get('Disabled');
+
+                    activeLadderBackgroundColor = stringToColor(availableDocs[row].get('Color')) ?? Colors.pink;
+
+                    String message = availableDocs[row].get('Message');
+                    // print('message: $row $message');
+
+                    String nextPlay1 = '';
+                    String nextPlay2 = '';
+
+                    DateTime? nextPlay;
+                    String note;
+                    String numDaysAwayStr = 'Admin did not configure';
+                    (nextPlay, note) = getNextPlayDateTime(availableDocs[row]);
+                    if (nextPlay != null) {
+                      int daysAway = daysBetween(DateTime.now(), nextPlay);
+                      // print('Row:$row ${availableDocs[row].id} daysAway: $daysAway  nextPlay:  $nextPlay');
+                      String timeToPlay = DateFormat('h:mma').format(nextPlay);
+
+                      if (daysAway == 1) {
+                        numDaysAwayStr = '(Tomorrow) @ $timeToPlay';
+                        nextPlay2 = note;
+                      } else if (daysAway < 0) {
+                        numDaysAwayStr = '(next date is in the past!)';
+                        nextPlay2 = '';
+                      } else if (daysAway > 1) {
+                        numDaysAwayStr = '($daysAway days) @ $timeToPlay';
+                        nextPlay2 = note;
+                      } else {
+                        numDaysAwayStr = '(TODAY)  @ $timeToPlay';
+                        nextPlay2 = note;
+                      }
+                      nextPlay1 = ' ${DateFormat('E yyyy.MM.dd').format(nextPlay)} $numDaysAwayStr';
+                    } // print('building ladder selection entry: row: $row ${availableDocs[row].get('DisplayName')}');
+                    return Container(
+                        // height: 350,
+                        decoration: BoxDecoration(
+                          border: Border.all(color: activeLadderBackgroundColor, width: 5),
+                          borderRadius: BorderRadius.circular(15.0),
+                          color: Color.lerp(activeLadderBackgroundColor, Colors.white, 0.8),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.only(left: 8.0, right: 8, top: 2, bottom: 2),
+                          child: InkWell(
+                            onTap: (!disabled || availableDocs[row].get('Admins').split(',').contains(loggedInUser) || activeUser.canBeSuper)
+                                ? () {
+                                    activeLadderDoc = availableDocs[row];
+                                    activeLadderId = availableDocs[row].id;
+                                    activeUser.canBeAdmin = activeLadderDoc!.get('Admins').split(',').contains(activeUser.id);
+                                    //print('canBeAdmin: ${activeUser.canBeAdmin} ${activeLadderDoc!.get('Admins').split(',')}');
+                                    if (!activeUser.canBeAdmin && !activeUser.canBeSuper) {
+                                      activeUser.adminEnabled = false;
+                                    }
+
+                                    String colorString = '';
+                                    try {
+                                      colorString = availableDocs[row].get('Color').toLowerCase();
+                                    } catch (_) {}
+                                    activeLadderBackgroundColor = stringToColor(colorString) ?? Colors.pink;
+
+                                    Navigator.push(context, MaterialPageRoute(builder: (context) => const PlayerHome()));
+                                  }
+                                : null,
+                            child: Column(
+                              children: [
+                                Text(' ${availableDocs[row].get('DisplayName')}', textAlign: TextAlign.start, style: disabled ? nameStrikeThruStyle : nameBigStyle),
+                                // SizedBox(height: 10),
+                                (urlCache.containsKey(availableDocs[row].id) && (urlCache[availableDocs[row].id] != null) && enableImages)
+                                    ? Image.network(
+                                        urlCache[availableDocs[row].id]!,
+                                        height: 100,
+                                      )
+                                    : const SizedBox(
+                                        height: 100,
+                                      ),
+                                Container(
+                                  // height: 350,
+                                  decoration: BoxDecoration(
+                                      border: Border.all(color: activeLadderBackgroundColor, width: 5),
+                                      borderRadius: BorderRadius.circular(15.0),
+                                      color: Color.lerp(activeLadderBackgroundColor, Colors.white, 0.8)),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: Text(
+                                      message,
+                                      style: nameStyle,
+                                    ),
+                                  ),
+                                ),
+                                Text(
+                                  'Next Play:',
+                                  style: nameStyle,
+                                ),
+                                Text(
+                                  nextPlay1,
+                                  style: nameStyle,
+                                ),
+                                Text(
+                                  nextPlay2,
+                                  style: nameStyle,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ));
+                  } catch (e, stackTrace) {
+                    return Text('Row: $row, EXCEPTION: $e\n$stackTrace', style: TextStyle(color: Colors.red));
+                  }
+                }),
+          );
+        },
+      );
     } catch (e, stackTrace) {
       return Text('outer EXCEPTION: $e\n$stackTrace', style: TextStyle(color: Colors.red));
     }
