@@ -248,7 +248,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
             }
           }
         }
-        availableDocs.sort((a, b) => a.get('DisplayName').compareTo(b.get('DisplayName')));
+        // availableDocs.sort((a, b) => a.get('DisplayName').compareTo(b.get('DisplayName')));
 
         _getAllLadderImages(availableDocs);
         // for (int i = 0; i < availableDocs.length; i++) {

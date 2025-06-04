@@ -31,43 +31,18 @@ class _SuperAdminState extends State<SuperAdmin> {
 
       var emailLadders = {};
 
-      //third the list of all of the Players in each ladder
+      String debugEmail =  'albertacarkeys@outlook.com';//'';
 
       for (int ladderIndex = 0; ladderIndex < snapshotLadders.docs.length; ladderIndex++) {
         String ladderName = snapshotLadders.docs[ladderIndex].id;
-        // print('rebuildLadders: reading from ladder $ladderName');
-        List<String> admins = snapshotLadders.docs[ladderIndex].get('Admins').split(',');
-        for (String user in admins) {
-          // print('Ladder:$ladderName adding ADMIN $user');
-          if (emailLadders.containsKey(user)) {
-            String currentLadders = emailLadders[user];
-            if (!currentLadders.split(',').contains(ladderName)) {
-              emailLadders[user] = '$currentLadders,$ladderName';
-            }
-          } else {
-            emailLadders[user] = ladderName;
-          }
-        }
-
-        List<String> helpers = snapshotLadders.docs[ladderIndex].get('NonPlayingHelper').split(',');
-        for (String user in helpers) {
-          // print('Ladder:$ladderName adding helper $user');
-          if (emailLadders.containsKey(user)) {
-            String currentLadders = emailLadders[user];
-            if (!currentLadders.split(',').contains(ladderName)) {
-              emailLadders[user] = '$currentLadders,$ladderName';
-            }
-          } else {
-            emailLadders[user] = ladderName;
-          }
-        }
-
         CollectionReference playersRef = firestore.collection('Ladder').doc(ladderName).collection('Players');
         QuerySnapshot snapshotPlayers = await playersRef.get();
 
         for (int playerIndex = 0; playerIndex < snapshotPlayers.docs.length; playerIndex++) {
           String user = snapshotPlayers.docs[playerIndex].id;
-          // print('ladder:$ladderName adding player $user');
+          if ((user == debugEmail) && kDebugMode) {
+            print('ladder:$ladderName adding player $user as  a player');
+          }
           if (emailLadders.containsKey(user)) {
             String currentLadders = emailLadders[user];
             if (!currentLadders.split(',').contains(ladderName)) {
@@ -78,6 +53,43 @@ class _SuperAdminState extends State<SuperAdmin> {
           }
         }
       }
+      for (int ladderIndex = 0; ladderIndex < snapshotLadders.docs.length; ladderIndex++) {
+        String ladderName = snapshotLadders.docs[ladderIndex].id;
+        // print('rebuildLadders: reading from ladder $ladderName');
+        List<String> admins = snapshotLadders.docs[ladderIndex].get('Admins').split(',');
+        for (String user in admins) {
+          if ((user == debugEmail) && kDebugMode) {
+            print('ladder:$ladderName adding player $user as  an admin');
+          }
+          if (emailLadders.containsKey(user)) {
+            String currentLadders = emailLadders[user];
+            if (!currentLadders.split(',').contains(ladderName)) {
+              emailLadders[user] = '$currentLadders,$ladderName';
+            }
+          } else {
+            emailLadders[user] = ladderName;
+          }
+        }
+      }
+      for (int ladderIndex = 0; ladderIndex < snapshotLadders.docs.length; ladderIndex++) {
+        String ladderName = snapshotLadders.docs[ladderIndex].id;
+        List<String> helpers = snapshotLadders.docs[ladderIndex].get('NonPlayingHelper').split(',');
+        for (String user in helpers) {
+          if ((user == debugEmail) && kDebugMode) {
+            print('ladder:$ladderName adding player $user as  a NonPlayingHelper');
+          }
+          if (emailLadders.containsKey(user)) {
+            String currentLadders = emailLadders[user];
+            if (!currentLadders.split(',').contains(ladderName)) {
+              emailLadders[user] = '$currentLadders,$ladderName';
+            }
+          } else {
+            emailLadders[user] = ladderName;
+          }
+        }
+      }
+
+
       // print('rebuildLadders: done reading players from each ladder');
 
       // now combine emails from 'LaddersThatCanView
@@ -94,7 +106,9 @@ class _SuperAdminState extends State<SuperAdmin> {
           QuerySnapshot ladderSnapshot = await playersRef.get();
           for (int playerIndex = 0; playerIndex < ladderSnapshot.docs.length; playerIndex++) {
             String user = ladderSnapshot.docs[playerIndex].id;
-            // print('adding user $user from $friendLadder to $ladderName');
+            if ((user == debugEmail) && kDebugMode) {
+              print('ladder:$ladderName adding player $user as  a friend ladder $friendLadder');
+            }
             if (emailLadders.containsKey(user)) {
               String currentLadders = emailLadders[user];
               if (!currentLadders.split(',').contains(ladderName)) {

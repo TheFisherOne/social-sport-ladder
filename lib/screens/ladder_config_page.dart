@@ -194,7 +194,12 @@ Color? stringToColor(String colorName) {
   } catch (_) {}
   return null;
 }
-
+List<String> splitString(String input, String splitChar) {
+  if (input.isEmpty) {
+    return [];
+  }
+  return input.split(splitChar);
+}
 uploadPicture(XFile file) async {
   String filename = 'LadderImage/$activeLadderId.jpg';
   Uint8List fileData;
@@ -874,7 +879,7 @@ class _ConfigPageState extends State<ConfigPage> {
                       //         ))),
                       MyTextField(
                         labelText: 'Color',
-                        helperText: 'The color used to display this ladder, or RGB comma separated',
+                        helperText: 'The "CSS named color" to display this ladder, or RGB comma separated',
                         controller: _colorController,
                         inputFormatters: [LowerCaseTextInputFormatter()],
                         entryOK: (entry) {
@@ -923,14 +928,16 @@ class _ConfigPageState extends State<ConfigPage> {
                           String newValue = entry.trim().replaceAll(RegExp(r' \s+'), ' ');
                           String oldValue = activeLadderDoc!.get(attrName);
 
-                          List<String> oldAdmins = oldValue.split(',');
+                          List<String> oldAdmins = splitString(oldValue, ',');
                           List<String> globalUsersToCheck = oldAdmins.toList();
-                          for (String user in newValue.split(',')) {
-                            if (!globalUsersToCheck.contains(user)) {
-                              globalUsersToCheck.add(user);
+                          for (String user in splitString(newValue,',')) {
+                            if (user.isNotEmpty) {
+                              if (!globalUsersToCheck.contains(user)) {
+                                globalUsersToCheck.add(user);
+                              }
                             }
                           }
-
+                          // print('add admins: globalUsersToCheck: $globalUsersToCheck');
                           firestore.runTransaction((transaction) async {
                             // print('starting transaction for changing admins to $newValue');
                             // first the ladder document, which contains the Admins list

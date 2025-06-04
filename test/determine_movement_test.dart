@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/intl.dart';
 import 'package:social_sport_ladder/constants/constants.dart';
 import 'package:social_sport_ladder/main.dart';
 import 'package:social_sport_ladder/screens/ladder_config_page.dart';
@@ -683,7 +684,7 @@ void main() {
     expect(result[ 5].afterWinLose, 6, reason: 'newRank should be same');
     expect(result[ 6].afterWinLose, 7, reason: 'newRank should be same');
     expect(result[ 7].afterWinLose, 8, reason: 'newRank should be same');
-    expect(result[ 8].afterWinLose,10, reason: 'newRank sloser should go down 1');
+    expect(result[ 8].afterWinLose,10, reason: 'newRank loser should go down 1');
     expect(result[ 9].afterWinLose,9, reason: 'newRank loser winner should go up 1');
     expect(result[10].afterWinLose,11, reason: 'newRank winner be same');
     expect(result[11].afterWinLose,12, reason: 'newRank should be same');
@@ -757,6 +758,165 @@ void main() {
     for (int i=0; i<result.length; i++) {
       expect(result[ i].afterWinLose, result[ i].newRank, reason: '$i newRank should be same as afterWinLose');
     }
+
+  });
+
+  test('sportTennisRGDetermineMovement - Insufficient Courts for Present Players', () async {
+    testFirestore = FakeFirebaseFirestore();
+    firestore = testFirestore;
+    await initActiveLadderDoc(testFirestore, overrides: {
+      'PriorityOfCourts': 'C1|C2', // Only two courts available
+    });
+    final DocumentReference ladderRef = testFirestore.collection('Ladder').doc('Ladder 500');
+    final CollectionReference<Map<String, dynamic>> collection = ladderRef.collection('Players');
+
+    // Add 12 present players (enough for 3 courts of 4)
+    for (int i = 1; i <= 12; i++) {
+      Map<String, dynamic> player = createPlayer(i);
+      collection.doc('test${i.toString().padLeft(2, '0')}@gmail.com').set(player);
+    }
+
+    QuerySnapshot querySnapshot = await ladderRef.collection('Players').get();
+    await prepareForScoreEntry(activeLadderDoc!, querySnapshot.docs);
+    querySnapshot = await ladderRef.collection('Players').get();
+    final result = sportTennisRGDetermineMovement(querySnapshot.docs, '');
+
+    // -------- ASSERTIONS --------
+    // What should happen?
+    // Option A: Error
+    // expect(PlayerList.errorString, contains('Insufficient courts'), reason: 'Error due to insufficient courts');
+
+    // Option B: Only assign to available courts, others don't play / get specific courtNumber
+    expect(PlayerList.numCourts, 2, reason: 'Should only use 2 available courts');
+    expect(PlayerList.usedCourtNames.length, 2, reason: 'Only two court names should be used');
+    expect(PlayerList.usedCourtNames[0], 'C1', reason: 'First priority court used');
+    expect(PlayerList.usedCourtNames[1], 'C2', reason: 'Second priority court used');
+    expect(PlayerList.numPresent, 12, reason: 'All 12 players are present');
+
+    // Check court assignments for players
+    // First 10 players should be on courts
+    for (int i = 0; i < 2; i++) {
+      expect(result![i].courtNumber,-1, reason: 'Player ${i+1} should be on a court');
+      // print('player ${i+1} on court ${result![i].courtNumber}');
+    }
+    // Last 4 players might not be assigned or assigned a special value
+    for (int i = 2; i < 12; i++) {
+      expect(result![i].courtNumber, isNot(-1), reason: 'Player ${i+1} should not be assigned a court / marked as waiting');
+      // Or expect(result![i].status, 'WaitingDueToNoCourts'); // If you have such a status
+      // print('X player ${i+1} on court ${result![i].courtNumber}');
+    }
+
+    // How does rank change for players not playing?
+    // expect(result![8].newRank, result![8].currentRank, reason: 'Player 9 rank should not change if not playing');
+    // ... and so on for players 9-12
+
+    // Check ranks for players who did play (assuming default win/loss movement)
+    // For example, if players 1-4 are on Court 1 (C1) and 5-8 on Court 2 (C2)
+    // expect(result![3].newRank, 5, reason: 'Loser on court 1 moves down'); // Player 4 (rank 4) -> 5
+    // expect(result![4].newRank, 4, reason: 'Winner on court 2 moves up');  // Player 5 (rank 5) -> 4
+  });
+
+  test('sportTennisRGDetermineMovement - Multiple Away Players Interspersed 2 courts 12 players #1', () async {
+    testFirestore = FakeFirebaseFirestore();
+    firestore = testFirestore;
+    await initActiveLadderDoc(testFirestore); // Default PriorityOfCourts
+    final DocumentReference ladderRef = testFirestore.collection('Ladder').doc('Ladder 500');
+    final CollectionReference<Map<String, dynamic>> collection = ladderRef.collection('Players');
+
+    for (int i = 1; i <= 12; i++) {
+      Map<String, dynamic> player = createPlayer(i);
+      if (i == 2 || i == 5 || i == 8) {
+        player['Present'] = false; // Mark specific players as away
+      }
+      collection.doc('test${i.toString().padLeft(2, '0')}@gmail.com').set(player);
+    }
+
+    QuerySnapshot querySnapshot = await ladderRef.collection('Players').get();
+    await prepareForScoreEntry(activeLadderDoc!, querySnapshot.docs);
+    querySnapshot = await ladderRef.collection('Players').get();
+    final result = sportTennisRGDetermineMovement(querySnapshot.docs, '');
+
+    // -------- ASSERTIONS --------
+    expect(PlayerList.errorString, '', reason: 'No error expected');
+    expect(PlayerList.numPresent, 9, reason: '9 players present');
+    // 7 players present: 1 court of 4, 1 court of 3. If 3 doesn't form, then 1 court of 4.
+    // Assuming a court of 3 is not formed by default:
+    expect(PlayerList.numCourtsOf4, 1, reason: 'One court of 4 should be formed');
+    expect(PlayerList.numCourtsOf5, 1, reason: 'One court of 5 should be formed');
+    expect(PlayerList.numCourts, 2, reason: 'two courts in total');
+
+    // Player 1 (Original Rank 1, Present)
+    expect(result![0].newRank, 1, reason: 'Player  1 new rank');
+    expect(result[1].newRank,  4, reason: 'Player  2 new rank down 2 due to away');
+    expect(result[2].newRank,  2, reason: 'Player  3 new rank bumped up due to player away');
+    expect(result[3].newRank,  3, reason: 'Player  4 new rank bumped up due to player away');
+    expect(result[4].newRank,  7, reason: 'Player  5 new rank down 2 due to away');
+    expect(result[5].newRank,  5, reason: 'Player  6 new rank bumped up due to player away');
+    expect(result[6].newRank,  8, reason: 'Player  7 new rank exchange places with winner from court below');
+    expect(result[7].newRank, 10, reason: 'Player  8 new rank down 2 due to away');
+    expect(result[8].newRank,  6, reason: 'Player  9 new rank exchange places with loser from court above');
+    expect(result[9].newRank,  9, reason: 'Player 10 new rank cant change because at bottom');
+    expect(result[10].newRank,11, reason: 'Player 11 new rank cant change because at bottom');
+    expect(result[11].newRank,12, reason: 'Player 12 new rank cant change because at bottom');
+
+ });
+
+  test('sportTennisRGDetermineMovement - Multiple Away Players Interspersed 2 courts #2', () async {
+    String dateToday = DateFormat('yyyy.MM.dd').format(DateTime.now());
+    testFirestore = FakeFirebaseFirestore();
+    firestore = testFirestore;
+    await initActiveLadderDoc(testFirestore, overrides: {
+      'DaysOfPlay': '${dateToday}_18:00', // Only two courts available
+    }); // Default PriorityOfCourts
+    final DocumentReference ladderRef = testFirestore.collection('Ladder').doc('Ladder 500');
+    final CollectionReference<Map<String, dynamic>> collection = ladderRef.collection('Players');
+
+    for (int i = 1; i <= 12; i++) {
+      Map<String, dynamic> player = createPlayer(i);
+      if (i == 2 || i == 3 || i==8 || i == 12) {
+        if (i==3 || i==8) {
+          player['DaysAway'] = dateToday;
+        }
+        player['Present'] = false; // Mark specific players as away
+      }
+      if (i==4){
+        player['TotalScore'] = 4;
+      }
+      collection.doc('test${i.toString().padLeft(2, '0')}@gmail.com').set(player);
+    }
+
+    QuerySnapshot querySnapshot = await ladderRef.collection('Players').get();
+    await prepareForScoreEntry(activeLadderDoc!, querySnapshot.docs);
+    querySnapshot = await ladderRef.collection('Players').get();
+    final result = sportTennisRGDetermineMovement(querySnapshot.docs, '');
+
+    // -------- ASSERTIONS --------
+    expect(PlayerList.errorString, '', reason: 'No error expected');
+    expect(PlayerList.numPresent, 8, reason: '8 players present');
+    // 7 players present: 1 court of 4, 1 court of 3. If 3 doesn't form, then 1 court of 4.
+    // Assuming a court of 3 is not formed by default:
+    expect(PlayerList.numCourtsOf4, 2, reason: 'One court of 4 should be formed');
+    expect(PlayerList.numCourtsOf5, 0, reason: 'One court of 5 should be formed');
+    expect(PlayerList.numCourts, 2, reason: 'two courts in total');
+
+    // for (int i = 0; i < 12; i++) {
+    //   print('$i ${result![i].present} ${result[i].courtNumber} ${result[i].newRank} '
+    //       '${result[i].totalScore}' );
+    //       //'${result[i].markedAway} ${result[i].daysAway}');
+    // }
+    // Player 1 (Original Rank 1, Present)
+    expect(result![0].newRank, 1, reason: 'Player  1 new rank');
+    expect(result[1].newRank,  4, reason: 'Player  2 new rank down 2 due to away');
+    expect(result[2].newRank,  3, reason: 'Player  3 new rank down 1 marked away bumped back up');
+    expect(result[3].newRank,  2, reason: 'Player  4 new rank bumped up due to player away');
+    expect(result[4].newRank,  5, reason: 'Player  5 new rank');
+    expect(result[5].newRank,  7, reason: 'Player  6 new rank bumped up due to player away');
+    expect(result[6].newRank,  6, reason: 'Player  7 new rank exchange places with winner from court below');
+    expect(result[7].newRank,  9, reason: 'Player  8 new rank down 2 due to away');
+    expect(result[8].newRank,  8, reason: 'Player  9 new rank exchange places with loser from court above');
+    expect(result[9].newRank,  10, reason: 'Player 10 new rank cant change because at bottom');
+    expect(result[10].newRank,11, reason: 'Player 11 new rank cant change because at bottom');
+    expect(result[11].newRank,12, reason: 'Player 12 new rank cant change because at bottom');
 
   });
 }

@@ -226,7 +226,7 @@ List<PlayerList>? sportTennisRGDetermineMovement(List<QueryDocumentSnapshot>? pl
   for (int i = 0; i < players.length; i++) {
     int startingOrder = startingList[i].startingOrder;
     startingList[i].startingRank = startingList[i].rank;
-    if (startingList[i].present) {
+    if (startingList[i].present && !startingList[i].unassigned) {
       if (startingOrder < lastStartingOrder) {
         currentCourt++;
         courtAssignments.add(List<PlayerList>.empty(growable: true));
@@ -243,7 +243,11 @@ List<PlayerList>? sportTennisRGDetermineMovement(List<QueryDocumentSnapshot>? pl
       if ((startingList[i].snapshot.get('WaitListRank') > 0)&&(startingList[i].daysAwayIncludes(dateStr))){
         startingList[i].newRank = startingList[i].rank;
         notPresentList.add(startingList[i]);
-      } else {
+      } if (startingList[i].unassigned) {
+        // if we could not assign them then they also do not move
+        startingList[i].newRank = startingList[i].rank;
+        notPresentList.add(startingList[i]);
+      }else {
         startingList[i].newRank = startingList[i].rank + 1;
         notPresentList.add(startingList[i]);
       }
@@ -345,7 +349,7 @@ List<PlayerList>? sportTennisRGDetermineMovement(List<QueryDocumentSnapshot>? pl
   List<PlayerList> afterScores = List.empty(growable: true);
   for (int i = 0; i < afterDownTwo.length; i++) {
     var pl = afterDownTwo[i];
-    if (!pl.present) {
+    if (!pl.present || pl.unassigned) {
       afterScores.add(pl);
     } else {
       afterScores.add(afterScoresTmp.removeAt(0));

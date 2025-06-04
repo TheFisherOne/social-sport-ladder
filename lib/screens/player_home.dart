@@ -478,6 +478,30 @@ class _PlayerHomeState extends State<PlayerHome> {
     } else {
       icon = Icon(Icons.check_box_outline_blank, color: Colors.black);
     }
+    int weeksRegistered = -1;
+    try{
+      weeksRegistered = player.get('WeeksRegistered');
+    }catch(e){
+      return Text('ERROR: ${player.id} missing WeeksRegistered (Number)');
+    }
+    int weeksAwayWithoutNotice = -1;
+    try{
+      weeksAwayWithoutNotice = player.get('WeeksAwayWithoutNotice');
+    }catch(e){
+      return Text('ERROR: ${player.id} missing WeeksAwayWithoutNotice (Number)');
+    }
+    int weeksAway = -1;
+    try{
+      weeksAway = player.get('WeeksAway');
+    }catch(e) {
+      return Text('ERROR: ${player.id} missing WeeksAway (Number)');
+    }
+    int waitListRank = -1;
+    try{
+      waitListRank = player.get('WaitListRank');
+    }catch(e){
+      return Text('ERROR: ${player.id} missing WaitListRank (Number)');
+    }
 
     // print('buildPlayerLine: _clickedOnRank: $_clickedOnRank vs $row admin: ${activeLadderDoc!.get('Admins').split(",").contains(loggedInUser) } ${player.id} vs $loggedInUser OR $loggedInUserIsSuper');
     return Column(
@@ -502,19 +526,19 @@ class _PlayerHomeState extends State<PlayerHome> {
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
             icon,
-            if (player.get('WeeksRegistered') <= 0)
+            if (weeksRegistered <= 0)
               Icon(
                 Icons.fiber_new,
                 color: Colors.green,
               ),
-            if ((player.get('WeeksAwayWithoutNotice') >= 3) || (player.get('WeeksAway') >= 7))
+            if ((weeksAwayWithoutNotice >= 3) || (weeksAway >= 7))
               Icon(
                 Icons.warning,
                 color: Colors.red,
               ),
             Expanded(
               child: Text(
-                ' $rank${(player.get('WaitListRank') > 0) ? "w${player.get('WaitListRank')}" : ""}: ${player.get('Name')}',
+                ' $rank${(waitListRank > 0) ? "w$waitListRank" : ""}: ${player.get('Name')}',
                 style: isUserRow ? nameBoldStyle : ((player.get('Helper') ?? false) ? italicNameStyle : nameStyle),
               ),
             ),
