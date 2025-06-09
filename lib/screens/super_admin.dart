@@ -48,8 +48,10 @@ class _SuperAdminState extends State<SuperAdmin> {
 
         for (int playerIndex = 0; playerIndex < snapshotPlayers.docs.length; playerIndex++) {
           String user = snapshotPlayers.docs[playerIndex].id;
-          if ((user == debugEmail) && kDebugMode) {
-            print('ladder:$ladderName adding player $user as  a player');
+          if (user == debugEmail)  {
+            if (kDebugMode) {
+              print('ladder:$ladderName adding player $user as  a player');
+            }
           }
           if (emailLadders.containsKey(user)) {
             String currentLadders = emailLadders[user];
@@ -66,8 +68,10 @@ class _SuperAdminState extends State<SuperAdmin> {
         // print('rebuildLadders: reading from ladder $ladderName');
         List<String> admins = sortedLadders[ladderIndex].get('Admins').split(',');
         for (String user in admins) {
-          if ((user == debugEmail) && kDebugMode) {
-            print('ladder:$ladderName adding player $user as  an admin');
+          if (user == debugEmail)  {
+            if (kDebugMode) {
+              print('ladder:$ladderName adding player $user as  an admin');
+            }
           }
           if (emailLadders.containsKey(user)) {
             String currentLadders = emailLadders[user];
@@ -83,8 +87,10 @@ class _SuperAdminState extends State<SuperAdmin> {
         String ladderName = sortedLadders[ladderIndex].id;
         List<String> helpers = sortedLadders[ladderIndex].get('NonPlayingHelper').split(',');
         for (String user in helpers) {
-          if ((user == debugEmail) && kDebugMode) {
-            print('ladder:$ladderName adding player $user as  a NonPlayingHelper');
+          if (user == debugEmail) {
+            if (kDebugMode) {
+              print('ladder:$ladderName adding player $user as  a NonPlayingHelper');
+            }
           }
           if (emailLadders.containsKey(user)) {
             String currentLadders = emailLadders[user];
@@ -114,8 +120,10 @@ class _SuperAdminState extends State<SuperAdmin> {
           QuerySnapshot ladderSnapshot = await playersRef.get();
           for (int playerIndex = 0; playerIndex < ladderSnapshot.docs.length; playerIndex++) {
             String user = ladderSnapshot.docs[playerIndex].id;
-            if ((user == debugEmail) && kDebugMode) {
-              print('ladder:$ladderName adding player $user as  a friend ladder $friendLadder');
+            if (user == debugEmail) {
+              if (kDebugMode) {
+                print('ladder:$ladderName adding player $user as  a friend ladder $friendLadder');
+              }
             }
             if (emailLadders.containsKey(user)) {
               String currentLadders = emailLadders[user];

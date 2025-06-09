@@ -414,7 +414,19 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
     return null;
   }
 
-  int getNextHigherRank() {
+  String emailToName(String email) {
+    if (email.isEmpty) return '';
+    QueryDocumentSnapshot<Object?>? doc = playerIdToDoc(email);
+    if (doc == null){
+      return 'Unknown';
+    }
+    return doc.get('Name');
+
+
+
+  }
+
+   int getNextHigherRank() {
     int highestRank = playerIdToDoc(_playerList[0])!.get('Rank');
     int aboveRank = 0;
     for (var doc in widget.fullPlayerList!) {
@@ -874,7 +886,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                   child: Align(
                       alignment: Alignment.centerRight,
                       child: Text(
-                        playerIdToDoc(_playerList[row])!.get('Name'),
+                        emailToName(_playerList[row]),
                         style: nameStyle,
                       ))),
             ),
@@ -1000,7 +1012,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                   child: Align(
                       alignment: Alignment.centerRight,
                       child: Text(
-                        playerIdToDoc(_playerList[row])!.get('Name'),
+                        emailToName(_playerList[row]),
                         style: nameStyle,
                       ))),
             ),
