@@ -188,7 +188,7 @@ class _PlayerHomeState extends State<PlayerHome> {
     // this should not happen, as this function should not be called in this circumstance
     if (activeLadderDoc!.get('FreezeCheckIns') ?? false) {
       if (kDebugMode) {
-        print('ERROR: checkbox trying to be displayed while the ladder has been fronzem');
+        print('ERROR: checkbox trying to be displayed while the ladder has been frozen');
       }
       return (Icons.cancel_outlined, 'not while the ladder is frozen');
     }
@@ -307,8 +307,9 @@ class _PlayerHomeState extends State<PlayerHome> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if ((player.id == activeUser.id) &&
-                    (((checkBoxIcon == Icons.check_box) || (checkBoxIcon == Icons.check_box_outline_blank)) || activeUser.admin))
+                    ((checkBoxIcon == Icons.check_box) || (checkBoxIcon == Icons.check_box_outline_blank)))
                 Text('you are ${_loc.getLastDistanceAway().toStringAsFixed(1)}m away'),
+
                 Container(
                   height: 50,
                   width: 50,
@@ -316,7 +317,7 @@ class _PlayerHomeState extends State<PlayerHome> {
                   child: Padding(
                     padding: const EdgeInsets.all(0.0),
                     child: InkWell(
-                      onTap: ((checkBoxIcon == Icons.check_box) || (checkBoxIcon == Icons.check_box_outline_blank))
+                      onTap: (((player.id == activeUser.id) || activeUser.helper)&&((checkBoxIcon == Icons.check_box) || (checkBoxIcon == Icons.check_box_outline_blank)))
                           ? () async {
                               bool newPresent = false;
                               if (checkBoxIcon == Icons.check_box_outline_blank) {
@@ -682,11 +683,8 @@ class _PlayerHomeState extends State<PlayerHome> {
                     if (activeUser.helper) {
                       //TODO: can not unfreeze if scores are entered
                       mayFreeze = true;
-                    } else if ((minToStart < 5.0) && (numberOfHelpersPresent == 0)) {
+                    } else if (((minToStart < 5.0) && (numberOfHelpersPresent == 0)) ||(minToStart <= 0.0)) {
                       // print('mayFreeze: special override, no helpers present, less than 5 minutes to go $nextPlayDate');
-                      mayFreeze = true;
-                    } else if (minToStart < 0.0) {
-                      // print('mayFreeze: special override, helpers present but start time has passed $nextPlayDate');
                       mayFreeze = true;
                     }
                   }

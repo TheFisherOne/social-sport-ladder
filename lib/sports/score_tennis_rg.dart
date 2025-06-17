@@ -454,6 +454,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
 
   updateBeingEditedBy(){
     if (_beingEditedById.isEmpty) {
+      _anyScoresToSave = true;
       // Get the document reference and make sure it is empty before updating it
       DocumentReference scoreDocRef = firestore
           .collection('Ladder')
