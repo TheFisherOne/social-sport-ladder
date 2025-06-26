@@ -100,14 +100,16 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
     if (_playerList.length == 6) _numGames = 6;
 
     if (_beingEditedById != _lastBeingEditedById) {
-      if (_lastBeingEditedById == activeUser.id) {
-        cancelWorkingScores();
-      }
       // print('change in editor from $_lastBeingEditedById to $_beingEditedById');
       _lastBeingEditedById = _beingEditedById;
+
       if ((_beingEditedById != activeUser.id) && _beingEditedById.isNotEmpty) {
         _startTimer();
+        cancelWorkingScores();
       }
+    }
+    if ((_beingEditedById != activeUser.id) && _beingEditedById.isNotEmpty) {
+      cancelWorkingScores();
     }
     _allScoresEntered = true;
     _gameScoresStr = widget.scoreDoc.get('GameScores');
@@ -551,7 +553,8 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
           decoration: BoxDecoration(
             color: scoreEdited
                 ? Colors.white
-                : (_gameScoreErrors[gameNum])
+                : (_beingEditedById.isNotEmpty && _beingEditedById!=activeUser.id)?Colors.grey.shade400:
+                   (_gameScoreErrors[gameNum])
                     ? Colors.red.shade300
                     : (colorBlue ? Colors.blue.shade300 : null),
             borderRadius: BorderRadius.circular(10), // Rounded border
@@ -559,7 +562,9 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
           ),
           child: InkWell(
             borderRadius: BorderRadius.circular(10),
-            onTap: (allowedToEdit && ((_beingEditedById.isEmpty) || (_beingEditedById == activeUser.id)) && (_loggedInPlayerOnCourt || activeUser.helper))
+            onTap: (allowedToEdit &&
+                ((_beingEditedById.isEmpty) || (_beingEditedById == activeUser.id)) &&
+                (_loggedInPlayerOnCourt || activeUser.helper))
                 ? () async {
                     // print('clicked on P:$playerNum, G:$gameNum V:$initialValue/$workingValue');
                     workingValue = (workingValue ?? 0) + 1;
@@ -593,6 +598,9 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                     updateBeingEditedBy();
 
                     setState(() {
+                      // if (kDebugMode) {
+                      //   print('Entering a score for ${activeUser.id}');
+                      // }
                       _beingEditedById = activeUser.id;
                       _anyScoresToSave = true;
                       _neverEdited = false;
