@@ -16,7 +16,6 @@ import '../constants/constants.dart';
 import '../constants/firebase_setup2.dart';
 import '../main.dart';
 
-
 String loggedInUser = "";
 DocumentSnapshot<Object?>? loggedInUserDoc;
 
@@ -24,30 +23,101 @@ DocumentSnapshot<Object?>? loggedInUserDoc;
 LoginPageState? globalHomePage;
 
 class LoginPage extends StatefulWidget {
-  final FirebaseAuth? auth;
-  const LoginPage({super.key, this.auth });
+  // final FirebaseAuth? auth;
+  const LoginPage({super.key,});
 
   @override
   State<LoginPage> createState() => LoginPageState();
 }
 
 class LoginPageState extends State<LoginPage> {
-  late FirebaseAuth _auth;
+  // late FirebaseAuth _auth;
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final GoogleSignIn _googleSignIn = GoogleSignIn(
-    clientId: xorString(encodedGoogleClientId, keyString),
-  );
+
   String _loginErrorString = '';
   String _passwordResetError = '';
   Timer? _resetTimer;
+
+  static const List<String> scopes = <String>[
+    'https://www.googleapis.com/auth/contacts.readonly',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(GoogleSignIn.instance
+        .initialize(
+      clientId: xorString(encodedGoogleClientId,
+          keyString), // Use the Web Client ID here for web
+      // serverClientId: WEB_CLIENT_ID, // Often the same for web, ensures idToken audience
+    )
+        .then((_) {
+      GoogleSignIn.instance.authenticationEvents
+          .listen(_handleAuthenticationEvent)
+          .onError(_handleAuthenticationError);
+    }));
+    /// This example always uses the stream-based approach to determining
+    /// which UI state to show, rather than using the future returned here,
+    /// if any, to conditionally skip directly to the signed-in state.
+    GoogleSignIn.instance.attemptLightweightAuthentication();
+  }
+  Future<void> _handleAuthenticationEvent(
+      GoogleSignInAuthenticationEvent event) async {
+    // #docregion CheckAuthorization
+    final GoogleSignInAccount? user = // ...
+    // #enddocregion CheckAuthorization
+    switch (event) {
+      GoogleSignInAuthenticationEventSignIn() => event.user,
+      GoogleSignInAuthenticationEventSignOut() => null,
+    };
+
+    // Check for existing authorization.
+    // #docregion CheckAuthorization
+    final GoogleSignInClientAuthorization? authorization =
+    await user?.authorizationClient.authorizationForScopes(scopes);
+    // #enddocregion CheckAuthorization
+
+    setState(() {
+
+      if (authorization == null){
+        _loginErrorString = 'error google sign in not authorized';
+        loggedInUser = '';
+        activeUser.id = loggedInUser;
+        return;
+      }
+
+      // print('_signInWithEmailAndPassword: email: ${userCredential.user!.email!.toLowerCase()} ');
+      loggedInUser = user!.email.toLowerCase();
+      activeUser.id = loggedInUser;
+      // print('logged in with email as: ${activeUser.id}');
+
+      _emailController.text = '';
+      _passwordController.text = '';
+
+      NavigatorState nav = Navigator.of(context);
+      nav.push(MaterialPageRoute(builder: (context) => const UserStream()));
+
+    });
+
+
+  }
+  Future<void> _handleAuthenticationError(Object e) async {
+    setState(() {
+      loggedInUser = '';
+      activeUser.id = loggedInUser;
+      _loginErrorString = e is GoogleSignInException
+          ? 'GoogleSignInException ${e.code}: ${e.description}'
+          : 'Unknown error: $e';
+    });
+  }
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
     _resetTimer?.cancel();
-    _resetTimer=null;
+    _resetTimer = null;
     super.dispose();
   }
 
@@ -65,14 +135,14 @@ class LoginPageState extends State<LoginPage> {
         print('RESET Password for $email');
       }
       setState(() {
-        _passwordResetError = 'Email sent to $email (if it is a registered email)';
+        _passwordResetError =
+            'Email sent to $email (if it is a registered email)';
         _passwordResetAskedFor = true;
-        _resetTimer = Timer(Duration(seconds:30), (){
+        _resetTimer = Timer(Duration(seconds: 30), () {
           setState(() {
             _passwordResetAskedFor = false;
             _passwordResetError = '';
           });
-
         });
       });
     }).catchError((e) {
@@ -87,12 +157,14 @@ class LoginPageState extends State<LoginPage> {
   }
 
   void _signInWithEmailAndPassword() {
+
     NavigatorState nav = Navigator.of(context);
     runLater() async {
       _loginErrorString = '';
       try {
         // print('_signInWithEmailAndPassword: attempting login of: _emailController.text.toLowerCase()');
-        UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+        UserCredential userCredential =
+            await FirebaseAuth.instance.signInWithEmailAndPassword(
           email: _emailController.text.toLowerCase(),
           password: _passwordController.text,
         );
@@ -155,55 +227,62 @@ class LoginPageState extends State<LoginPage> {
   // }
 
   void _signInWithGoogle() {
-    NavigatorState nav = Navigator.of(context);
-    runLater() async {
-      try {
-        final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-        final GoogleSignInAuthentication googleAuth = await googleUser!.authentication;
-        final AuthCredential credential = GoogleAuthProvider.credential(
-          accessToken: googleAuth.accessToken,
-          idToken: googleAuth.idToken,
-        );
-        UserCredential userCredential = await _auth.signInWithCredential(credential);
-        if (userCredential.user == null) {
-          setState(() {
-            _loginErrorString = 'error signInWithGoogle no user';
-          });
-
-          if (kDebugMode) {
-            print(_loginErrorString);
-          }
-          return;
-        }
-        if (userCredential.user!.email == null) {
-          setState(() {
-            _loginErrorString = 'error signInWithGoogle no user email';
-          });
-          if (kDebugMode) {
-            print(_loginErrorString);
-          }
-          return;
-        }
-
-        // print('_signInWithGoogle: got email ${userCredential.user!.email!}');
-        loggedInUser = userCredential.user!.email!.toLowerCase();
-        activeUser.id = loggedInUser;
-        // print('logged with google as: ${activeUser.id}');
-        nav.push(MaterialPageRoute(builder: (context) => const UserStream()));
-
-        return;
-      } catch (e) {
-        setState(() {
-          _loginErrorString = 'Error: $e';
-        });
-        if (kDebugMode) {
-          print(_loginErrorString);
-        }
-        return;
-      }
+    if (GoogleSignIn.instance.supportsAuthenticate()) {
+      GoogleSignIn.instance.authenticate();
     }
+    return;
 
-    runLater();
+    // NavigatorState nav = Navigator.of(context);
+    // runLater() async {
+    //   try {
+    //     final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+    //     final GoogleSignInAuthentication googleAuth =
+    //         await googleUser!.authentication;
+    //     final AuthCredential credential = GoogleAuthProvider.credential(
+    //       accessToken: googleAuth.accessToken,
+    //       idToken: googleAuth.idToken,
+    //     );
+    //     UserCredential userCredential =
+    //         await _auth.signInWithCredential(credential);
+    //     if (userCredential.user == null) {
+    //       setState(() {
+    //         _loginErrorString = 'error signInWithGoogle no user';
+    //       });
+    //
+    //       if (kDebugMode) {
+    //         print(_loginErrorString);
+    //       }
+    //       return;
+    //     }
+    //     if (userCredential.user!.email == null) {
+    //       setState(() {
+    //         _loginErrorString = 'error signInWithGoogle no user email';
+    //       });
+    //       if (kDebugMode) {
+    //         print(_loginErrorString);
+    //       }
+    //       return;
+    //     }
+    //
+    //     // print('_signInWithGoogle: got email ${userCredential.user!.email!}');
+    //     loggedInUser = userCredential.user!.email!.toLowerCase();
+    //     activeUser.id = loggedInUser;
+    //     // print('logged with google as: ${activeUser.id}');
+    //     nav.push(MaterialPageRoute(builder: (context) => const UserStream()));
+    //
+    //     return;
+    //   } catch (e) {
+    //     setState(() {
+    //       _loginErrorString = 'Error: $e';
+    //     });
+    //     if (kDebugMode) {
+    //       print(_loginErrorString);
+    //     }
+    //     return;
+    //   }
+    // }
+    //
+    // runLater();
   }
 
   void signOut() {
@@ -219,12 +298,11 @@ class LoginPageState extends State<LoginPage> {
   // String oldColorMode ='';
   @override
   Widget build(BuildContext context) {
-    _auth = widget.auth!;
-
+    // _auth = widget.auth!;
 
     // print('LoginPage: email "$loggedInUser" ');
 
-    if (!_baseFontSet){
+    if (!_baseFontSet) {
       _baseFontSet = true;
       setBaseFont(29);
       // Future.delayed(Duration(milliseconds:500),(){
@@ -236,143 +314,165 @@ class LoginPageState extends State<LoginPage> {
     }
     // print('doing login build');
     //setBaseFont(29);
-    try{
-    return Scaffold(
-        backgroundColor: surfaceColor,
-        appBar: AppBar(
-          backgroundColor: inversePrimaryColor,
-          foregroundColor: Colors.white,
-          title: Text('V$softwareVersion Login:'),
-          automaticallyImplyLeading: false,
-          actions: [
-            IconButton(
-                onPressed: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => HelpPage(page:'Login')));
-                },
-                icon: Icon(Icons.help, color: Colors.green,)),
-          ],
-        ),
-        body: SingleChildScrollView(
-          scrollDirection: Axis.vertical,
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.start,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                ElevatedButton.icon(
-                  key: Key('signInWithGoogle'),
-                  onPressed: _signInWithGoogle,
-                  icon: enableImages?Image.network(
-                    'https://developers.google.com/identity/images/g-logo.png',
-                    width: 30, // Custom icon size
-                    height: 30,
-                  ):null,
-                  label: const Text(
-                    'Sign in with Google',
-                    style: TextStyle(fontSize: 30),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: const Size(280, 65), // Custom size
-                    padding: const EdgeInsets.all(12),
-                    backgroundColor: Colors.lightGreen, // Google’s white background
-                    foregroundColor: Colors.black87,
-                    elevation: 2,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Center(child: Text('OR', style: nameStyle)),
-                MyTextField(
-                  labelText: 'Email',
-                  controller: _emailController,
-                  clearEntryOnLostFocus: false,
-                  // initialValue: '',
-                  helperText: 'the email your administrator used to register you',
-                  inputFormatters: [LowerCaseTextInputFormatter()],
-                  keyboardType: TextInputType.emailAddress,
-                  entryOK: (String? val) {
-                    setState(() {
-                      // refresh display to update reset message
-                    });
-                    if (val!.isValidEmail()) {
-                      setState(() {
-                        _passwordResetAskedFor = false;
-                        _passwordResetError = '';
-                        _resetTimer?.cancel();
-                      });
-
-                      return null;
-                    } else {
-                      return 'Invalid email format';
-                    }
+    try {
+      return Scaffold(
+          backgroundColor: surfaceColor,
+          appBar: AppBar(
+            backgroundColor: inversePrimaryColor,
+            foregroundColor: Colors.white,
+            title: Text('V$softwareVersion Login:'),
+            automaticallyImplyLeading: false,
+            actions: [
+              IconButton(
+                  onPressed: () {
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => HelpPage(page: 'Login')));
                   },
-                ),
-                const SizedBox(height: 20),
-                MyTextField(
-                  labelText: 'Password',
-                  obscureText: true,
-                  clearEntryOnLostFocus: false,
-                  // initialValue: '',
-                  helperText: 'Please enter your password for this app if you don' 't know your password fill in email and press Reset button',
-                  controller: _passwordController,
-                  entryOK: (String? val) {
-                    setState(() {
-                      // to update buttons
-                    });
-                    if (_passwordController.text.length < 6) {
-                      return 'must be at least 6 characters long';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 20),
-                (_emailController.text.isValidEmail() && _passwordController.text.length >= 6)
-                    ? RoundedButton(
-                        key: Key('signInWithEmail'),
-                        onTap: _signInWithEmailAndPassword,
-                        text: 'Sign in with Email',
-                      )
-                    : Text('Please enter a valid ${_emailController.text.isValidEmail() ? 'password' : 'email'} to login', style: nameStyle),
-                const SizedBox(height: 20),
-                Center(child: Text('OR', style: nameStyle)),
-                const SizedBox(height: 20),
-                (_emailController.text.isValidEmail() && !_passwordResetAskedFor)
-                    ? RoundedButton(
-                        key: Key('PasswordReset'),
-                        backgroundColor: Colors.lightGreen,
-                        onTap: (_passwordResetError.isNotEmpty) || (_emailController.text.isEmpty) ? null : _sendPasswordReset,
-                        text: 'Send Password Reset Email',
-                      )
-                    : Text('Enter email if you have forgotten your password', style: nameStyle),
-                const SizedBox(height: 20),
-                Text(
-                  _passwordResetError,
-                  style: errorNameStyle,
-                ),
-                // const SizedBox(height: 20),
-                // SizedBox(
-                //   height: 80,
-                //   child: SignInButton(
-                //     shape: RoundedRectangleBorder(
-                //       borderRadius: BorderRadius.circular(12),
-                //     ),
-                //     Buttons.google,
-                //     onPressed: _signInWithGoogle,
-                //   ),
-                // ),
-
-                const SizedBox(height: 20),
-                // SignInButton(Buttons.facebook,
-                //   onPressed: _signInWithFacebook,),
-                // const SizedBox(height: 20),
-                Text(_loginErrorString, style: errorNameStyle),
-              ],
-            ),
+                  icon: Icon(
+                    Icons.help,
+                    color: Colors.green,
+                  )),
+            ],
           ),
-        ));
+          body: SingleChildScrollView(
+            scrollDirection: Axis.vertical,
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  ElevatedButton.icon(
+                    key: Key('signInWithGoogle'),
+                    onPressed: _signInWithGoogle,
+                    icon: enableImages
+                        ? Image.network(
+                            'https://developers.google.com/identity/images/g-logo.png',
+                            width: 30, // Custom icon size
+                            height: 30,
+                          )
+                        : null,
+                    label: const Text(
+                      'Sign in with Google',
+                      style: TextStyle(fontSize: 30),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: const Size(280, 65), // Custom size
+                      padding: const EdgeInsets.all(12),
+                      backgroundColor:
+                          Colors.lightGreen, // Google’s white background
+                      foregroundColor: Colors.black87,
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20)),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Center(child: Text('OR', style: nameStyle)),
+                  MyTextField(
+                    labelText: 'Email',
+                    controller: _emailController,
+                    clearEntryOnLostFocus: false,
+                    // initialValue: '',
+                    helperText:
+                        'the email your administrator used to register you',
+                    inputFormatters: [LowerCaseTextInputFormatter()],
+                    keyboardType: TextInputType.emailAddress,
+                    entryOK: (String? val) {
+                      setState(() {
+                        // refresh display to update reset message
+                      });
+                      if (val!.isValidEmail()) {
+                        setState(() {
+                          _passwordResetAskedFor = false;
+                          _passwordResetError = '';
+                          _resetTimer?.cancel();
+                        });
+
+                        return null;
+                      } else {
+                        return 'Invalid email format';
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                  MyTextField(
+                    labelText: 'Password',
+                    obscureText: true,
+                    clearEntryOnLostFocus: false,
+                    // initialValue: '',
+                    helperText:
+                        'Please enter your password for this app if you don'
+                        't know your password fill in email and press Reset button',
+                    controller: _passwordController,
+                    entryOK: (String? val) {
+                      setState(() {
+                        // to update buttons
+                      });
+                      if (_passwordController.text.length < 6) {
+                        return 'must be at least 6 characters long';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                  (_emailController.text.isValidEmail() &&
+                          _passwordController.text.length >= 6)
+                      ? RoundedButton(
+                          key: Key('signInWithEmail'),
+                          onTap: _signInWithEmailAndPassword,
+                          text: 'Sign in with Email',
+                        )
+                      : Text(
+                          'Please enter a valid ${_emailController.text.isValidEmail() ? 'password' : 'email'} to login',
+                          style: nameStyle),
+                  const SizedBox(height: 20),
+                  Center(child: Text('OR', style: nameStyle)),
+                  const SizedBox(height: 20),
+                  (_emailController.text.isValidEmail() &&
+                          !_passwordResetAskedFor)
+                      ? RoundedButton(
+                          key: Key('PasswordReset'),
+                          backgroundColor: Colors.lightGreen,
+                          onTap: (_passwordResetError.isNotEmpty) ||
+                                  (_emailController.text.isEmpty)
+                              ? null
+                              : _sendPasswordReset,
+                          text: 'Send Password Reset Email',
+                        )
+                      : Text('Enter email if you have forgotten your password',
+                          style: nameStyle),
+                  const SizedBox(height: 20),
+                  Text(
+                    _passwordResetError,
+                    style: errorNameStyle,
+                  ),
+                  // const SizedBox(height: 20),
+                  // SizedBox(
+                  //   height: 80,
+                  //   child: SignInButton(
+                  //     shape: RoundedRectangleBorder(
+                  //       borderRadius: BorderRadius.circular(12),
+                  //     ),
+                  //     Buttons.google,
+                  //     onPressed: _signInWithGoogle,
+                  //   ),
+                  // ),
+
+                  const SizedBox(height: 20),
+                  // SignInButton(Buttons.facebook,
+                  //   onPressed: _signInWithFacebook,),
+                  // const SizedBox(height: 20),
+                  Text(_loginErrorString, style: errorNameStyle),
+                ],
+              ),
+            ),
+          ));
     } catch (e, stackTrace) {
-      return Text('login EXCEPTION: $e\n$stackTrace', style: TextStyle(color: Colors.red));
+      return Text('login EXCEPTION: $e\n$stackTrace',
+          style: TextStyle(color: Colors.red));
     }
   }
 }

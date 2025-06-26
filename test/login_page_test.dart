@@ -9,13 +9,13 @@ import 'package:social_sport_ladder/screens/login_page.dart';
 class MockFirebaseAuth extends Mock implements FirebaseAuth {}
 
 void main() {
-  late MockFirebaseAuth mockFirebaseAuth;
+  // late MockFirebaseAuth mockFirebaseAuth;
 
 
 
   setUp(() {
     enableImages = false;
-    mockFirebaseAuth = MockFirebaseAuth();
+    // mockFirebaseAuth = MockFirebaseAuth();
 
   });
 
@@ -24,7 +24,7 @@ void main() {
     testWidgets('renders LoginPage with email and password fields and a login button', (WidgetTester tester) async {
 
       // Build the LoginPage widget.
-      await tester.pumpWidget(MaterialApp(home: LoginPage(auth:mockFirebaseAuth)));
+      await tester.pumpWidget(MaterialApp(home: LoginPage()));
 
       // Check for email field.
       expect(find.byKey(Key('Email')), findsOneWidget);

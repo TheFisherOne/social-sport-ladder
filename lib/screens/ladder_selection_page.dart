@@ -193,7 +193,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                     onOk: () {
                       FirebaseAuth.instance.signOut();
                       activeUser.id = '';
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => LoginPage(auth: FirebaseAuth.instance)));
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => LoginPage()));
                     }),
               ),
             ],
@@ -387,7 +387,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                         runLater() async {
                           await FirebaseAuth.instance.signOut();
                           loggedInUser = '';
-                          nav.push(MaterialPageRoute(builder: (context) => LoginPage(auth: FirebaseAuth.instance)));
+                          nav.push(MaterialPageRoute(builder: (context) => LoginPage()));
                         }
 
                         runLater();
