@@ -45,7 +45,7 @@ Future<bool> getPlayerImage(String playerEmail, {bool overrideCache = false}) as
   // print('SUCCESS');
   return true;
 }
-uploadPlayerPicture(XFile file, String playerId) async {
+Future<void> uploadPlayerPicture(XFile file, String playerId) async {
   String filename = 'PlayerImage/$playerId.jpg';
   Uint8List fileData;
   img.Image? image;

@@ -687,7 +687,7 @@ class CourtAssignmentsRgStandard{
 
 
 
-sportTennisRGprepareForScoreEntry(List<QueryDocumentSnapshot>? players) async {
+Future<void> sportTennisRGprepareForScoreEntry(List<QueryDocumentSnapshot>? players) async {
   // this should be called once by the person switching the mode of the ladder
   CourtAssignmentsRgStandard courtAssignments = CourtAssignmentsRgStandard(players!);
   String currentDate = DateFormat('yyyy.MM.dd').format(DateTime.now());
@@ -861,7 +861,7 @@ class _SportTennisRGState extends State<SportTennisRG> {
     sportTennisRgInstance = null;
     super.dispose();
   }
-  refresh() => setState(() {});
+  void refresh() => setState(() {});
   @override
   Widget build(BuildContext context) {
     sportTennisRgInstance = this;

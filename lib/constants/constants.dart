@@ -41,7 +41,7 @@ var italicNameStyle = TextStyle(
     decoration: TextDecoration.none, fontStyle: FontStyle.italic, fontSize: appFontSize, fontWeight: FontWeight.normal);
 var nameBoldStyle = TextStyle(decoration: TextDecoration.none, fontSize: appFontSize, fontWeight: FontWeight.bold);
 
-setBaseFont(double fontSize){
+void setBaseFont(double fontSize){
   if (appFontSize == fontSize) return;
   appFontSize = fontSize;
 

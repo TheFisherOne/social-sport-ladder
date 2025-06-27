@@ -17,7 +17,7 @@ import '../main.dart';
 import 'audit_page.dart';
 import 'ladder_selection_page.dart';
 
-movePlayerDown(String fromLadder, String toLadder) async {
+Future<void> movePlayerDown(String fromLadder, String toLadder) async {
   // 1) create new Player in toLadder at rank 1
   // 2) copy player data from the fromLadder
   // 3) move all other players in toLadder down 1
@@ -110,7 +110,7 @@ movePlayerDown(String fromLadder, String toLadder) async {
   return;
 }
 
-movePlayerUp(String fromLadder, String toLadder) async {
+Future<void> movePlayerUp(String fromLadder, String toLadder) async {
   CollectionReference toPlayerRef = firestore.collection('Ladder').doc(toLadder).collection('Players');
   CollectionReference fromPlayerRef = firestore.collection('Ladder').doc(fromLadder).collection('Players');
   await firestore.runTransaction((transaction) async {
@@ -212,7 +212,7 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
     //RoundedTextField.startFresh(this);
   }
 
-  refresh() => setState(() {});
+  void refresh() => setState(() {});
 
   String generateRandomString(int numChars) {
     const String characters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -499,7 +499,13 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
     });
   }
 
-  TextButton makeDoubleConfirmationButton({buttonText, buttonColor = Colors.blue, dialogTitle, dialogQuestion, disabled, onOk}) {
+  TextButton makeDoubleConfirmationButton({
+    required String buttonText,
+    MaterialColor buttonColor = Colors.blue,
+    required String dialogTitle,
+    required String dialogQuestion,
+    required bool disabled,
+    required Function onOk}) {
     // print('home.dart build ${FirebaseAuth.instance.currentUser?.email}');
     return TextButton(
         style: OutlinedButton.styleFrom(foregroundColor: Colors.white, backgroundColor: buttonColor),

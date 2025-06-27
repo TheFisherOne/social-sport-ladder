@@ -87,7 +87,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
     super.dispose();
   }
 
-  _getAllLadderImages(List<QueryDocumentSnapshot<Object?>> availableDocs) async {
+  Future<void> _getAllLadderImages(List<QueryDocumentSnapshot<Object?>> availableDocs) async {
     bool oneLoaded = false;
     for (int i = 0; i < availableDocs.length; i++) {
       if (await getLadderImage(availableDocs[i].id)) {
@@ -109,14 +109,20 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
   //   }
   // }
 
-  refresh() => setState(() {});
+  void refresh() => setState(() {});
   int _buildCount = 0;
 
   @override
   Widget build(BuildContext context) {
     ladderSelectionInstance = this;
 
-    TextButton makeDoubleConfirmationButton({buttonText, buttonColor = Colors.blue, dialogTitle, dialogQuestion, disabled, onOk}) {
+    TextButton makeDoubleConfirmationButton({
+      required String buttonText,
+      MaterialColor buttonColor = Colors.blue,
+      required String dialogTitle,
+      required String dialogQuestion,
+      required bool disabled,
+      required Function onOk}) {
       // print('home.dart build ${FirebaseAuth.instance.currentUser?.email}');
       return TextButton(
           style: OutlinedButton.styleFrom(foregroundColor: Colors.white, backgroundColor: Colors.brown.shade400),

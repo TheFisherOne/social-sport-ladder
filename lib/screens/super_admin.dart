@@ -202,7 +202,7 @@ class _SuperAdminState extends State<SuperAdmin> {
   final TextEditingController _ladderNameController = TextEditingController();
   final TextEditingController _revisionController = TextEditingController();
 
-  refresh() => setState(() {});
+  void refresh() => setState(() {});
 
   @override
   Widget build(BuildContext context) {

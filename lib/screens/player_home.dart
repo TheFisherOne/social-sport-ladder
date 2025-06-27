@@ -162,7 +162,7 @@ class _PlayerHomeState extends State<PlayerHome> {
   // final List<String> _playerCheckinsList = List.empty(growable: true); // saved for later
   final LocationService _loc = LocationService();
 
-  refresh() => setState(() {});
+  void refresh() => setState(() {});
 
   @override
   void initState() {
@@ -555,7 +555,7 @@ class _PlayerHomeState extends State<PlayerHome> {
     );
   }
 
-  _getPlayerImage(String playerEmail) async {
+  Future<void> _getPlayerImage(String playerEmail) async {
     if (!enableImages) {
       return;
     }

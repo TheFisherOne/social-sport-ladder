@@ -64,7 +64,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
   bool _isOverrideEditorEnabled = false;
   Timer? _timer;
 
-  refresh() => setState(() {});
+  void refresh() => setState(() {});
 
   void _startTimer() {
     _timer?.cancel();
@@ -454,7 +454,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
     return lowerRank;
   }
 
-  updateBeingEditedBy(){
+  void updateBeingEditedBy(){
     if (_beingEditedById.isEmpty) {
       _anyScoresToSave = true;
       // Get the document reference and make sure it is empty before updating it

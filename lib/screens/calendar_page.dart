@@ -22,7 +22,7 @@ import 'login_page.dart';
 
 dynamic currentCalendarPage;
 
-bool mapContainsDateKey(var events, DateTime key) {
+bool mapContainsDateKey(Map<dynamic, dynamic> events, DateTime key) {
   return events.keys.any((date) {
     // print('date: $date ${date.runtimeType}');
     return (date.year == key.year) && (date.month == key.month) && (date.day == key.day);
@@ -105,7 +105,7 @@ final kEvents = LinkedHashMap<DateTime, List<Event>>(
 
 class EventsList {
   static List<EventsList> allEventsList = [];
-  readFromDB(DocumentSnapshot doc) {
+  void readFromDB(DocumentSnapshot doc) {
     String str = doc.get(dbAttributeName).toString().trim();
     // a split of an empty string has 1 empty element
     if (str.isEmpty) {
@@ -190,7 +190,7 @@ class EventsList {
     return ret;
   }
 
-  addEvent(DateTime date, Event newEvent) {
+  void addEvent(DateTime date, Event newEvent) {
     if (mapContainsDateKey(added, date)) {
       // if (added.containsKey(date)) {
       added.remove(date);
@@ -202,7 +202,7 @@ class EventsList {
     }
   }
 
-  removeEvent(DateTime date) {
+  void removeEvent(DateTime date) {
     if (mapContainsDateKey(removed, date)) {
       // if (removed.containsKey(date)) {
       removed.remove(date);
@@ -225,7 +225,7 @@ class EventsList {
     added = {};
     removed = {};
   }
-  clear() {
+  void clear() {
     dbList = [];
     added = {};
     removed = {};
@@ -319,7 +319,7 @@ class CalendarPageState extends State<CalendarPage> {
     super.dispose();
   }
 
-  refresh() => setState(() {
+  void refresh() => setState(() {
         // print('doing calendar page refresh');
       });
   var addedPlayEvents = {};
@@ -494,7 +494,7 @@ class CalendarPageState extends State<CalendarPage> {
     _selectedEvents.value = List.from(_getEventsForDay(selectedDay));
   }
 
-  _buildEvent(List<Event> value, index, String clickText) {
+  Row _buildEvent(List<Event> value, index, String clickText) {
     // print('_buildEvent: index: $index, value[index]: ${value[index]} clickText:"$clickText"');
     String str = value[index].toString();
     String eventType = '';

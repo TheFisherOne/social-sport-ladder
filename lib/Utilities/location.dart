@@ -23,7 +23,7 @@ class LocationService {
   double getLastDistanceAway(){
     return _lastDistanceAway;
   }
-  askForSetState(page){
+  void askForSetState(dynamic page){
     // print('ask for updates on Location ${page.toString()}');
     _pageToRefresh = page;
   }
@@ -108,7 +108,7 @@ class LocationService {
   }
 
   Timer? _timer;
-  startTimer() async {
+  Future<void> startTimer() async {
     // print('start location timer');
     _timer?.cancel();
     _timer=null;

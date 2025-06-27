@@ -65,7 +65,7 @@ String buildCsv(List<PlayerList>? courtAssignments){
   }
   return result;
 }
-Widget helperIcon(var context, String activeLadderId, List<PlayerList>? courtAssignments) {
+Widget helperIcon(BuildContext context, String activeLadderId, List<PlayerList>? courtAssignments) {
   // print('helperIcon: helper: ${activeUser.canBeHelper} ${activeUser.helperEnabled} admin: ${activeUser.canBeAdmin} ${activeUser.adminEnabled} ');
   return Padding(
     padding: const EdgeInsets.all(5.0),

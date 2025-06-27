@@ -14,7 +14,7 @@ import '../main.dart';
 import 'login_page.dart';
 
 
-transactionAudit( { required Transaction transaction, required String user, required String documentName,
+void transactionAudit( { required Transaction transaction, required String user, required String documentName,
   required String action, required String newValue, String? oldValue }){
   String auditTime = DateFormat('yyyy.MM.dd_HH:mm:ss').format(DateTime.now());
   var newContents = {
@@ -27,7 +27,7 @@ transactionAudit( { required Transaction transaction, required String user, requ
  transaction.set(firestore.collection('Ladder').doc(activeLadderId).collection('Audit').doc(auditTime), newContents);
 }
 
-writeAudit({required String user, required String documentName,
+void writeAudit({required String user, required String documentName,
    required String action, required String newValue, String? oldValue }){
   String auditTime = DateFormat('yyyy.MM.dd_HH:mm:ss').format(DateTime.now());
   var newContents = {
@@ -56,7 +56,7 @@ class _AuditPageState extends State<AuditPage> {
   bool _waitingForRebuild= false;
   final TextEditingController _filterController = TextEditingController();
 
-  shortenAuditLog(List<QueryDocumentSnapshot> auditDocs) async {
+  Future<void> shortenAuditLog(List<QueryDocumentSnapshot> auditDocs) async {
     List<String> idList = auditDocs.map((doc) =>doc.id).toList();
     idList.sort();
 

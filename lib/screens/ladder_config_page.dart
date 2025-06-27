@@ -200,7 +200,7 @@ List<String> splitString(String input, String splitChar) {
   }
   return input.split(splitChar);
 }
-uploadPicture(XFile file) async {
+Future<void> uploadPicture(XFile file) async {
   String filename = 'LadderImage/$activeLadderId.jpg';
   Uint8List fileData;
   img.Image? image;
@@ -258,7 +258,7 @@ class _ConfigPageState extends State<ConfigPage> {
     ladderConfigInstance = this;
   }
 
-  refresh() => setState(() {});
+  void refresh() => setState(() {});
   final TextEditingController _ladderNameController = TextEditingController();
   final TextEditingController _messageController = TextEditingController();
   final TextEditingController _vacationController = TextEditingController();

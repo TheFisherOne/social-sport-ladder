@@ -10,7 +10,7 @@ import 'package:social_sport_ladder/screens/score_base.dart';
 import 'package:social_sport_ladder/sports/sport_tennis_rg.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 
-initActiveLadderDoc(FakeFirebaseFirestore instance, {Map<String, dynamic> overrides = const {}}) async {
+Future<void> initActiveLadderDoc(FakeFirebaseFirestore instance, {Map<String, dynamic> overrides = const {}}) async {
   final DocumentReference ladderRef = instance.collection('Ladder').doc('Ladder 500');
 
   final Map<String, dynamic> defaultData = {

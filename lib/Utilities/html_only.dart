@@ -55,7 +55,7 @@ Text reloadHtml(double reqSoftwareVersion) {
     return reloadWithNewVersion(reqSoftwareVersion);
   }
 }
-downloadCsvFile(Event event) async {
+Future<void> downloadCsvFile(Event event) async {
   // this function exists so that the parent function does not have to be async
   Reference ref = event.fileRef!;
   final url = await ref.getDownloadURL();

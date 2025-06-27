@@ -7,7 +7,7 @@ import '../main.dart';
 import '../sports/sport_tennis_rg.dart';
 import 'ladder_config_page.dart';
 
-showFrozenLadderPage(context, DocumentSnapshot activeLadderDoc, bool withReplacement) {
+void showFrozenLadderPage( dynamic context, DocumentSnapshot activeLadderDoc, bool withReplacement) {
 
 
   //print('SportDescriptor: "${sportDescriptor.split(':')}" withReplacement: $withReplacement');
@@ -42,7 +42,7 @@ bool sportDescriptorIncludes(String descriptor){
   return false;
 }
 
-prepareForScoreEntry(DocumentSnapshot activeLadderDoc, List<QueryDocumentSnapshot>? players) async {
+Future<void> prepareForScoreEntry(DocumentSnapshot activeLadderDoc, List<QueryDocumentSnapshot>? players) async {
 
 if (getSportDescriptor(0) == 'tennisRG') {
   await sportTennisRGprepareForScoreEntry(players);
