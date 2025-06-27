@@ -18,13 +18,16 @@ import '../main.dart';
 
 String loggedInUser = "";
 DocumentSnapshot<Object?>? loggedInUserDoc;
+bool enableGoogleSignIn = true;
 
 // this is used to trigger a signOut from another module
 LoginPageState? globalHomePage;
 
 class LoginPage extends StatefulWidget {
   // final FirebaseAuth? auth;
-  const LoginPage({super.key,});
+  const LoginPage({
+    super.key,
+  });
 
   @override
   State<LoginPage> createState() => LoginPageState();
@@ -46,28 +49,33 @@ class LoginPageState extends State<LoginPage> {
   @override
   void initState() {
     super.initState();
-    unawaited(GoogleSignIn.instance
-        .initialize(
-      clientId: xorString(encodedGoogleClientId,
-          keyString), // Use the Web Client ID here for web
-      // serverClientId: WEB_CLIENT_ID, // Often the same for web, ensures idToken audience
-    )
-        .then((_) {
-      GoogleSignIn.instance.authenticationEvents
-          .listen(_handleAuthenticationEvent)
-          .onError(_handleAuthenticationError);
-    }));
-    /// This example always uses the stream-based approach to determining
-    /// which UI state to show, rather than using the future returned here,
-    /// if any, to conditionally skip directly to the signed-in state.
-    GoogleSignIn.instance.attemptLightweightAuthentication();
+
+    if (enableGoogleSignIn ) {
+      GoogleSignIn.instance
+          .initialize(
+        clientId: xorString(encodedGoogleClientId,
+            keyString), // Use the Web Client ID here for web
+        // serverClientId: WEB_CLIENT_ID, // Often the same for web, ensures idToken audience
+      )
+          .then((_) {
+        GoogleSignIn.instance.authenticationEvents
+            .listen(_handleAuthenticationEvent)
+            .onError(_handleAuthenticationError);
+      });
+
+      /// This example always uses the stream-based approach to determining
+      /// which UI state to show, rather than using the future returned here,
+      /// if any, to conditionally skip directly to the signed-in state.
+      GoogleSignIn.instance.attemptLightweightAuthentication();
+    } 
   }
+
   Future<void> _handleAuthenticationEvent(
       GoogleSignInAuthenticationEvent event) async {
     // #docregion CheckAuthorization
     final GoogleSignInAccount? user = // ...
-    // #enddocregion CheckAuthorization
-    switch (event) {
+        // #enddocregion CheckAuthorization
+        switch (event) {
       GoogleSignInAuthenticationEventSignIn() => event.user,
       GoogleSignInAuthenticationEventSignOut() => null,
     };
@@ -75,12 +83,11 @@ class LoginPageState extends State<LoginPage> {
     // Check for existing authorization.
     // #docregion CheckAuthorization
     final GoogleSignInClientAuthorization? authorization =
-    await user?.authorizationClient.authorizationForScopes(scopes);
+        await user?.authorizationClient.authorizationForScopes(scopes);
     // #enddocregion CheckAuthorization
 
     setState(() {
-
-      if (authorization == null){
+      if (authorization == null) {
         _loginErrorString = 'error google sign in not authorized';
         loggedInUser = '';
         activeUser.id = loggedInUser;
@@ -97,11 +104,9 @@ class LoginPageState extends State<LoginPage> {
 
       NavigatorState nav = Navigator.of(context);
       nav.push(MaterialPageRoute(builder: (context) => const UserStream()));
-
     });
-
-
   }
+
   Future<void> _handleAuthenticationError(Object e) async {
     setState(() {
       loggedInUser = '';
@@ -157,7 +162,6 @@ class LoginPageState extends State<LoginPage> {
   }
 
   void _signInWithEmailAndPassword() {
-
     NavigatorState nav = Navigator.of(context);
     runLater() async {
       _loginErrorString = '';

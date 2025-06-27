@@ -15,6 +15,7 @@ void main() {
 
   setUp(() {
     enableImages = false;
+    enableGoogleSignIn = false;
     // mockFirebaseAuth = MockFirebaseAuth();
 
   });
