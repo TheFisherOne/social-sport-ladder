@@ -234,7 +234,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
             // print('ladder_selection_page getting user global ladder but data is null');
             return const CircularProgressIndicator();
           }
-          // print('building Ladder snapshots with fontsize: $appFontSize ${nameStyle.fontSize}');
+          // print('building Ladder snapshots with font size: $appFontSize ${nameStyle.fontSize}');
           availableLadders = _userLadders.split(',');
           List<QueryDocumentSnapshot<Object?>> availableDocs = List.empty(growable: true);
 

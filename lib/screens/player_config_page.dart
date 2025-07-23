@@ -21,7 +21,7 @@ Future<void> movePlayerDown(String fromLadder, String toLadder) async {
   // 1) create new Player in toLadder at rank 1
   // 2) copy player data from the fromLadder
   // 3) move all other players in toLadder down 1
-  // 3) deleteplayer from the fromLadder
+  // 3) delete player from the fromLadder
   // 4) assume that the global user Ladders fields do not
 
   CollectionReference toPlayerRef = firestore.collection('Ladder').doc(toLadder).collection('Players');

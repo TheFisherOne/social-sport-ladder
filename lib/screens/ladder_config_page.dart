@@ -17,8 +17,6 @@ import 'calendar_page.dart';
 import 'ladder_selection_page.dart';
 import 'package:image/image.dart' as img;
 
-import 'login_page.dart';
-
 dynamic ladderConfigInstance;
 
 DocumentSnapshot<Object?>? activeLadderDoc;

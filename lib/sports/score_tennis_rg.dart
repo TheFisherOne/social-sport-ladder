@@ -7,7 +7,6 @@ import 'package:flutter/material.dart';
 import 'package:social_sport_ladder/Utilities/helper_icon.dart';
 import 'package:social_sport_ladder/constants/constants.dart';
 import 'package:social_sport_ladder/screens/ladder_selection_page.dart';
-import 'package:social_sport_ladder/screens/login_page.dart';
 import 'package:social_sport_ladder/screens/score_base.dart';
 import 'package:social_sport_ladder/sports/sport_tennis_rg.dart';
 import '../main.dart';
@@ -249,7 +248,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
             }
           } else {
             if (((scores.first != null) && (scores.first != 0)) || (scores[1] == null)) {
-              // print('_gameScoreErrors[$game] didn\'t find one null or zero $scores');
+              // print('_gameScoreErrors[$game] did not find one null or zero $scores');
               allOK = false;
             } else {
               if ((scores[1] != scores[2]) || (scores[3] != scores[4])) allOK = false;
@@ -293,7 +292,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
             }
           } else {
             if (((scores.first != null) && (scores.first != 0)) || (scores[1] == null)) {
-              // print('_gameScoreErrors[$game] didn\'t find one null or zero $scores');
+              // print('_gameScoreErrors[$game] did not find one null or zero $scores');
               allOK = false;
             } else {
               if ((scores[1] != scores[2]) || (scores[3] != scores[4])) allOK = false;
@@ -337,7 +336,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
             }
           } else {
             if (((scores.first != null) && (scores.first != 0)) || (scores[1] == null)) {
-              // print('_gameScoreErrors[$game] didn\'t find one null or zero $scores');
+              // print('_gameScoreErrors[$game] did not find one null or zero $scores');
               allOK = false;
             } else {
               if ((scores[1] != scores[2]) || (scores[3] != scores[4])) allOK = false;
@@ -1234,9 +1233,6 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
     }
     // print('rankChangeStr: $startingRanks => $endingRanks = $ranksChangeStr');
 
-    // print('admin: ${(activeUser.admin && !_scoresConfirmed)} _allScoresEntered: $_allScoresEntered  _beingEditedById: $_beingEditedById '
-    // 'notLastEditor: $notLastEditor _scoresCibfurned: $_scoresConfirmed $_loggedInPlayerOnCourt ${widget.allowEdit}' );
-
     return PopScope(
       onPopInvokedWithResult: (bool result, dynamic _) {
         cancelWorkingScores();
@@ -1479,7 +1475,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                                   //   style: nameStyle,
                                   // ),
                                   showRank(courtMovementList[row].afterDownTwo, 'after people away move down pushing you up'),
-                                  // 'After others not present who didn\'t mark themselves away moved down a second one'),
+                                  // 'After others not present who did not mark themselves away moved down a second one'),
                                   Text(
                                     "=>",
                                     style: nameStyle,

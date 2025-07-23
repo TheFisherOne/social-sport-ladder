@@ -319,17 +319,6 @@ class _SuperAdminState extends State<SuperAdmin> {
                         });
                       }
                     });
-                    // for (QueryDocumentSnapshot<Object?> doc in ladderSnapshots.data!.docs) {
-                    //   print('updating RequiredSoftwareVersion for ladder ${doc.id} to $number');
-                    //   await firestore.collection('Ladder').doc(doc.id).update({
-                    //     'RequiredSoftwareVersion': number,
-                    //   });
-                    // }
-                    // print('done creating la
-                    // dder $newValue');
-                    // doc not ready to accept an audit yet
-                    // writeAudit(user: loggedInUser, documentName: newValue, action: 'Create Ladder', newValue: entry, oldValue: 'n/a');
-                    // print('done writing audit log for creating ladder');
                   },
                   initialValue: '',
                 ),
@@ -393,7 +382,7 @@ class _SuperAdminState extends State<SuperAdmin> {
                           if (kDebugMode) {
                             print('Error updating player documents: $e');
                           }
-                          // Handle the error appropriately, e.g., show a snackbar to the user
+                          // Handle the error appropriately, e.g., show a snack bar to the user
                         }
                       },
                       icon: Icon(Icons.check),

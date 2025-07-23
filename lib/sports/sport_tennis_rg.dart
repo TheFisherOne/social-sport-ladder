@@ -211,7 +211,7 @@ List<PlayerList>? sportTennisRGDetermineMovement(List<QueryDocumentSnapshot>? pl
     unassignedPlayer.add(latestPlayer);
     latestPlayer.unassigned = true;
     PlayerList.numUnassigned++;
-    //print('marked player: ${latestPlayer.snapshot.id} as unassigned to a court with checkin Time: $latestTime');
+    //print('marked player: ${latestPlayer.snapshot.id} as unassigned to a court with check in Time: $latestTime');
     unassignedCount--;
   }
 

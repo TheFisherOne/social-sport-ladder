@@ -18,7 +18,6 @@ import '../help/help_pages.dart';
 import '../main.dart';
 import 'audit_page.dart';
 import 'ladder_selection_page.dart';
-import 'login_page.dart';
 
 dynamic currentCalendarPage;
 
@@ -535,7 +534,7 @@ class CalendarPageState extends State<CalendarPage> {
       Flexible(
         child: Text('$thisLine$clickText', style: includesSelectedPlayer ? nameBoldStyle : nameStyle),
       ),
-      if ((typeOfCalendarEvent == EventTypes.playOn) && (!value[index].toString().startsWith('FILE') && (!value[index].toString().startsWith('SCOR'))))
+      if ((typeOfCalendarEvent == EventTypes.playOn) && (!value[index].toString().startsWith('FILE') && (!value[index].toString().startsWith('SCORE'))))
         IconButton(
             onPressed: () {
               if (value[index].toString().startsWith('play') || value[index].toString().startsWith('AWAY')) {
@@ -552,7 +551,7 @@ class CalendarPageState extends State<CalendarPage> {
               }
             },
             icon: const Icon(Icons.delete)),
-      if ((typeOfCalendarEvent == EventTypes.playOn) && (!value[index].toString().startsWith('misc') && (!value[index].toString().startsWith('FILE'))) && (!value[index].toString().startsWith('SCOR')))
+      if ((typeOfCalendarEvent == EventTypes.playOn) && (!value[index].toString().startsWith('misc') && (!value[index].toString().startsWith('FILE'))) && (!value[index].toString().startsWith('SCORE')))
         IconButton(
             onPressed: () {
               setState(() {
@@ -722,7 +721,7 @@ class CalendarPageState extends State<CalendarPage> {
                                       setState(() {
                                         _awayEvents.removeEvent(_selectedDay!);
                                       });
-                                    } else if (value[index].toString().startsWith('SCOR')) {
+                                    } else if (value[index].toString().startsWith('SCORE')) {
                                       DocumentSnapshot doc = value[index].scoreDoc!;
                                       //print('launch SCORE on ${doc.id}');
                                       // Navigator.push(context, )
