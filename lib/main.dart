@@ -9,6 +9,9 @@ import 'Utilities/helper_icon.dart';
 import 'Utilities/user_stream.dart';
 import 'constants/firebase_setup2.dart';
 
+String loggedInUser = '';
+DocumentSnapshot<Object?>? loggedInUserDoc;
+
 dynamic testFirestore; // included for test code normally null
 late FirebaseFirestore firestore;
 
@@ -105,7 +108,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Social Sport Ladder',
       // theme: Provider.of<ThemeProvider>(context).themeData,
-      home: loggedInUser.isEmpty?LoginPage():const UserStream(),
+      home: loggedInUser.isEmpty?LoginPage( ):const UserStream(),
     );
   }
 }

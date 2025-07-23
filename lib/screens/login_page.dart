@@ -1,482 +1,72 @@
-import 'dart:async';
-
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide EmailAuthProvider;
+import 'package:firebase_ui_auth/firebase_ui_auth.dart';
+import 'package:firebase_ui_oauth_google/firebase_ui_oauth_google.dart';
 import 'package:flutter/material.dart';
-import 'package:google_sign_in/google_sign_in.dart';
-import 'package:social_sport_ladder/Utilities/my_text_field.dart';
-import 'package:social_sport_ladder/Utilities/rounded_button.dart';
-import 'package:social_sport_ladder/Utilities/string_validators.dart';
-import 'package:social_sport_ladder/help/help_pages.dart';
 
 import '../Utilities/helper_icon.dart';
 import '../Utilities/user_stream.dart';
-import '../constants/constants.dart';
 import '../constants/firebase_setup2.dart';
 import '../main.dart';
 
-String loggedInUser = "";
-DocumentSnapshot<Object?>? loggedInUserDoc;
-bool enableGoogleSignIn = true;
+String clientId = '';
 
-// this is used to trigger a signOut from another module
-LoginPageState? globalHomePage;
+class LoginPage extends StatelessWidget {
+  const LoginPage({super.key});
 
-class LoginPage extends StatefulWidget {
-  // final FirebaseAuth? auth;
-  const LoginPage({
-    super.key,
-  });
 
-  @override
-  State<LoginPage> createState() => LoginPageState();
-}
 
-class LoginPageState extends State<LoginPage> {
-  // late FirebaseAuth _auth;
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-
-  String _loginErrorString = '';
-  String _passwordResetError = '';
-  Timer? _resetTimer;
-
-  static const List<String> scopes = <String>[
-    'https://www.googleapis.com/auth/contacts.readonly',
-  ];
-
-  @override
-  void initState() {
-    super.initState();
-
-    if (enableGoogleSignIn ) {
-      GoogleSignIn.instance
-          .initialize(
-        clientId: xorString(encodedGoogleClientId,
-            keyString), // Use the Web Client ID here for web
-        // serverClientId: WEB_CLIENT_ID, // Often the same for web, ensures idToken audience
-      )
-          .then((_) {
-        GoogleSignIn.instance.authenticationEvents
-            .listen(_handleAuthenticationEvent)
-            .onError(_handleAuthenticationError);
-      });
-
-      /// This example always uses the stream-based approach to determining
-      /// which UI state to show, rather than using the future returned here,
-      /// if any, to conditionally skip directly to the signed-in state.
-      GoogleSignIn.instance.attemptLightweightAuthentication();
-    } 
-  }
-
-  Future<void> _handleAuthenticationEvent(
-      GoogleSignInAuthenticationEvent event) async {
-    // #docregion CheckAuthorization
-    final GoogleSignInAccount? user = // ...
-        // #enddocregion CheckAuthorization
-        switch (event) {
-      GoogleSignInAuthenticationEventSignIn() => event.user,
-      GoogleSignInAuthenticationEventSignOut() => null,
-    };
-
-    // Check for existing authorization.
-    // #docregion CheckAuthorization
-    final GoogleSignInClientAuthorization? authorization =
-        await user?.authorizationClient.authorizationForScopes(scopes);
-    // #enddocregion CheckAuthorization
-
-    setState(() {
-      if (authorization == null) {
-        _loginErrorString = 'error google sign in not authorized';
-        loggedInUser = '';
-        activeUser.id = loggedInUser;
-        return;
-      }
-
-      // print('_signInWithEmailAndPassword: email: ${userCredential.user!.email!.toLowerCase()} ');
-      loggedInUser = user!.email.toLowerCase();
-      activeUser.id = loggedInUser;
-      // print('logged in with email as: ${activeUser.id}');
-
-      _emailController.text = '';
-      _passwordController.text = '';
-
-      NavigatorState nav = Navigator.of(context);
-      nav.push(MaterialPageRoute(builder: (context) => const UserStream()));
-    });
-  }
-
-  Future<void> _handleAuthenticationError(Object e) async {
-    setState(() {
-      loggedInUser = '';
-      activeUser.id = loggedInUser;
-      _loginErrorString = e is GoogleSignInException
-          ? 'GoogleSignInException ${e.code}: ${e.description}'
-          : 'Unknown error: $e';
-    });
-  }
-
-  @override
-  void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
-    _resetTimer?.cancel();
-    _resetTimer = null;
-    super.dispose();
-  }
-
-  void _sendPasswordReset() {
-    setState(() {
-      _passwordResetError = 'waiting for email to be sent';
-      _loginErrorString = '';
-    });
-
-    String email = _emailController.text;
-
-    // print('_sendPasswordReset: $email');
-    FirebaseAuth.instance.sendPasswordResetEmail(email: email).then((value) {
-      if (kDebugMode) {
-        print('RESET Password for $email');
-      }
-      setState(() {
-        _passwordResetError =
-            'Email sent to $email (if it is a registered email)';
-        _passwordResetAskedFor = true;
-        _resetTimer = Timer(Duration(seconds: 30), () {
-          setState(() {
-            _passwordResetAskedFor = false;
-            _passwordResetError = '';
-          });
-        });
-      });
-    }).catchError((e) {
-      setState(() {
-        _passwordResetError = e.toString();
-      });
-
-      if (kDebugMode) {
-        print('got error on password reset for $email : $e.');
-      }
-    });
-  }
-
-  void _signInWithEmailAndPassword() {
-    NavigatorState nav = Navigator.of(context);
-    runLater() async {
-      _loginErrorString = '';
-      try {
-        // print('_signInWithEmailAndPassword: attempting login of: _emailController.text.toLowerCase()');
-        UserCredential userCredential =
-            await FirebaseAuth.instance.signInWithEmailAndPassword(
-          email: _emailController.text.toLowerCase(),
-          password: _passwordController.text,
-        );
-
-        if (userCredential.user == null) {
-          setState(() {
-            _loginErrorString = 'error signInWithEmail no user';
-          });
-
-          if (kDebugMode) {
-            print(_loginErrorString);
-          }
-          return;
-        }
-        if (userCredential.user!.email == null) {
-          setState(() {
-            _loginErrorString = 'error signInWithEmail no user email';
-          });
-          if (kDebugMode) {
-            print(_loginErrorString);
-          }
-          return;
-        }
-        // print('_signInWithEmailAndPassword: email: ${userCredential.user!.email!.toLowerCase()} ');
-        loggedInUser = userCredential.user!.email!.toLowerCase();
-        activeUser.id = loggedInUser;
-        // print('logged in with email as: ${activeUser.id}');
-
-        _emailController.text = '';
-        _passwordController.text = '';
-
-        nav.push(MaterialPageRoute(builder: (context) => const UserStream()));
-        return;
-      } catch (e) {
-        setState(() {
-          _loginErrorString = 'Error: $e';
-        });
-        if (kDebugMode) {
-          print(_loginErrorString);
-        }
-        return;
-      }
-    }
-
-    runLater();
-  }
-  // UserCredential? facebookCredential;
-  //
-  // void  _signInWithFacebook() async {
-  //   FacebookAuthProvider facebookProvider = FacebookAuthProvider();
-  //   facebookProvider.addScope('email');
-  //   facebookProvider.setCustomParameters({
-  //     'display': 'popup'
-  //   });
-  //   facebookCredential = await FirebaseAuth.instance.signInWithPopup(facebookProvider);
-  //   // print('_signInWithFacebook: logged in with ${facebookCredential!.user!.email!}');
-  //   setState(() {
-  //     loggedInUser = facebookCredential!.user!.email!.toLowerCase();
-  //   });
-  // }
-
-  void _signInWithGoogle() {
-    if (GoogleSignIn.instance.supportsAuthenticate()) {
-      GoogleSignIn.instance.authenticate();
-    }
-    return;
-
-    // NavigatorState nav = Navigator.of(context);
-    // runLater() async {
-    //   try {
-    //     final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-    //     final GoogleSignInAuthentication googleAuth =
-    //         await googleUser!.authentication;
-    //     final AuthCredential credential = GoogleAuthProvider.credential(
-    //       accessToken: googleAuth.accessToken,
-    //       idToken: googleAuth.idToken,
-    //     );
-    //     UserCredential userCredential =
-    //         await _auth.signInWithCredential(credential);
-    //     if (userCredential.user == null) {
-    //       setState(() {
-    //         _loginErrorString = 'error signInWithGoogle no user';
-    //       });
-    //
-    //       if (kDebugMode) {
-    //         print(_loginErrorString);
-    //       }
-    //       return;
-    //     }
-    //     if (userCredential.user!.email == null) {
-    //       setState(() {
-    //         _loginErrorString = 'error signInWithGoogle no user email';
-    //       });
-    //       if (kDebugMode) {
-    //         print(_loginErrorString);
-    //       }
-    //       return;
-    //     }
-    //
-    //     // print('_signInWithGoogle: got email ${userCredential.user!.email!}');
-    //     loggedInUser = userCredential.user!.email!.toLowerCase();
-    //     activeUser.id = loggedInUser;
-    //     // print('logged with google as: ${activeUser.id}');
-    //     nav.push(MaterialPageRoute(builder: (context) => const UserStream()));
-    //
-    //     return;
-    //   } catch (e) {
-    //     setState(() {
-    //       _loginErrorString = 'Error: $e';
-    //     });
-    //     if (kDebugMode) {
-    //       print(_loginErrorString);
-    //     }
-    //     return;
-    //   }
-    // }
-    //
-    // runLater();
-  }
-
-  void signOut() {
-    setState(() {
-      FirebaseAuth.instance.signOut();
-    });
-  }
-
-  bool _baseFontSet = false;
-  bool _passwordResetAskedFor = false;
-
-  String? emailErrorText;
-  // String oldColorMode ='';
   @override
   Widget build(BuildContext context) {
-    // _auth = widget.auth!;
-
-    // print('LoginPage: email "$loggedInUser" ');
-
-    if (!_baseFontSet) {
-      _baseFontSet = true;
-      setBaseFont(29);
-      // Future.delayed(Duration(milliseconds:500),(){
-      //   setState(() {
-      //     setBaseFont(29);
-      //     // print('setting base font to 29');
-      //   });
-      // });
-    }
-    // print('doing login build');
-    //setBaseFont(29);
-    try {
-      return Scaffold(
-          backgroundColor: surfaceColor,
-          appBar: AppBar(
-            backgroundColor: inversePrimaryColor,
-            foregroundColor: Colors.white,
-            title: Text('V$softwareVersion Login:'),
-            automaticallyImplyLeading: false,
-            actions: [
-              IconButton(
-                  onPressed: () {
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => HelpPage(page: 'Login')));
-                  },
-                  icon: Icon(
-                    Icons.help,
-                    color: Colors.green,
-                  )),
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return SignInScreen(
+            showAuthActionSwitch: false,
+            providers: [
+              // ✨ This is how you enable Email/Password sign-in ✨
+              EmailAuthProvider(),
+              GoogleProvider(clientId: xorString(encodedGoogleClientId, keyString)),
             ],
-          ),
-          body: SingleChildScrollView(
-            scrollDirection: Axis.vertical,
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.start,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  ElevatedButton.icon(
-                    key: Key('signInWithGoogle'),
-                    onPressed: _signInWithGoogle,
-                    icon: enableImages
-                        ? Image.network(
-                            'https://developers.google.com/identity/images/g-logo.png',
-                            width: 30, // Custom icon size
-                            height: 30,
-                          )
-                        : null,
-                    label: const Text(
-                      'Sign in with Google',
-                      style: TextStyle(fontSize: 30),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      minimumSize: const Size(280, 65), // Custom size
-                      padding: const EdgeInsets.all(12),
-                      backgroundColor:
-                          Colors.lightGreen, // Google’s white background
-                      foregroundColor: Colors.black87,
-                      elevation: 2,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20)),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Center(child: Text('OR', style: nameStyle)),
-                  MyTextField(
-                    labelText: 'Email',
-                    controller: _emailController,
-                    clearEntryOnLostFocus: false,
-                    // initialValue: '',
-                    helperText:
-                        'the email your administrator used to register you',
-                    inputFormatters: [LowerCaseTextInputFormatter()],
-                    keyboardType: TextInputType.emailAddress,
-                    entryOK: (String? val) {
-                      setState(() {
-                        // refresh display to update reset message
-                      });
-                      if (val!.isValidEmail()) {
-                        setState(() {
-                          _passwordResetAskedFor = false;
-                          _passwordResetError = '';
-                          _resetTimer?.cancel();
-                        });
-
-                        return null;
-                      } else {
-                        return 'Invalid email format';
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 20),
-                  MyTextField(
-                    labelText: 'Password',
-                    obscureText: true,
-                    clearEntryOnLostFocus: false,
-                    // initialValue: '',
-                    helperText:
-                        'Please enter your password for this app if you don'
-                        't know your password fill in email and press Reset button',
-                    controller: _passwordController,
-                    entryOK: (String? val) {
-                      setState(() {
-                        // to update buttons
-                      });
-                      if (_passwordController.text.length < 6) {
-                        return 'must be at least 6 characters long';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 20),
-                  (_emailController.text.isValidEmail() &&
-                          _passwordController.text.length >= 6)
-                      ? RoundedButton(
-                          key: Key('signInWithEmail'),
-                          onTap: _signInWithEmailAndPassword,
-                          text: 'Sign in with Email',
-                        )
-                      : Text(
-                          'Please enter a valid ${_emailController.text.isValidEmail() ? 'password' : 'email'} to login',
-                          style: nameStyle),
-                  const SizedBox(height: 20),
-                  Center(child: Text('OR', style: nameStyle)),
-                  const SizedBox(height: 20),
-                  (_emailController.text.isValidEmail() &&
-                          !_passwordResetAskedFor)
-                      ? RoundedButton(
-                          key: Key('PasswordReset'),
-                          backgroundColor: Colors.lightGreen,
-                          onTap: (_passwordResetError.isNotEmpty) ||
-                                  (_emailController.text.isEmpty)
-                              ? null
-                              : _sendPasswordReset,
-                          text: 'Send Password Reset Email',
-                        )
-                      : Text('Enter email if you have forgotten your password',
-                          style: nameStyle),
-                  const SizedBox(height: 20),
-                  Text(
-                    _passwordResetError,
-                    style: errorNameStyle,
-                  ),
-                  // const SizedBox(height: 20),
-                  // SizedBox(
-                  //   height: 80,
-                  //   child: SignInButton(
-                  //     shape: RoundedRectangleBorder(
-                  //       borderRadius: BorderRadius.circular(12),
-                  //     ),
-                  //     Buttons.google,
-                  //     onPressed: _signInWithGoogle,
-                  //   ),
-                  // ),
-
-                  const SizedBox(height: 20),
-                  // SignInButton(Buttons.facebook,
-                  //   onPressed: _signInWithFacebook,),
-                  // const SizedBox(height: 20),
-                  Text(_loginErrorString, style: errorNameStyle),
-                ],
-              ),
-            ),
-          ));
-    } catch (e, stackTrace) {
-      return Text('login EXCEPTION: $e\n$stackTrace',
-          style: TextStyle(color: Colors.red));
-    }
+            headerBuilder: (context, constraints, shrinkOffset) {
+              return Padding(
+                padding: const EdgeInsets.all(20),
+                child: AspectRatio(
+                  aspectRatio: 1,
+                  child: Image.asset('assets/images/icon-192.png'),
+                ),
+              );
+            },
+            subtitleBuilder: (context, action) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: const Text('Welcome! Please sign in with email used by ladder admin.'),
+              );
+            },
+            footerBuilder: (context, action) {
+              return const Padding(
+                padding: EdgeInsets.only(top: 16),
+                child: Text(
+                  'By signing in, you agree to our terms and conditions.',
+                  style: TextStyle(color: Colors.grey),
+                ),
+              );
+            },
+            sideBuilder: (context, shrinkOffset) {
+              return Padding(
+                padding: const EdgeInsets.all(20),
+                child: AspectRatio(
+                  aspectRatio: 1,
+                  child: Image.asset('assets/images/icon-192.png'),
+                ),
+              );
+            },
+          );
+        }
+        loggedInUser = FirebaseAuth.instance.currentUser!.email!.toLowerCase();
+        activeUser.id = loggedInUser;
+        return const UserStream(); // Navigate to your home screen
+      },
+    );
   }
 }

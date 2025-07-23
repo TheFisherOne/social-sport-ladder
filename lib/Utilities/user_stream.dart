@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import '../constants/constants.dart';
 import '../main.dart';
 import '../screens/ladder_selection_page.dart';
-import '../screens/login_page.dart';
 
 class UserStream extends StatefulWidget {
   const UserStream({super.key});
@@ -19,6 +18,9 @@ class _UserStreamState extends State<UserStream> {
   double _lastFontSize=-1;
   @override
   Widget build(BuildContext context) {
+    if (loggedInUser.isEmpty) {
+      return const Text('UserStream: but loggedInUser empty');
+    }
 
     return StreamBuilder<DocumentSnapshot>(
         stream: firestore.collection('Users').doc(loggedInUser).snapshots(),

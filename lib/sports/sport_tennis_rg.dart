@@ -1,11 +1,9 @@
 import 'dart:math';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:social_sport_ladder/constants/constants.dart';
-import 'package:social_sport_ladder/screens/login_page.dart';
 import '../Utilities/helper_icon.dart';
 import '../main.dart';
 import '../screens/audit_page.dart';
@@ -134,7 +132,7 @@ List<PlayerList>? sportTennisRGDetermineMovement(List<QueryDocumentSnapshot>? pl
     pl.markedAway = false;
     pl.unassigned = false;
     // print('checking AWAY: ${pl.snapshot.id} next:${PlayerList.nextPlayString} daysAway:${pl.daysAway}. split:${pl.daysAway.split('|')}.');
-    if (pl.daysAway.split('|').contains(PlayerList.nextPlayString)) {
+    if (pl.daysAwayIncludes(PlayerList.nextPlayString)) {
       pl.markedAway = true;
       PlayerList.numAway++;
       // print('will be away: $i id:${pl.snapshot.id} Name:${pl.snapshot.get('Name')} ${pl.snapshot.get('DaysAway').split('|')} == ${PlayerList.nextPlayString}');

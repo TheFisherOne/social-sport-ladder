@@ -21,90 +21,11 @@ import '../sports/sport_tennis_rg.dart';
 import 'audit_page.dart';
 import 'calendar_page.dart';
 import 'ladder_selection_page.dart';
-import 'login_page.dart';
 
 dynamic playerHomeInstance;
 QueryDocumentSnapshot? clickedOnPlayerDoc;
 QueryDocumentSnapshot<Object?>? loggedInPlayerDoc;
 bool headerSummarySelected = false;
-
-// dynamic getCourtAssignmentNumbers(List<QueryDocumentSnapshot>? players) {
-//   int numPresent = 0;
-//   int numExpected = 0;
-//   int numAway = 0;
-//   List<int> ranksAway = List.empty(growable: true);
-//   List<int> ranksUnassigned = List.empty(growable: true);
-//   DateTime? nextPlay;
-//   (nextPlay, _) = getNextPlayDateTime(activeLadderDoc!);
-//   String nextPlayStr;
-//   if (nextPlay != null) {
-//     nextPlayStr = DateFormat('yyyy.MM.dd').format(nextPlay);
-//   } else {
-//     nextPlayStr = '';
-//   }
-//
-//   int totalCourtsAvailable = activeLadderDoc!.get('PriorityOfCourts').split('|').length;
-//   for (var player in players!) {
-//     if (player.get('Present')) {
-//       numPresent++;
-//     }
-//     if (player.get('DaysAway').split('|').contains(nextPlayStr)) {
-//       ranksAway.add(player.get('Rank'));
-//       numAway++;
-//       //print('will be away: ${player.get('Name')} ${player.get('DaysAway').split('|')} == $nextPlayStr ranksAway: $ranksAway');
-//     } else {
-//       numExpected++;
-//     }
-//   }
-//
-//   int numCourts = numPresent ~/ 4;
-//   if (numCourts > totalCourtsAvailable) numCourts = totalCourtsAvailable;
-//
-//   int numCourtsOf4 = numCourts;
-//   int numCourtsOf5 = 0;
-//   int playersNotAssigned = numPresent - 4 * numCourtsOf4;
-//
-//   while ((numCourtsOf4 > 0) && (playersNotAssigned > 0)) {
-//     numCourtsOf4--;
-//     numCourtsOf5++;
-//     playersNotAssigned = numPresent - 4 * numCourtsOf4 - 5 * numCourtsOf5;
-//   }
-//   print('Courts of 4:$numCourtsOf4 5:$numCourtsOf5 =:$numCourts');
-//
-//   int unassigned = playersNotAssigned;
-//   while (unassigned > 0) {
-//     QueryDocumentSnapshot? latestPlayer;
-//     Timestamp latestTime = Timestamp(1, 0);
-//     for (var player in players) {
-//       if (!ranksUnassigned.contains(player.get('Rank'))) {
-//         Timestamp thisTime = player.get('TimePresent');
-//         // print('compare ${thisTime.toDate()} > ${latestTime.toDate()} ${thisTime.compareTo(latestTime)}');
-//         if (thisTime.compareTo(latestTime) > 0) {
-//           latestTime = thisTime;
-//           latestPlayer = player;
-//         }
-//       }
-//     }
-//     if (latestPlayer == null) break;
-//     ranksUnassigned.add(latestPlayer.get('Rank'));
-//     unassigned--;
-//   }
-//   //if (playersNotAssigned > 0) print('unassigned players: $playersNotAssigned $ranksUnassigned');
-//   //print('player ranks marked as away $numAway $ranksAway');
-//
-//   return {
-//     'numPresent': numPresent,
-//     'numExpected': numExpected,
-//     'numAway': numAway,
-//     'numCourtsOf4': numCourtsOf4,
-//     'numCourtsOf5': numCourtsOf5,
-//     'playersNotAssigned': playersNotAssigned,
-//     'numCourts': numCourts,
-//     'totalCourtsAvailable': totalCourtsAvailable,
-//     'ranksAway': ranksAway,
-//     'ranksUnassigned': ranksUnassigned,
-//   };
-// }
 
 Widget headerSummary(List<QueryDocumentSnapshot>? players, List<PlayerList> assign) {
   String unAssignedStr = '';
@@ -136,7 +57,7 @@ Widget headerSummary(List<QueryDocumentSnapshot>? players, List<PlayerList> assi
                 )
               else if (PlayerList.numUnassigned > 0)
                 Text(
-                  'Players not on court ${PlayerList.numUnassigned}:marked (Last)\nwaiting for more players to checkin',
+                  'Players not on court ${PlayerList.numUnassigned}:marked (Last)\nwaiting for more players to check in',
                   style: nameStyle,
                 ),
             ],
@@ -208,7 +129,7 @@ class _PlayerHomeState extends State<PlayerHome> {
 
     // print(' ${dayOfPlay.substring(0, 8)} != ${DateFormat('yyyyMMdd').format(DateTime.now())}');
     if ((timeNow.year != nextPlayDate.year) || (timeNow.month != nextPlayDate.month) || (timeNow.day != nextPlayDate.day)) {
-      return (Icons.access_time, 'It is not yet the day of the ladder $nextPlayDate');
+      return (Icons.access_time, 'It is not yet the day of the ladder $nextPlayDateStr');
     }
 
     if (((nextPlayDate.hour + nextPlayDate.minute / 100.0) - (timeNow.hour + timeNow.minute / 100.0)) < activeLadderDoc!.get('CheckInStartHours')) {
@@ -238,7 +159,7 @@ class _PlayerHomeState extends State<PlayerHome> {
           return (Icons.check_box_outline_blank, 'Ready to check in if you are going to play');
         }
       } else if (activeUser.helper) {
-        return (Icons.check_box_outline_blank, 'Helper checkin');
+        return (Icons.check_box_outline_blank, 'Helper check in');
       }
     } else {
       if ((player.id == activeUser.id) || (activeUser.helper)) {
@@ -246,40 +167,16 @@ class _PlayerHomeState extends State<PlayerHome> {
       }
     }
 
-    String loggedInPlayerName = 'Guest';
+    String loggedInPlayerName = '';
     if (loggedInPlayerDoc != null) {
       loggedInPlayerName = loggedInPlayerDoc!.get('Name');
+    } else {
+      return (Icons.access_time, 'You are logged in as a Guest:"${activeUser.id}" you can not change the player "${player.get('Name')}"');
     }
+
     return (Icons.access_time, 'You are logged in as "$loggedInPlayerName"" you can not change the player "${player.get('Name')}"');
   }
 
-  // double measureDistance(lat1, lon1, lat2, lon2) {
-  //   // generally used geo measurement function
-  //   var R = 6378.137; // Radius of earth in KM
-  //   var dLat = lat2 * pi / 180 - lat1 * pi / 180;
-  //   var dLon = lon2 * pi / 180 - lon1 * pi / 180;
-  //   var a = sin(dLat / 2) * sin(dLat / 2) + cos(lat1 * pi / 180) * cos(lat2 * pi / 180) * sin(dLon / 2) * sin(dLon / 2);
-  //   var c = 2 * atan2(sqrt(a), sqrt(1 - a));
-  //   var d = R * c;
-  //   return d * 1000; // meters
-  // }
-
-  // double _lastDistanceAway = -99.0;
-  // bool isLocationOk(DocumentSnapshot<Object?>? activeLadderDoc, LocationData where) {
-  //   if ((where.latitude == null) || (where.longitude == null)) return false;
-  //   double allowedDistance = activeLadderDoc!.get('MetersFromLatLong');
-  //   if (allowedDistance <= 0.0) return true; // this is disabled
-  //
-  //   double distance = measureDistance(activeLadderDoc.get('Latitude'), activeLadderDoc.get('Longitude'), where.latitude!, where.longitude!);
-  //
-  //   _lastDistanceAway = distance;
-  //   if (distance > allowedDistance) {
-  //     print('isLocationOk: too far away $distance > $allowedDistance');
-  //     return false;
-  //   }
-  //   print('isLocationOK: location good $distance');
-  //   return true;
-  // }
 
   Widget unfrozenSubLine(QueryDocumentSnapshot player) {
     _getPlayerImage(player.id);
@@ -577,7 +474,7 @@ class _PlayerHomeState extends State<PlayerHome> {
       stream: firestore.collection('Ladder').doc(activeLadderId).snapshots(),
       builder: (BuildContext context, AsyncSnapshot<DocumentSnapshot<Object?>> ladderSnapshot) {
         if (ladderSnapshot.error != null) {
-          String error = 'Snapshot error: ${ladderSnapshot.error.toString()} on getting activeladder $activeLadderId ';
+          String error = 'Snapshot error: ${ladderSnapshot.error.toString()} on getting the active ladder $activeLadderId ';
           if (kDebugMode) {
             print(error);
           }

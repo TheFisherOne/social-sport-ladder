@@ -255,9 +255,9 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                 }
               }
               if (needsToBeAdded) {
-                if (kDebugMode) {
-                  print('adding ladder because of being super admin ${doc.id}');
-                }
+                // if (kDebugMode) {
+                //   print('adding ladder because of being super admin ${doc.id}');
+                // }
                 availableDocs.add(doc);
               }
             }
@@ -436,18 +436,18 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                     String numDaysAwayStr = 'Admin did not configure';
                     (nextPlay, note) = getNextPlayDateTime(availableDocs[row]);
                     if (nextPlay != null) {
-                      int daysAway = daysBetween(DateTime.now(), nextPlay);
+                      int daysUntilPlay = daysBetween(DateTime.now(), nextPlay);
                       // print('Row:$row ${availableDocs[row].id} daysAway: $daysAway  nextPlay:  $nextPlay');
                       String timeToPlay = DateFormat('h:mma').format(nextPlay);
 
-                      if (daysAway == 1) {
+                      if (daysUntilPlay == 1) {
                         numDaysAwayStr = '(Tomorrow) @ $timeToPlay';
                         nextPlay2 = note;
-                      } else if (daysAway < 0) {
+                      } else if (daysUntilPlay < 0) {
                         numDaysAwayStr = '(next date is in the past!)';
                         nextPlay2 = '';
-                      } else if (daysAway > 1) {
-                        numDaysAwayStr = '($daysAway days) @ $timeToPlay';
+                      } else if (daysUntilPlay > 1) {
+                        numDaysAwayStr = '($daysUntilPlay days) @ $timeToPlay';
                         nextPlay2 = note;
                       } else {
                         numDaysAwayStr = '(TODAY)  @ $timeToPlay';
