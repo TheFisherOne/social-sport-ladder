@@ -1,5 +1,8 @@
 import 'dart:io';
-import '../Utilities/html_none.dart' if (dart.library.html) '../Utilities/html_only.dart';
+import 'package:flutter_html/flutter_html.dart';
+
+import '../Utilities/html_none.dart'
+    if (dart.library.html) '../Utilities/html_only.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -24,7 +27,8 @@ String activeLadderId = '';
 
 Map<String, String?> urlCache = {};
 
-Future<bool> getLadderImage(String ladderId, {bool overrideCache = false}) async {
+Future<bool> getLadderImage(String ladderId,
+    {bool overrideCache = false}) async {
   if (!overrideCache && (urlCache.containsKey(ladderId)) || !enableImages) {
     // print('Ladder image for $ladderId found in cache ${urlCache[ladderId]}');
     return false;
@@ -51,7 +55,8 @@ Future<bool> getLadderImage(String ladderId, {bool overrideCache = false}) async
       }
     } else {
       if (kDebugMode) {
-        print('downloadLadderImage: getData exception: ${e.runtimeType} || ${e.toString()}');
+        print(
+            'downloadLadderImage: getData exception: ${e.runtimeType} || ${e.toString()}');
       }
     }
 
@@ -71,6 +76,11 @@ class LadderSelectionPage extends StatefulWidget {
 class _LadderSelectionPageState extends State<LadderSelectionPage> {
   String _userLadders = '';
   String _lastLoggedInUser = '';
+  String? _tipOfTheDayTitle;
+  String? _tipOfTheDayBody;
+  int? _workingTipOfTheDayNumber;
+  int _tipOfTheDayOffset = 0;
+
   // final _calendarService = CalendarService();
   // List<calendar.Event> _events = [];
 
@@ -87,7 +97,128 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
     super.dispose();
   }
 
-  Future<void> _getAllLadderImages(List<QueryDocumentSnapshot<Object?>> availableDocs) async {
+  Future<void> _fetchTipOfTheDay(int? tipOfTheDayNumber) async {
+    if ((tipOfTheDayNumber == null) || (tipOfTheDayNumber < 0)) {
+      if (mounted) {
+        setState(() {
+          _tipOfTheDayTitle = 'Tip for the day'; // Default title
+          _tipOfTheDayBody = 'Did you know feature not configured.';
+        });
+      }
+      return;
+    }
+
+    int targetIndex = -1;
+    try {
+      QuerySnapshot<Map<String, dynamic>> tipOfTheDaySnapshot =
+          await firestore.collection('TipOfTheDay').get();
+
+      int collectionSize = tipOfTheDaySnapshot.docs.length;
+
+      if (collectionSize <= 0) {
+        if (mounted) {
+          setState(() {
+            _tipOfTheDayTitle = 'Tip for the day';
+            _tipOfTheDayBody = 'No "Did you know" messages available.';
+          });
+        }
+        return;
+      }
+
+      // 2. Calculate the index to fetch
+      targetIndex = tipOfTheDayNumber % collectionSize;
+
+      // 3. Get the specific document at the calculated index
+      //    The documents in tipOfTheDaySnapshot.docs are already ordered by document ID by default.
+      //    If you need a specific order, you would add .orderBy() to your query.
+      DocumentSnapshot<Map<String, dynamic>> tipOfTheDayDoc =
+          tipOfTheDaySnapshot.docs[targetIndex];
+
+      if (tipOfTheDayDoc.exists) {
+        if (mounted) {
+          setState(() {
+            // Assuming the fields are 'title' and 'body'
+            _tipOfTheDayTitle = tipOfTheDayDoc.id;
+            _tipOfTheDayBody = tipOfTheDayDoc.get('Description') as String? ??
+                'No "Did you know" message found for today.';
+          });
+        }
+      } else {
+        // This case should ideally not be reached if collectionSize > 0
+        // and targetIndex is within bounds, but good for robustness.
+        if (mounted) {
+          setState(() {
+            _tipOfTheDayTitle = 'Tip for the day';
+            _tipOfTheDayBody =
+                'Could not find the selected "Did you know" message. $targetIndex';
+          });
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error fetching TipOfTheDay document $targetIndex: $e');
+      }
+      if (mounted) {
+        setState(() {
+          _tipOfTheDayTitle = 'Error';
+          _tipOfTheDayBody = 'Error loading "Did you know" message.';
+        });
+      }
+    }
+  }
+
+  void showHtmlPopup(BuildContext context, String title, String htmlContent) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(title),
+          content: SingleChildScrollView(
+            // In case the HTML is long
+            child: Html(
+              data: htmlContent,
+              // You can customize styling and behavior here
+              style: {
+                "body": Style(
+                  fontSize: FontSize(appFontSize),
+                ),
+              },
+              onLinkTap: (url, attributes, element) {
+                // Handle link taps within the HTML
+                if (url != null) {
+                  // You might want to launch the URL using url_launcher package
+                  if (kDebugMode) {
+                    print('Tapped on link: $url');
+                  }
+                }
+              },
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Next'),
+              onPressed: () {
+                setState(() {
+                  _tipOfTheDayOffset++;
+                });
+
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: const Text('Close'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _getAllLadderImages(
+      List<QueryDocumentSnapshot<Object?>> availableDocs) async {
     bool oneLoaded = false;
     for (int i = 0; i < availableDocs.length; i++) {
       if (await getLadderImage(availableDocs[i].id)) {
@@ -116,16 +247,18 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
   Widget build(BuildContext context) {
     ladderSelectionInstance = this;
 
-    TextButton makeDoubleConfirmationButton({
-      required String buttonText,
-      MaterialColor buttonColor = Colors.blue,
-      required String dialogTitle,
-      required String dialogQuestion,
-      required bool disabled,
-      required Function onOk}) {
+    TextButton makeDoubleConfirmationButton(
+        {required String buttonText,
+        MaterialColor buttonColor = Colors.blue,
+        required String dialogTitle,
+        required String dialogQuestion,
+        required bool disabled,
+        required Function onOk}) {
       // print('home.dart build ${FirebaseAuth.instance.currentUser?.email}');
       return TextButton(
-          style: OutlinedButton.styleFrom(foregroundColor: Colors.white, backgroundColor: Colors.brown.shade400),
+          style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.white,
+              backgroundColor: Colors.brown.shade400),
           onPressed: disabled
               ? null
               : () => showDialog<String>(
@@ -180,6 +313,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
       if (_userLadders.isEmpty) {
         errorText = '"$loggedInUser" is not on any ladder';
       }
+
       if (_userLadders.isEmpty || !userOk) {
         return Scaffold(
           backgroundColor: Colors.brown[50],
@@ -194,12 +328,14 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                 child: makeDoubleConfirmationButton(
                     buttonText: 'Log\nOut',
                     dialogTitle: 'You will have to enter your password again',
-                    dialogQuestion: 'Are you sure you want to logout?\n${activeUser.id}',
+                    dialogQuestion:
+                        'Are you sure you want to logout?\n${activeUser.id}',
                     disabled: false,
                     onOk: () {
                       FirebaseAuth.instance.signOut();
                       activeUser.id = '';
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => LoginPage()));
+                      Navigator.push(context,
+                          MaterialPageRoute(builder: (context) => LoginPage()));
                     }),
               ),
             ],
@@ -216,17 +352,20 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
 
       return StreamBuilder<QuerySnapshot>(
         stream: firestore.collection('Ladder').snapshots(),
-        builder: (BuildContext context, AsyncSnapshot<QuerySnapshot<Object?>> snapshot) {
+        builder: (BuildContext context,
+            AsyncSnapshot<QuerySnapshot<Object?>> snapshot) {
           // print('Ladder snapshot');
-          if (snapshot.error != null) {
-            String error = 'Snapshot error: ${snapshot.error.toString()} on getting global ladders ';
+          if (snapshot.hasError) {
+            String error =
+                'Snapshot error: ${snapshot.error.toString()} on getting global ladders ';
             if (kDebugMode) {
               print(error);
             }
             return Text(error);
           }
           // print('in StreamBuilder ladder 0');
-          if (!snapshot.hasData || (snapshot.connectionState != ConnectionState.active)) {
+          if (!snapshot.hasData ||
+              (snapshot.connectionState != ConnectionState.active)) {
             // print('ladder_selection_page getting user $loggedInUser but hasData is false');
             return const CircularProgressIndicator();
           }
@@ -234,12 +373,38 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
             // print('ladder_selection_page getting user global ladder but data is null');
             return const CircularProgressIndicator();
           }
+          final allDocs = snapshot.data!.docs;
+
+          List<QueryDocumentSnapshot<Object?>> filteredDocs = [];
+          int? requiredSoftwareVersion;
+          int? tipOfTheDayNumber = (DateTime.now().millisecondsSinceEpoch /
+                  Duration.millisecondsPerDay)
+              .floor();
+          for (var doc in allDocs) {
+            if (doc.id == "  SYSTEM CONFIG  ") {
+              try {
+                requiredSoftwareVersion =
+                    doc.get('RequiredSoftwareVersion') as int;
+              } catch (e) {
+                if (kDebugMode) {
+                  print(
+                      'Error extracting attributes from "  SYSTEM CONFIG  ": $e');
+                }
+                // Handle cases where attributes might be missing or of the wrong type
+              }
+            } else {
+              // Add all other documents to the filtered list
+              filteredDocs.add(doc);
+            }
+          }
+
           // print('building Ladder snapshots with font size: $appFontSize ${nameStyle.fontSize}');
           availableLadders = _userLadders.split(',');
-          List<QueryDocumentSnapshot<Object?>> availableDocs = List.empty(growable: true);
+          List<QueryDocumentSnapshot<Object?>> availableDocs =
+              List.empty(growable: true);
 
           for (String ladder in availableLadders!) {
-            for (QueryDocumentSnapshot<Object?> doc in snapshot.data!.docs) {
+            for (QueryDocumentSnapshot<Object?> doc in filteredDocs) {
               if ((doc.id == ladder) && (!doc.get('SuperDisabled'))) {
                 availableDocs.add(doc);
                 // print('Found ladders: $ladder => $displayName');
@@ -247,7 +412,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
             }
           }
           if (activeUser.canBeSuper) {
-            for (QueryDocumentSnapshot<Object?> doc in snapshot.data!.docs) {
+            for (QueryDocumentSnapshot<Object?> doc in filteredDocs) {
               bool needsToBeAdded = true;
               for (String ladder in availableLadders!) {
                 if (doc.id == ladder) {
@@ -269,6 +434,24 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
           //   print('"${availableDocs[i].id}" DisplayName: ${availableDocs[i].get('DisplayName')}');
           // }
           // print('urlCache: $urlCache');
+          if (kDebugMode) {
+            print('SYSTEM CONFIG RequiredSoftwareVersion: $requiredSoftwareVersion ');
+          }
+          if ((_tipOfTheDayBody == null) ||
+              ((tipOfTheDayNumber + _tipOfTheDayOffset) !=
+                  _workingTipOfTheDayNumber)) {
+            // Or a more specific condition
+            // Using a WidgetsBinding.instance.addPostFrameCallback ensures that
+            // setState is called after the build phase, preventing common errors.
+            _workingTipOfTheDayNumber = tipOfTheDayNumber + _tipOfTheDayOffset;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                // Ensure the widget is still in the tree
+                _fetchTipOfTheDay(_workingTipOfTheDayNumber);
+              }
+            });
+          }
+
           return Scaffold(
             backgroundColor: Colors.brown[50],
             appBar: AppBar(
@@ -285,7 +468,11 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
               actions: [
                 IconButton(
                     onPressed: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => HelpPage(page: 'PickLadder')));
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) =>
+                                  HelpPage(page: 'PickLadder')));
                     },
                     icon: Icon(
                       Icons.help,
@@ -301,9 +488,11 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                             mainAxisSize: MainAxisSize.min,
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Saved FontSize is currently: $appFontSize', style: nameStyle),
+                              Text('Saved FontSize is currently: $appFontSize',
+                                  style: nameStyle),
                               TextButton.icon(
-                                label: Text('Increase Font Size', style: nameStyle),
+                                label: Text('Increase Font Size',
+                                    style: nameStyle),
                                 onPressed: () {
                                   // print('appFontSize+: $appFontSize');
                                   double newFontSize = appFontSize + 1.0;
@@ -312,10 +501,12 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                                     setBaseFont(newFontSize);
                                   });
                                 },
-                                icon: Icon(Icons.text_increase, size: appFontSize * 1.25),
+                                icon: Icon(Icons.text_increase,
+                                    size: appFontSize * 1.25),
                               ),
                               TextButton.icon(
-                                  label: Text('Decrease Font Size', style: nameStyle),
+                                  label: Text('Decrease Font Size',
+                                      style: nameStyle),
                                   onPressed: () {
                                     // print('appFontSize-: $appFontSize');
                                     double newFontSize = appFontSize - 1.0;
@@ -324,47 +515,40 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                                       setBaseFont(newFontSize);
                                     });
                                   },
-                                  icon: Icon(Icons.text_decrease, size: appFontSize * 1.25)),
+                                  icon: Icon(Icons.text_decrease,
+                                      size: appFontSize * 1.25)),
                               TextButton.icon(
-                                  label: Text('Save Font Size', style: nameStyle),
+                                  label:
+                                      Text('Save Font Size', style: nameStyle),
                                   onPressed: () {
                                     // print('appFontSize save: $appFontSize');
-                                    firestore.collection('Users').doc(loggedInUserDoc!.id).update({
+                                    firestore
+                                        .collection('Users')
+                                        .doc(loggedInUserDoc!.id)
+                                        .update({
                                       'FontSize': appFontSize,
                                     });
                                     _originalAppFontSize = appFontSize;
                                     Navigator.of(context).pop();
                                   },
-                                  icon: Icon(Icons.save, size: appFontSize * 1.25)),
+                                  icon: Icon(Icons.save,
+                                      size: appFontSize * 1.25)),
                               TextButton.icon(
-                                  label: Text('Quit and restore original Font Size', style: nameStyle),
+                                  label: Text(
+                                      'Quit and restore original Font Size',
+                                      style: nameStyle),
                                   onPressed: () {
                                     setState(() {
                                       setBaseFont(_originalAppFontSize);
                                     });
                                     Navigator.of(context).pop();
                                   },
-                                  icon: Icon(Icons.cancel, size: appFontSize * 1.25)),
+                                  icon: Icon(Icons.cancel,
+                                      size: appFontSize * 1.25)),
                             ],
                           ),
                         ),
                       );
-                      //.then((_) {
-                      //  print('Doing setState after dialog exits');
-                      //  setState(() {
-
-                      //  });
-                      //});
-
-                      // setState(() {
-                      //   double newFontSize=appFontSize+ 1.0;
-                      //   if (newFontSize > 40) newFontSize = 20.0;
-                      //   setBaseFont(newFontSize);
-                      //   // print('appFontSize: $appFontSize');
-                      //   firestore.collection('Users').doc(loggedInUserDoc!.id).update({
-                      //     'FontSize': appFontSize,
-                      //   });
-                      // });
                     },
                     icon: Icon(Icons.text_increase)),
                 if (activeUser.canBeSuper)
@@ -375,7 +559,10 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                       constraints: const BoxConstraints(),
                       icon: const Icon(Icons.supervisor_account),
                       onPressed: () {
-                        Navigator.push(context, MaterialPageRoute(builder: (context) => const SuperAdmin()));
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => const SuperAdmin()));
                       },
                       enableFeedback: true,
                       color: Colors.redAccent,
@@ -386,14 +573,16 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                   child: makeDoubleConfirmationButton(
                       buttonText: 'Log\nOut',
                       dialogTitle: 'You will have to enter your password again',
-                      dialogQuestion: 'Are you sure you want to logout?\n$loggedInUser',
+                      dialogQuestion:
+                          'Are you sure you want to logout?\n$loggedInUser',
                       disabled: false,
                       onOk: () {
                         NavigatorState nav = Navigator.of(context);
                         runLater() async {
                           await FirebaseAuth.instance.signOut();
                           loggedInUser = '';
-                          nav.push(MaterialPageRoute(builder: (context) => LoginPage()));
+                          nav.push(MaterialPageRoute(
+                              builder: (context) => LoginPage()));
                         }
 
                         runLater();
@@ -407,23 +596,68 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                     ), //Divider(color: Colors.black),
                 padding: const EdgeInsets.all(8),
                 itemCount: availableDocs.length + 1, //for last divider line
-                itemBuilder: (BuildContext context, int row) {
+                itemBuilder: (BuildContext context, int rawRow) {
                   try {
-                    if (row == availableDocs.length) {
-                      return const SizedBox(
-                        height: 1,
-                      );
+                    if (rawRow == 0) {
+                      if (_tipOfTheDayTitle != null &&
+                          _tipOfTheDayTitle!.isNotEmpty) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 8.0, horizontal: 16.0),
+                          child: ElevatedButton(
+                            // Makes the Text tappable
+                            onPressed: () {
+                              if (_tipOfTheDayBody != null &&
+                                  _tipOfTheDayBody!.isNotEmpty) {
+                                showHtmlPopup(context, _tipOfTheDayTitle!,
+                                    _tipOfTheDayBody!);
+                              } else {
+                                // Optional: Show a message if there's no body content
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                      content: Text(
+                                          'No details available for this tip.')),
+                                );
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue[
+                                  100], // Change this to your desired color
+                              // You can also set the text color if needed, to ensure contrast:
+                              // foregroundColor: Colors.white,
+                            ),
+                            child: Text(
+                              'Tip of the Day: ${_tipOfTheDayTitle!}',
+                              style: nameStyle,
+                            ),
+                          ),
+                        );
+                      } else {
+                        return const SizedBox(
+                          height: 1,
+                        );
+                      }
                     }
+                    int row = rawRow - 1;
+                    // if (row == availableDocs.length) {
+                    //   return const SizedBox(
+                    //     height: 1,
+                    //   );
+                    // }
                     // activeLadderId = activeLadderDoc!.id;
 
-                    double reqSoftwareVersion = (availableDocs[row].get('RequiredSoftwareVersion') as num).toDouble();
+                    double reqSoftwareVersion = (availableDocs[row]
+                            .get('RequiredSoftwareVersion') as num)
+                        .toDouble();
                     if (reqSoftwareVersion > softwareVersion) {
                       return reloadHtml(reqSoftwareVersion);
                     }
 
                     bool disabled = availableDocs[row].get('Disabled');
 
-                    activeLadderBackgroundColor = stringToColor(availableDocs[row].get('Color')) ?? Colors.pink;
+                    activeLadderBackgroundColor =
+                        stringToColor(availableDocs[row].get('Color')) ??
+                            Colors.pink;
 
                     String message = availableDocs[row].get('Message');
                     // print('message: $row $message');
@@ -453,42 +687,71 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                         numDaysAwayStr = '(TODAY)  @ $timeToPlay';
                         nextPlay2 = note;
                       }
-                      nextPlay1 = ' ${DateFormat('E yyyy.MM.dd').format(nextPlay)} $numDaysAwayStr';
+                      nextPlay1 =
+                          ' ${DateFormat('E yyyy.MM.dd').format(nextPlay)} $numDaysAwayStr';
                     } // print('building ladder selection entry: row: $row ${availableDocs[row].get('DisplayName')}');
                     return Container(
                         // height: 350,
                         decoration: BoxDecoration(
-                          border: Border.all(color: activeLadderBackgroundColor, width: 5),
+                          border: Border.all(
+                              color: activeLadderBackgroundColor, width: 5),
                           borderRadius: BorderRadius.circular(15.0),
-                          color: Color.lerp(activeLadderBackgroundColor, Colors.white, 0.8),
+                          color: Color.lerp(
+                              activeLadderBackgroundColor, Colors.white, 0.8),
                         ),
                         child: Padding(
-                          padding: const EdgeInsets.only(left: 8.0, right: 8, top: 2, bottom: 2),
+                          padding: const EdgeInsets.only(
+                              left: 8.0, right: 8, top: 2, bottom: 2),
                           child: InkWell(
-                            onTap: (!disabled || availableDocs[row].get('Admins').split(',').contains(loggedInUser) || activeUser.canBeSuper)
+                            onTap: (!disabled ||
+                                    availableDocs[row]
+                                        .get('Admins')
+                                        .split(',')
+                                        .contains(loggedInUser) ||
+                                    activeUser.canBeSuper)
                                 ? () {
                                     activeLadderDoc = availableDocs[row];
                                     activeLadderId = availableDocs[row].id;
-                                    activeUser.canBeAdmin = activeLadderDoc!.get('Admins').split(',').contains(activeUser.id);
+                                    activeUser.canBeAdmin = activeLadderDoc!
+                                        .get('Admins')
+                                        .split(',')
+                                        .contains(activeUser.id);
                                     //print('canBeAdmin: ${activeUser.canBeAdmin} ${activeLadderDoc!.get('Admins').split(',')}');
-                                    if (!activeUser.canBeAdmin && !activeUser.canBeSuper) {
+                                    if (!activeUser.canBeAdmin &&
+                                        !activeUser.canBeSuper) {
                                       activeUser.adminEnabled = false;
                                     }
 
                                     String colorString = '';
                                     try {
-                                      colorString = availableDocs[row].get('Color').toLowerCase();
+                                      colorString = availableDocs[row]
+                                          .get('Color')
+                                          .toLowerCase();
                                     } catch (_) {}
-                                    activeLadderBackgroundColor = stringToColor(colorString) ?? Colors.pink;
+                                    activeLadderBackgroundColor =
+                                        stringToColor(colorString) ??
+                                            Colors.pink;
 
-                                    Navigator.push(context, MaterialPageRoute(builder: (context) => const PlayerHome()));
+                                    Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (context) =>
+                                                const PlayerHome()));
                                   }
                                 : null,
                             child: Column(
                               children: [
-                                Text(' ${availableDocs[row].get('DisplayName')}', textAlign: TextAlign.start, style: disabled ? nameStrikeThruStyle : nameBigStyle),
+                                Text(
+                                    ' ${availableDocs[row].get('DisplayName')}',
+                                    textAlign: TextAlign.start,
+                                    style: disabled
+                                        ? nameStrikeThruStyle
+                                        : nameBigStyle),
                                 // SizedBox(height: 10),
-                                (urlCache.containsKey(availableDocs[row].id) && (urlCache[availableDocs[row].id] != null) && enableImages)
+                                (urlCache.containsKey(availableDocs[row].id) &&
+                                        (urlCache[availableDocs[row].id] !=
+                                            null) &&
+                                        enableImages)
                                     ? Image.network(
                                         urlCache[availableDocs[row].id]!,
                                         height: 100,
@@ -499,9 +762,14 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                                 Container(
                                   // height: 350,
                                   decoration: BoxDecoration(
-                                      border: Border.all(color: activeLadderBackgroundColor, width: 5),
+                                      border: Border.all(
+                                          color: activeLadderBackgroundColor,
+                                          width: 5),
                                       borderRadius: BorderRadius.circular(15.0),
-                                      color: Color.lerp(activeLadderBackgroundColor, Colors.white, 0.8)),
+                                      color: Color.lerp(
+                                          activeLadderBackgroundColor,
+                                          Colors.white,
+                                          0.8)),
                                   child: Padding(
                                     padding: const EdgeInsets.all(8.0),
                                     child: Text(
@@ -527,14 +795,17 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                           ),
                         ));
                   } catch (e, stackTrace) {
-                    return Text('Row: $row, EXCEPTION: $e\n$stackTrace', style: TextStyle(color: Colors.red));
+                    return Text(
+                        'Row: ${rawRow - 1}, EXCEPTION: $e\n$stackTrace',
+                        style: TextStyle(color: Colors.red));
                   }
                 }),
           );
         },
       );
     } catch (e, stackTrace) {
-      return Text('outer EXCEPTION: $e\n$stackTrace', style: TextStyle(color: Colors.red));
+      return Text('outer EXCEPTION: $e\n$stackTrace',
+          style: TextStyle(color: Colors.red));
     }
   }
 }

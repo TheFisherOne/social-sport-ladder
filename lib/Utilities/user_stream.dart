@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -37,6 +38,17 @@ class _UserStreamState extends State<UserStream> {
           if (!snapshot.hasData || (snapshot.connectionState != ConnectionState.active)) {
             // print('ladder_selection_page getting user $loggedInUser but hasData is false');
             return const CircularProgressIndicator();
+          }
+          if (!snapshot.hasData || (snapshot.data == null) || !snapshot.data!.exists) {
+            // print('ladder_selection_page getting user $loggedInUser but hasData is false');
+            Future<void> runLater() async {
+              await FirebaseAuth.instance.signOut();
+              loggedInUser = '';
+            }
+            Future.delayed(const Duration(seconds: 5), () {
+               runLater();
+            });
+            return Text('User $loggedInUser is not registered by the ladder admin', style: nameBigRedStyle);
           }
           if (snapshot.data == null) {
             if (kDebugMode) {
