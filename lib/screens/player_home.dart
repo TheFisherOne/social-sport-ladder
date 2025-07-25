@@ -82,6 +82,8 @@ class _PlayerHomeState extends State<PlayerHome> {
   int _checkInProgress = -1;
   // final List<String> _playerCheckinsList = List.empty(growable: true); // saved for later
   final LocationService _loc = LocationService();
+  final ScrollController _scrollController = ScrollController();
+  final GlobalKey _targetKey = GlobalKey();
 
   void refresh() => setState(() {});
 
@@ -96,6 +98,7 @@ class _PlayerHomeState extends State<PlayerHome> {
   void dispose() {
     playerHomeInstance = null;
     _loc.askForSetState(null);
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -284,7 +287,7 @@ class _PlayerHomeState extends State<PlayerHome> {
                           )),
                         ),
                 ),
-                SizedBox(height: 10),
+                SizedBox(key: _targetKey,height: 10),
                 (activeUser.helper || (loggedInUser == player.id))
                     ? Container(
                         height: max(60, appFontSize * 2.7),
@@ -347,6 +350,51 @@ class _PlayerHomeState extends State<PlayerHome> {
       );
     }
 
+    if ((row == courtAssignments!.length-1) && (_clickedOnRank >= 0)){
+      final context = _targetKey.currentContext;
+      if (context != null) {
+        // Ensure the widget is already laid out before trying to scroll
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          final RenderObject? widgetRenderObject = _targetKey.currentContext
+              ?.findRenderObject();
+          final RenderObject? scrollRenderObject = _scrollController.position
+              .context.storageContext
+              .findRenderObject(); // A bit indirect to get the ScrollView's RenderObject
+
+          if (widgetRenderObject != null && scrollRenderObject != null &&
+              widgetRenderObject is RenderBox &&
+              scrollRenderObject is RenderBox) {
+            final RenderBox widgetBox = widgetRenderObject;
+            final RenderBox scrollBox = scrollRenderObject;
+            final Offset widgetOffsetInScroll = widgetBox.localToGlobal(
+              Offset.zero,
+              ancestor: scrollBox, // Get the offset relative to the scrollBox
+            );
+            // Get the visible height of the scroll view
+            final double scrollViewHeight = scrollBox.size.height;
+
+            // Get the height of the widget
+            final double widgetHeight = widgetBox.size.height;
+            final bool isTopVisible = widgetOffsetInScroll.dy >= 0;
+            final bool isBottomVisible = (widgetOffsetInScroll.dy +
+                widgetHeight) <= scrollViewHeight;
+
+            // print('buildPlayerLine: isTopVisible: $isTopVisible isBottomVisible: $isBottomVisible');
+            if (!isTopVisible || !isBottomVisible) {
+              Scrollable.ensureVisible(
+                context,
+                duration: const Duration(milliseconds: 500),
+                // Optional: animation duration
+                curve: Curves.easeInOut,
+                // Optional: animation curve
+                alignment: 0.5, // Optional: 0.0 for top, 0.5 for center, 1.0 for bottom
+              );
+            }
+          }
+        });
+      }
+    }
+
     QueryDocumentSnapshot player = _players![row];
     final isUserRow = (player.id == activeUser.id);
 
@@ -356,7 +404,7 @@ class _PlayerHomeState extends State<PlayerHome> {
       }
     }
     PlayerList? plAssignment;
-    for (int i = 0; i < courtAssignments!.length; i++) {
+    for (int i = 0; i < courtAssignments.length; i++) {
       if (courtAssignments[i].snapshot.id == player.id) {
         plAssignment = courtAssignments[i];
         break;
@@ -655,6 +703,7 @@ class _PlayerHomeState extends State<PlayerHome> {
                   ),
                   body: SingleChildScrollView(
                     key: PageStorageKey('playerScrollView'),
+                    controller: _scrollController,
                     scrollDirection: Axis.vertical,
                     child: Column(
                       children: [
