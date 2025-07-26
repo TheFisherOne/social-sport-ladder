@@ -160,7 +160,7 @@ class _MyTextFieldState extends State<MyTextField> {
                 )),
             fillColor: tertiaryColor,
             filled: true,
-            suffixIcon:  ((widget.onIconClicked==null)||(errorString!='Not Saved'))?(widget.obscureText?
+            suffixIcon:  ((widget.onIconClicked==null)||!((errorString != null)&&(errorString!.startsWith('Not Saved'))))?(widget.obscureText?
                 IconButton(onPressed: (){
                   setState(() {
                     _obscurePassword = !_obscurePassword;

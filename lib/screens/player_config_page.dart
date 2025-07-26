@@ -203,6 +203,8 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
   String _selectedPlayerId = '';
   String _errorText = '';
 
+  List<String>? _existingEmails;
+
   List<QueryDocumentSnapshot<Object?>> _players = List.empty();
   final TextEditingController _rankController = TextEditingController();
   final TextEditingController _waitListRankController = TextEditingController();
@@ -214,11 +216,25 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
 
   void refresh() => setState(() {});
 
+  Future<void> loadExistingEmails() async {
+    // does not call if it is not null
+    if (_existingEmails == null) {
+      await firestore.collection('Users').get().then((querySnapshot) {
+        _existingEmails = querySnapshot.docs.map((doc) => doc.id).toList();
+        return Future.value();
+      });
+    }
+
+    return Future.value();
+
+  }
+
   String generateRandomString(int numChars) {
     const String characters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     Random random = Random();
     return String.fromCharCodes(List.generate(numChars, (_) => characters.codeUnitAt(random.nextInt(characters.length))));
   }
+
   int levenshteinDistance(String s1, String s2) {
     if (s1 == s2) {
       return 0;
@@ -860,6 +876,7 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
   final TextEditingController _newEmailController = TextEditingController();
   @override
   Widget build(BuildContext context) {
+    loadExistingEmails();
     return StreamBuilder<QuerySnapshot>(
         stream: firestore.collection('Ladder').doc(activeLadderId).collection('Players').snapshots(),
         builder: (BuildContext context, AsyncSnapshot<QuerySnapshot<Object?>> playerSnapshots) {
@@ -1033,8 +1050,9 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
                       physics: const ScrollPhysics(),
                       separatorBuilder: (context, index) => const Divider(color: Colors.black),
                       padding: const EdgeInsets.all(8),
-                      itemCount: _players.length + 1, //for last divider line
+                      itemCount: _players.length + 1,
                       itemBuilder: (BuildContext context, int row) {
+
                         if (row == _players.length) {
                           return MyTextField(
                             labelText: 'Add New Player',
@@ -1054,6 +1072,23 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
                                 if (newValue == doc.id) {
                                   return 'that player ID is in use';
                                 }
+                              }
+                              String errorString = '';
+                              if (_existingEmails != null ) {
+                                for (String email in _existingEmails!) {
+                                  if (levenshteinDistance(email, newValue) < 3){
+                                    errorString = email;
+                                    print('new email "$newValue" is too similar to existing email "$email"');
+                                    break;
+                                  }
+
+                                }
+                                if (errorString.isNotEmpty) {
+                                  return 'Not Saved: Similar to $errorString';
+                                }
+
+                              } else {
+                                print('no existing emails');
                               }
                               return null;
                             },
