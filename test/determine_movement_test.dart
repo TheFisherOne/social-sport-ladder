@@ -70,6 +70,7 @@ void main() {
   setUp(() {
     enableImages = false;
   });
+  initTimeZone();
   test('sportTennisRGDetermineMovement errorStrings passing null instead of players list', () async {
     testFirestore = FakeFirebaseFirestore();
     firestore = testFirestore;
