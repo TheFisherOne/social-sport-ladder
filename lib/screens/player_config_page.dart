@@ -12,6 +12,7 @@ import 'package:social_sport_ladder/Utilities/string_validators.dart';
 import 'package:social_sport_ladder/constants/constants.dart';
 import 'package:social_sport_ladder/screens/ladder_config_page.dart';
 import '../Utilities/helper_icon.dart';
+import '../Utilities/misc.dart';
 import '../Utilities/my_text_field.dart';
 import '../main.dart';
 import 'audit_page.dart';
@@ -89,7 +90,7 @@ Future<void> movePlayerDown(String fromLadder, String toLadder) async {
       'Present': false,
       'Rank': 1,
       'ScoreLastUpdatedBy': '',
-      'TimePresent': DateTime.now(),
+      'TimePresent': getDateTimeNow(),
       'WillPlayInput': 0,
       'DaysAway': highestPlayerDoc.get('DaysAway'),
       'StartingOrder': 0,
@@ -170,7 +171,7 @@ Future<void> movePlayerUp(String fromLadder, String toLadder) async {
       'Present': false,
       'Rank': highestRank + 1,
       'ScoreLastUpdatedBy': '',
-      'TimePresent': DateTime.now(),
+      'TimePresent': getDateTimeNow(),
       'WillPlayInput': 0,
       'DaysAway': fromPlayerDoc.get('DaysAway'),
       'StartingOrder': 0,
@@ -347,7 +348,7 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
           'Present': false,
           'Rank': _players.length + 1,
           'ScoreLastUpdatedBy': '',
-          'TimePresent': DateTime.now(),
+          'TimePresent': getDateTimeNow(),
           'WillPlayInput': 0,
           'DaysAway': '',
           'StartingOrder': 0,
@@ -922,7 +923,7 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
                         }
 
                         FileSaver.instance.saveFile(
-                          name: 'playerList_${activeLadderId}_${DateTime.now().toString().replaceAll('.', '_').replaceAll(' ', '_')}.csv',
+                          name: 'playerList_${activeLadderId}_${getDateTimeNow().toString().replaceAll('.', '_').replaceAll(' ', '_')}.csv',
                           bytes: utf8.encode(result),
                         );
                       },

@@ -8,6 +8,8 @@ import 'package:social_sport_ladder/screens/login_page.dart';
 import 'Utilities/helper_icon.dart';
 import 'Utilities/user_stream.dart';
 import 'constants/firebase_setup2.dart';
+import 'package:timezone/timezone.dart' as tz_data;
+import 'package:timezone/data/latest.dart' as tz;
 
 String loggedInUser = '';
 DocumentSnapshot<Object?>? loggedInUserDoc;
@@ -52,7 +54,12 @@ String xorString(String s1,String s2){
   }).join('');
   return result;
 }
-
+List<String> allTimezones = [];
+void initTimeZone() {
+  tz.initializeTimeZones();
+  allTimezones = tz_data.timeZoneDatabase.locations.keys.toList()
+    ..sort();
+}
 void main() async {
 
   WidgetsFlutterBinding.ensureInitialized();
@@ -92,6 +99,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     firestore = testFirestore??FirebaseFirestore.instance;
+    initTimeZone();
 
     loggedInUser = '';
     if (FirebaseAuth.instance.currentUser != null){

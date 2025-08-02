@@ -8,12 +8,15 @@ import 'package:intl/intl.dart';
 import 'package:social_sport_ladder/screens/ladder_config_page.dart';
 import 'package:social_sport_ladder/screens/player_home.dart';
 import 'package:social_sport_ladder/screens/score_base.dart';
+import 'package:timezone/timezone.dart';
 import '../main.dart';
 import '../screens/audit_page.dart';
 import '../screens/ladder_selection_page.dart';
 import '../screens/player_config_page.dart';
 import '../sports/sport_tennis_rg.dart';
 import 'package:firebase_storage/firebase_storage.dart' as firebase_storage;
+
+import 'misc.dart';
 
 ActiveUser activeUser = ActiveUser();
 
@@ -227,7 +230,8 @@ Widget helperIcon(BuildContext context, String activeLadderId,
                                               // print('daysOfPlay: $daysOfPlay');
                                               List<String> newDaysOfPlay =
                                                   List.empty(growable: true);
-                                              DateTime now = DateTime.now();
+                                              // DateTime now = DateTime.now();
+                                              TZDateTime now = getDateTimeNow();
                                               for (int i = 0;
                                                   i < daysOfPlay.length;
                                                   i++) {

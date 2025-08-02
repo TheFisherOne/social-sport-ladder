@@ -12,6 +12,7 @@ import 'package:social_sport_ladder/screens/score_base.dart';
 
 import '../Utilities/helper_icon.dart';
 import '../Utilities/location.dart';
+import '../Utilities/misc.dart';
 import '../Utilities/player_image.dart';
 import '../constants/constants.dart';
 // import '../sports/score_tennis_rg.dart';
@@ -118,7 +119,7 @@ class _PlayerHomeState extends State<PlayerHome> {
     }
     DateTime? nextPlayDate;
     (nextPlayDate, _) = getNextPlayDateTime(activeLadderDoc!);
-    DateTime timeNow = DateTime.now();
+    DateTime timeNow = getDateTimeNow();
     if (nextPlayDate == null) {
       return (Icons.cancel_outlined, 'no start time specified for next day of play');
     }

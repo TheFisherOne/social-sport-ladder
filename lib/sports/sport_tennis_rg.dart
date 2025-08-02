@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:social_sport_ladder/constants/constants.dart';
 import '../Utilities/helper_icon.dart';
+import '../Utilities/misc.dart';
 import '../main.dart';
 import '../screens/audit_page.dart';
 import '../screens/calendar_page.dart';
@@ -688,7 +689,7 @@ class CourtAssignmentsRgStandard{
 Future<void> sportTennisRGprepareForScoreEntry(List<QueryDocumentSnapshot>? players) async {
   // this should be called once by the person switching the mode of the ladder
   CourtAssignmentsRgStandard courtAssignments = CourtAssignmentsRgStandard(players!);
-  String currentDate = DateFormat('yyyy.MM.dd').format(DateTime.now());
+  String currentDate = DateFormat('yyyy.MM.dd').format(getDateTimeNow());
   int currentRound = activeLadderDoc!.get('CurrentRound');
   int numCourts = courtAssignments.numberOnCourt.length;
   String dateStr = '${currentDate}_${currentRound.toString()}';
@@ -725,7 +726,7 @@ Future<void> sportTennisRGprepareForScoreEntry(List<QueryDocumentSnapshot>? play
 
     await firestore.collection('Ladder').doc(activeLadderId).collection('Scores').doc(docStr).set({
       'BeingEditedBy': '',
-      'EditedSince': DateTime.now(),
+      'EditedSince': getDateTimeNow(),
       'GameScores': gameScores,
       'Players': players,
       'StartingRanks': ranks,

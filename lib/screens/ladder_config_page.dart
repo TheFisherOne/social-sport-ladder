@@ -9,6 +9,7 @@ import 'package:social_sport_ladder/screens/player_config_page.dart';
 import 'package:social_sport_ladder/screens/player_home.dart';
 import '../Utilities/helper_icon.dart';
 import '../Utilities/rounded_button.dart';
+import '../Utilities/list_search_widget.dart';
 import '../constants/constants.dart';
 import '../help/help_pages.dart';
 import '../main.dart';
@@ -328,6 +329,10 @@ class _ConfigPageState extends State<ConfigPage> {
             //RoundedTextField.initialize(_attrName, activeLadderDoc);
 
             bool isAdmin = activeLadderDoc!.get('Admins').split(',').contains(loggedInUser) || activeUser.amSuper;
+            String ladderTimeZone = 'America/Edmonton';
+            try {
+              ladderTimeZone = activeLadderDoc!.get('TimeZone');
+            } catch(_){}
 
             // print('Days from now $daysFromNow');
             return Scaffold(
@@ -517,6 +522,7 @@ class _ConfigPageState extends State<ConfigPage> {
                         },
                         initialValue: activeLadderDoc!.get('NumberFromWaitList').toString(),
                       ),
+
                       MyTextField(
                         labelText: 'Vacation Stop Time',
                         helperText: 'Time of the day, player can no longer mark as away hundreds is days',
@@ -559,7 +565,7 @@ class _ConfigPageState extends State<ConfigPage> {
                       ),
                       MyTextField(
                         labelText: 'Check in Start Hours Ahead',
-                        helperText: 'Hours before StartTime for checkin',
+                        helperText: 'Hours before StartTime for check in',
                         controller: _checkInController,
                         keyboardType: const TextInputType.numberWithOptions(signed: false),
                         entryOK: (entry) {
@@ -599,7 +605,7 @@ class _ConfigPageState extends State<ConfigPage> {
                       ),
                       MyTextField(
                         labelText: 'Latitude of Courts',
-                        helperText: 'For checkin, what is the latitude of the courts',
+                        helperText: 'For check in, what is the latitude of the courts',
                         controller: _latitudeController,
                         keyboardType: const TextInputType.numberWithOptions(signed: true),
                         entryOK: (entry) {
@@ -632,7 +638,7 @@ class _ConfigPageState extends State<ConfigPage> {
                       ),
                       MyTextField(
                         labelText: 'Longitude of Courts',
-                        helperText: 'For checkin, what is the longitude of the courts',
+                        helperText: 'For check in, what is the longitude of the courts',
                         controller: _longitudeController,
                         keyboardType: const TextInputType.numberWithOptions(signed: true),
                         entryOK: (entry) {
@@ -830,62 +836,9 @@ class _ConfigPageState extends State<ConfigPage> {
                         },
                         initialValue: activeLadderDoc!.get('LowerLadder').toString(),
                       ),
-                      // SizedBox(
-                      //     width: double.infinity,
-                      //     child: Padding(
-                      //         padding: const EdgeInsets.all(12.0),
-                      //         child: DropdownButtonFormField<String>(
-                      //           // onTap: RoundedTextForm.clearEditing(-1),
-                      //           decoration: InputDecoration(
-                      //               labelText: 'DisplayColor',
-                      //               labelStyle: nameBigStyle,
-                      //               helperText: 'The color used to display this ladder',
-                      //               helperStyle: nameStyle,
-                      //               contentPadding: EdgeInsets.all(16),
-                      //               fillColor: tertiaryColor,
-                      //               filled: true,
-                      //               floatingLabelBehavior: FloatingLabelBehavior.auto,
-                      //               // constraints:  BoxConstraints(maxWidth: 150),
-                      //               enabledBorder: OutlineInputBorder(
-                      //                   borderRadius: BorderRadius.all(Radius.circular(20)),
-                      //                   borderSide: BorderSide(
-                      //                     color: Colors.grey,
-                      //                     width: 2.0,
-                      //                   ))),
-                      //           value: colorChoices.contains(activeLadderDoc!.get('Color')) ? activeLadderDoc!.get('Color') : colorChoices[0],
-                      //           items: colorChoices.map((String value) {
-                      //             return DropdownMenuItem<String>(
-                      //               value: value,
-                      //               child: Text(
-                      //                 value,
-                      //                 style: nameStyle,
-                      //               ),
-                      //             );
-                      //           }).toList(),
-                      //           icon: const Icon(Icons.menu),
-                      //           iconSize: appFontSize + 10,
-                      //           dropdownColor: tertiaryColor,
-                      //
-                      //           onChanged: (value) {
-                      //             // print('ladder_config_page set PlayOn to $value');
-                      //             if (value == null) return;
-                      //             writeAudit(user: loggedInUser, documentName: 'LadderConfig', action: 'Set Color', newValue: value, oldValue: activeLadderDoc!.get('Color'));
-                      //             firestore.collection('Ladder').doc(activeLadderId).update({
-                      //               'Color': value,
-                      //             });
-                      //           },
-                      //         ))),
-                      MyTextField(
-                        labelText: 'Color',
-                        helperText: 'The "CSS named color" to display this ladder, or RGB comma separated',
-                        controller: _colorController,
-                        inputFormatters: [LowerCaseTextInputFormatter()],
-                        entryOK: (entry) {
-                          Color? entryColor = stringToColor(entry);
-                          if (entryColor== null) return 'Invalid color';
-                          return null;
-                        },
-                        onIconClicked: (entry) {
+                      ListSearchWidget(
+                        onChanged: (entry) {
+                          // print('color onChanged: $entry');
                           String attrName = 'Color';
                           entry = entry.trim().replaceAll(RegExp(r' \s+'), ' ');
                           String oldValue = activeLadderDoc!.get(attrName);
@@ -896,7 +849,33 @@ class _ConfigPageState extends State<ConfigPage> {
                           });
                         },
                         initialValue: activeLadderDoc!.get('Color'),
+                        pickFromList: _cssNamedColorsHex.keys.toList(),
+                        colorPickFromMap: _cssNamedColorsHex,
+                        title: 'Color: ',
+                        hintText: 'The color to display this ladder',
                       ),
+                      // MyTextField(
+                      //   labelText: 'Color',
+                      //   helperText: 'The "CSS named color" to display this ladder, or RGB comma separated',
+                      //   controller: _colorController,
+                      //   inputFormatters: [LowerCaseTextInputFormatter()],
+                      //   entryOK: (entry) {
+                      //     Color? entryColor = stringToColor(entry);
+                      //     if (entryColor== null) return 'Invalid color';
+                      //     return null;
+                      //   },
+                      //   onIconClicked: (entry) {
+                      //     String attrName = 'Color';
+                      //     entry = entry.trim().replaceAll(RegExp(r' \s+'), ' ');
+                      //     String oldValue = activeLadderDoc!.get(attrName);
+                      //     writeAudit(user: loggedInUser, documentName: 'LadderConfig', action: 'Set Color',
+                      //         newValue: entry, oldValue: oldValue);
+                      //     firestore.collection('Ladder').doc(activeLadderId).update({
+                      //       'Color': entry,
+                      //     });
+                      //   },
+                      //   initialValue: activeLadderDoc!.get('Color'),
+                      // ),
                       MyTextField(
                         labelText: 'Admins',
                         helperText: 'List of emails separated by commas. This assumes the specified email can already login. Add as Player first.',
@@ -1137,34 +1116,6 @@ class _ConfigPageState extends State<ConfigPage> {
                                 });
                               }
                             }
-                            // print('oldAdmins is now = $oldAdmins');
-
-                            // removing from global user ladders list is a little more difficult
-
-                            // for (String email in oldHelpers) {
-                            //   // print('setAdmins remove from ladder $activeLadderId from global users $email');
-                            //   // need to find out if the removed admin is also a player, if so then do not remove from Ladders
-                            //   if (playerNames.contains(email)) continue;
-                            //
-                            //   try {
-                            //     String ladders = globalUserDocMap[email].get('Ladders');
-                            //     // print('setAdmins: got $ladders from $email');
-                            //     List<String> ladderList = ladders.split(',');
-                            //     String newLadders = '';
-                            //     for (var lad in ladderList) {
-                            //       if (lad == activeLadderId) continue;
-                            //       if (newLadders.isEmpty) {
-                            //         newLadders = lad;
-                            //       } else {
-                            //         newLadders = '$newLadders,$lad';
-                            //       }
-                            //     }
-                            //     // print('setAdmins: writing $newLadders to global user $email');
-                            //     transaction.update(globalUserRefMap[email], {
-                            //       'Ladders': newLadders,
-                            //     });
-                            //      } catch (_) {}
-                            // }
                             transactionAudit(
                                 transaction: transaction, user: loggedInUser, documentName: 'LadderConfig', action: 'Change Helpers', newValue: newValue, oldValue: activeLadderDoc!.get('Admins'));
                           });
@@ -1205,7 +1156,23 @@ class _ConfigPageState extends State<ConfigPage> {
                         },
                         initialValue: activeLadderDoc!.get('PriorityOfCourts'),
                       ),
-
+                      ListSearchWidget(
+                        title: 'Ladder Time Zone: ',
+                        hintText: 'which city is the ladder in',
+                        initialValue: ladderTimeZone,
+                        pickFromList: allTimezones,
+                        onChanged: (entry) {
+                          // print('time zone changed to $entry');
+                          String oldValue = ladderTimeZone;
+                          ladderTimeZone = entry;
+                          String attrName = 'TimeZone';
+                          writeAudit(user: loggedInUser, documentName: 'LadderConfig', action: 'Set $attrName', newValue: ladderTimeZone, oldValue: oldValue);
+                          firestore.collection('Ladder').doc(activeLadderId).update({
+                            attrName: ladderTimeZone,
+                          });
+                          return;
+                        },
+                      ),
                       SizedBox(
                           width: double.infinity,
                           child: Padding(

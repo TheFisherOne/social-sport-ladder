@@ -185,6 +185,7 @@ class _SuperAdminState extends State<SuperAdmin> {
       'VacationStopTime': 8.00,
       'SuperDisabled': false,
       'Color': 'brown',
+      'TimeZone':  'America/Edmonton',
       'SportDescriptor': '',
       'FrozenDate': '',
       'CurrentRound': 1,

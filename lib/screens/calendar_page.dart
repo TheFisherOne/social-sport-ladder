@@ -1,3 +1,5 @@
+import 'package:timezone/timezone.dart';
+
 import '../Utilities/html_none.dart'
 if (dart.library.html ) '../Utilities/html_only.dart';
 import 'dart:collection';
@@ -14,6 +16,7 @@ import 'package:social_sport_ladder/screens/player_home.dart';
 import 'package:social_sport_ladder/sports/score_tennis_rg.dart';
 import 'package:table_calendar/table_calendar.dart';
 
+import '../Utilities/misc.dart';
 import '../help/help_pages.dart';
 import '../main.dart';
 import 'audit_page.dart';
@@ -60,7 +63,7 @@ bool isVacationTimeOk(DocumentSnapshot<Object?> ladderDoc) {
   (nextPlay, _) = getNextPlayDateTime(ladderDoc);
   if (nextPlay == null) return false;
 
-  DateTime timeNow = DateTime.now();
+  TZDateTime timeNow = getDateTimeNow();
   double vacationStopTime = ladderDoc.get('VacationStopTime');
   int daysAhead = (vacationStopTime ~/ 100);
   vacationStopTime -= daysAhead * 100.0;
