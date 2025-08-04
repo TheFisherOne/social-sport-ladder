@@ -12,6 +12,7 @@ import 'package:social_sport_ladder/sports/sport_tennis_rg.dart';
 import '../main.dart';
 import '../screens/audit_page.dart';
 
+
 class ScoreTennisRg extends StatefulWidget {
   final String ladderName;
 
@@ -38,7 +39,7 @@ class ScoreTennisRg extends StatefulWidget {
 }
 
 class _ScoreTennisRgState extends State<ScoreTennisRg> {
-  late String _beingEditedById;
+  String _beingEditedById='';
   late String _beingEditedByName;
   late String _gameScoresStr;
   late List<List<int?>> _gameScores;
@@ -50,8 +51,6 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
   late bool _allScoresEntered;
   late bool _scoresConfirmed;
   late List<bool> _gameScoreErrors;
-  String? _lastBeingEditedById;
-  bool _anyScoresToSave = false;
   bool _neverEdited = true;
   bool _loggedInPlayerOnCourt = false;
 
@@ -89,7 +88,26 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
   void updateFromDoc() {
     _scoresEnteredBy = widget.scoreDoc.get('ScoresEnteredBy');
     _scoresConfirmed = _scoresEnteredBy.endsWith(' CONFIRMED');
-    _beingEditedById = widget.scoreDoc.get('BeingEditedBy');
+
+    // we need to latch _beingEditedById to the current user if it has just been set
+    // but the next update still shows it as empty
+    String docBeingEditedById = widget.scoreDoc.get('BeingEditedBy');
+    if (docBeingEditedById.isNotEmpty) {
+      // if it is someone else then we need to abort editing
+      if ((_beingEditedById.isEmpty  && (docBeingEditedById == activeUser.id))) {
+        if (kDebugMode) {
+          print('Just cancelled and waiting for doc to update');
+        }
+      } else if (_beingEditedById != docBeingEditedById) {
+        if (kDebugMode) {
+          print('new user editing changes from "$_beingEditedById" to "$docBeingEditedById"');
+        }
+        _beingEditedById = docBeingEditedById;
+        _startTimer();
+        cancelWorkingScores();
+      }
+    }
+
     _beingEditedByName = playerIdToName(_beingEditedById);
 
     String playersStr = widget.scoreDoc.get('Players');
@@ -98,18 +116,6 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
     if (_playerList.length == 5) _numGames = 5;
     if (_playerList.length == 6) _numGames = 6;
 
-    if (_beingEditedById != _lastBeingEditedById) {
-      // print('change in editor from $_lastBeingEditedById to $_beingEditedById');
-      _lastBeingEditedById = _beingEditedById;
-
-      if ((_beingEditedById != activeUser.id) && _beingEditedById.isNotEmpty) {
-        _startTimer();
-        cancelWorkingScores();
-      }
-    }
-    if ((_beingEditedById != activeUser.id) && _beingEditedById.isNotEmpty) {
-      cancelWorkingScores();
-    }
     _allScoresEntered = true;
     _gameScoresStr = widget.scoreDoc.get('GameScores');
     List<String> gameScoresList = _gameScoresStr.split('|');
@@ -453,9 +459,16 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
     return lowerRank;
   }
 
-  void updateBeingEditedBy(){
+  void updateBeingEditedBy(String newId){
+    if (newId.isEmpty){
+      _beingEditedById='';
+      firestore.collection('Ladder').doc(widget.ladderName).collection('Scores').doc(_scoreDocStr).update({
+        'BeingEditedBy': '',
+      });
+      return;
+    }
     if (_beingEditedById.isEmpty) {
-      _anyScoresToSave = true;
+      _beingEditedById = newId;
       // Get the document reference and make sure it is empty before updating it
       DocumentReference scoreDocRef = firestore
           .collection('Ladder')
@@ -485,6 +498,9 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
           transaction.update(scoreDocRef, {
             'BeingEditedBy': activeUser.id,
           });
+          if (kDebugMode) {
+            print('scoreBox new user editing: ${activeUser.id}');
+          }
         }
       });
     }
@@ -564,7 +580,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
             onTap: (allowedToEdit &&
                 ((_beingEditedById.isEmpty) || (_beingEditedById == activeUser.id)) &&
                 (_loggedInPlayerOnCourt || activeUser.helper))
-                ? () async {
+                ? ()  {
                     // print('clicked on P:$playerNum, G:$gameNum V:$initialValue/$workingValue');
                     workingValue = (workingValue ?? 0) + 1;
                     if (getSportDescriptor(0) == 'pickleballRG') {
@@ -594,14 +610,9 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                     }
                     _workingGameScores[playerNum][gameNum] = workingValue;
 
-                    updateBeingEditedBy();
+                    updateBeingEditedBy(activeUser.id);
 
                     setState(() {
-                      // if (kDebugMode) {
-                      //   print('Entering a score for ${activeUser.id}');
-                      // }
-                      _beingEditedById = activeUser.id;
-                      _anyScoresToSave = true;
                       _neverEdited = false;
                     });
 
@@ -773,7 +784,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
     return null;
   }
 
-  void setScoresForGame4(int game) async {
+  void setScoresForGame4(int game) {
     if (!widget.allowEdit) return;
     if (_playerList.length != 4) {
       if (kDebugMode) {
@@ -784,12 +795,11 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
     for (int i = 0; i < _playerList.length; i++) {
       _workingGameScores[i][game] = newScores[i];
     }
-    _anyScoresToSave = true;
-    updateBeingEditedBy();
+    updateBeingEditedBy(activeUser.id);
     setState(() {});
   }
 
-  void setScoresForGame5(int game) async {
+  void setScoresForGame5(int game) {
     if (!widget.allowEdit) return;
     if (_playerList.length != 5) {
       if (kDebugMode) {
@@ -800,9 +810,8 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
     for (int i = 0; i < _playerList.length; i++) {
       _workingGameScores[i][game] = newScores[i];
     }
-    _anyScoresToSave = true;
 
-    updateBeingEditedBy();
+    updateBeingEditedBy(activeUser.id);
     setState(() {});
   }
 
@@ -1236,11 +1245,8 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
     return PopScope(
       onPopInvokedWithResult: (bool result, dynamic _) {
         cancelWorkingScores();
-        _anyScoresToSave = false;
         if (widget.allowEdit) {
-          firestore.collection('Ladder').doc(widget.ladderName).collection('Scores').doc(_scoreDocStr).update({
-            'BeingEditedBy': '',
-          });
+          updateBeingEditedBy('');
         }
       },
       child: Scaffold(
@@ -1274,7 +1280,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                     style: nameStyle,
                   ),
                 const Divider(color: Colors.black),
-                if ((_beingEditedById == activeUser.id) && _anyScoresToSave && widget.allowEdit)
+                if ((_beingEditedById == activeUser.id) && widget.allowEdit)
                   Row(
                     children: [
                       Align(
@@ -1336,6 +1342,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                                   // 'EndingRanks': endingRanksStr,
                                 });
                               });
+                              updateBeingEditedBy('');
                             } catch (e) {
                               // Handle transaction failure
                               if (kDebugMode) {
@@ -1346,7 +1353,6 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
 
                             setState(() {
                               cancelWorkingScores();
-                              _anyScoresToSave = false;
                             });
                           },
                           child: Row(children: [
@@ -1371,12 +1377,9 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                         alignment: Alignment.centerRight,
                         child: IconButton(
                             onPressed: () {
-                              firestore.collection('Ladder').doc(widget.ladderName).collection('Scores').doc(_scoreDocStr).update({
-                                'BeingEditedBy': '',
-                              });
+                              updateBeingEditedBy('');
                               setState(() {
                                 cancelWorkingScores();
-                                _anyScoresToSave = false;
                               });
                             },
                             icon: Icon(Icons.cancel, size: 50)),
@@ -1391,9 +1394,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                       ),
                       onPressed: _isOverrideEditorEnabled
                           ? () {
-                              firestore.collection('Ladder').doc(widget.ladderName).collection('Scores').doc(_scoreDocStr).update({
-                                'BeingEditedBy': '',
-                              });
+                              updateBeingEditedBy('');
                             }
                           : null,
                       child: Text(
