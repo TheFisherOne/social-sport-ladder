@@ -66,17 +66,20 @@ class _UserStreamState extends State<UserStream> {
           } catch (_) {}
           
           if (_lastFontSize != usersFontSize){
+            double previousFontSize = usersFontSize;
             _lastFontSize = usersFontSize;
-            Future.delayed(Duration(milliseconds:500),(){
-              setState(() {
+            // Future.delayed(Duration(milliseconds:500),(){
+            //   setState(() {
                 setBaseFont(usersFontSize);
-                // print('setting base font to $usersFontSize');
-              });
-            });
+                if (kDebugMode) {
+                  print('setting base font from $previousFontSize to $usersFontSize');
+                }
+            //   });
+            // });
           }
 
 
-
+          print('LadderSelectionPage called from user_stream.dart');
           return LadderSelectionPage();
         });
   }

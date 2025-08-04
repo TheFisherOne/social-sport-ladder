@@ -22,6 +22,7 @@ import 'login_page.dart';
 
 dynamic ladderSelectionInstance;
 List<String>? availableLadders;
+String lastLoggedInUser = '';
 
 String activeLadderId = '';
 
@@ -75,7 +76,7 @@ class LadderSelectionPage extends StatefulWidget {
 
 class _LadderSelectionPageState extends State<LadderSelectionPage> {
   String _userLadders = '';
-  String _lastLoggedInUser = '';
+  
   String? _tipOfTheDayTitle;
   String? _tipOfTheDayBody;
   int? _workingTipOfTheDayNumber;
@@ -343,11 +344,14 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
           body: Text(errorText, style: nameStyle),
         );
       }
-      if (_lastLoggedInUser != activeUser.id) {
+      if (lastLoggedInUser != activeUser.id) {
+        if (kDebugMode) {
+          print('swiching logged in user from "$lastLoggedInUser" to "${activeUser.id}"');
+        }
         firestore.collection('Users').doc(activeUser.id).update({
           'LastLogin': DateTime.now(),
         });
-        _lastLoggedInUser = activeUser.id;
+        lastLoggedInUser = activeUser.id;
       }
 
       return StreamBuilder<QuerySnapshot>(

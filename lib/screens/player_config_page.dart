@@ -1077,12 +1077,15 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
                               String errorString = '';
                               if (_existingEmails != null ) {
                                 for (String email in _existingEmails!) {
-                                  if (levenshteinDistance(email, newValue) < 3){
-                                    errorString = email;
-                                    print('new email "$newValue" is too similar to existing email "$email"');
-                                    break;
+                                  if (email != newValue) {
+                                    if (levenshteinDistance(email, newValue) <
+                                        3) {
+                                      errorString = email;
+                                      print(
+                                          'new email "$newValue" is too similar to existing email "$email"');
+                                      break;
+                                    }
                                   }
-
                                 }
                                 if (errorString.isNotEmpty) {
                                   return 'Not Saved: Similar to $errorString';
