@@ -11,7 +11,7 @@ tz.TZDateTime getDateTimeNow(){
   String locationString='America/Edmonton';
   try {
     locationString = activeLadderDoc!.get('TimeZone');
-    print('read timezone $locationString');
+    // print('read timezone $locationString');
   } catch(_){}
   final tz.Location location = tz.getLocation(locationString);
   return tz.TZDateTime.now(location);

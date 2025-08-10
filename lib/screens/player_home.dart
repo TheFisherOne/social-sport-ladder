@@ -77,7 +77,8 @@ class PlayerHome extends StatefulWidget {
   State<PlayerHome> createState() => _PlayerHomeState();
 }
 
-class _PlayerHomeState extends State<PlayerHome> {
+class _PlayerHomeState extends State<PlayerHome>
+    with WidgetsBindingObserver {
   List<QueryDocumentSnapshot>? _players;
   int _clickedOnRank = -1;
   int _checkInProgress = -1;
@@ -92,6 +93,7 @@ class _PlayerHomeState extends State<PlayerHome> {
   void initState() {
     _loc.init();
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     waitingForFreezeCheckins = false;
   }
 
@@ -99,10 +101,37 @@ class _PlayerHomeState extends State<PlayerHome> {
   void dispose() {
     playerHomeInstance = null;
     _loc.askForSetState(null);
+    WidgetsBinding.instance.removeObserver(this);
     _scrollController.dispose();
     super.dispose();
   }
-
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    switch (state) {
+      case AppLifecycleState.resumed:
+        print("App is resumed (in the foreground).");
+        setState(() {});
+        // Example: Refresh data, restart animations
+        break;
+      case AppLifecycleState.inactive:
+        print("App is inactive (e.g., an incoming call, or multitasking view).");
+        // Example: Pause animations, save state lightly
+        break;
+      case AppLifecycleState.paused:
+        print("App is paused (in the background).");
+        // Example: Release resources, save persistent state
+        break;
+      case AppLifecycleState.detached:
+        print("App is detached (Flutter engine is running but not attached to any view).");
+        // This state is rarely used for typical app logic.
+        break;
+      case AppLifecycleState.hidden:
+        print("App is hidden (a new state, similar to paused but the UI is completely hidden).");
+        // This state is similar to paused but for platforms that support hiding without pausing.
+        break;
+    }
+  }
   (IconData, String) presentCheckBoxInfo(QueryDocumentSnapshot player) {
     IconData standardIcon = Icons.check_box_outline_blank;
     if (player.get('Present') ?? false) {
@@ -258,11 +287,14 @@ class _PlayerHomeState extends State<PlayerHome> {
                             return;
                           } else {
                             await uploadPlayerPicture(pickedFile, player.id);
-                            setState(() {
-                              if (kDebugMode) {
-                                print('picture uploaded for player ${player.id}');
-                              }
-                            });
+                            if (mounted) {
+                              setState(() {
+                                if (kDebugMode) {
+                                  print('picture uploaded for player ${player
+                                      .id}');
+                                }
+                              });
+                            }
 
                             // print(pickedFile.path);
                           }
@@ -507,7 +539,9 @@ class _PlayerHomeState extends State<PlayerHome> {
     }
     if (await getPlayerImage(playerEmail)) {
       // print('_getPlayerImage: doing setState for $playerEmail');
-      setState(() {});
+      if (mounted) {
+        setState(() {});
+      }
     }
   }
 

@@ -12,7 +12,6 @@ import 'package:social_sport_ladder/sports/sport_tennis_rg.dart';
 import '../main.dart';
 import '../screens/audit_page.dart';
 
-
 class ScoreTennisRg extends StatefulWidget {
   final String ladderName;
 
@@ -39,7 +38,7 @@ class ScoreTennisRg extends StatefulWidget {
 }
 
 class _ScoreTennisRgState extends State<ScoreTennisRg> {
-  String _beingEditedById='';
+  String _beingEditedById = '';
   late String _beingEditedByName;
   late String _gameScoresStr;
   late List<List<int?>> _gameScores;
@@ -94,13 +93,14 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
     String docBeingEditedById = widget.scoreDoc.get('BeingEditedBy');
     if (docBeingEditedById.isNotEmpty) {
       // if it is someone else then we need to abort editing
-      if ((_beingEditedById.isEmpty  && (docBeingEditedById == activeUser.id))) {
+      if ((_beingEditedById.isEmpty && (docBeingEditedById == activeUser.id))) {
         if (kDebugMode) {
           print('Just cancelled and waiting for doc to update');
         }
       } else if (_beingEditedById != docBeingEditedById) {
         if (kDebugMode) {
-          print('new user editing changes from "$_beingEditedById" to "$docBeingEditedById"');
+          print(
+              'new user editing changes from "$_beingEditedById" to "$docBeingEditedById"');
         }
         _beingEditedById = docBeingEditedById;
         _startTimer();
@@ -180,7 +180,11 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
             // 2 scores have to add up to 8 and the other 2 have to add up to 8
             allOK = false;
             // there should be one unentered score
-            if (((scores.first == null) || (scores.first == 0)) && (scores[1] != null) && (scores[2] != null) && (scores[3] != null) && (scores[4] != null)) {
+            if (((scores.first == null) || (scores.first == 0)) &&
+                (scores[1] != null) &&
+                (scores[2] != null) &&
+                (scores[3] != null) &&
+                (scores[4] != null)) {
               for (int i = 2; i < 5; i++) {
                 // print('singles score check1: ${scores[1]} ${scores[i]} = ${scores[1]! + scores[i]!}');
                 if ((scores[1]! + scores[i]!) == 6) {
@@ -211,7 +215,8 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                 for (int j = i + 1; j < scores.length; j++) {
                   // If we find a pair that sums to 6 and neither index has been used
                   // print('$i $j ${scores[i]} ${scores[j]} used: ${usedIndices}');
-                  if ((scores[i]! + scores[j]! == 6) && !usedIndices.contains(j)) {
+                  if ((scores[i]! + scores[j]! == 6) &&
+                      !usedIndices.contains(j)) {
                     pairsCount++;
                     usedIndices.addAll([i, j]);
                     // print('FOUND: $i $j $pairsCount');
@@ -244,24 +249,29 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
               // print('_gameScoreErrors[$game] found null');
               allOK = false;
             } else {
-              if ((scores[0] != scores[1]) || (scores[2] != scores[3])) allOK = false;
+              if ((scores[0] != scores[1]) || (scores[2] != scores[3]))
+                allOK = false;
               if (scores.last != maxScore3) allOK = false;
               if (!allOK) {
                 if (kDebugMode) {
-                  print('_gameScoreErrors[$game] 2 scores have to be $maxScore3 and the other 2 have to match');
+                  print(
+                      '_gameScoreErrors[$game] 2 scores have to be $maxScore3 and the other 2 have to match');
                 }
               }
             }
           } else {
-            if (((scores.first != null) && (scores.first != 0)) || (scores[1] == null)) {
+            if (((scores.first != null) && (scores.first != 0)) ||
+                (scores[1] == null)) {
               // print('_gameScoreErrors[$game] did not find one null or zero $scores');
               allOK = false;
             } else {
-              if ((scores[1] != scores[2]) || (scores[3] != scores[4])) allOK = false;
+              if ((scores[1] != scores[2]) || (scores[3] != scores[4]))
+                allOK = false;
               if (scores.last != maxScore5) allOK = false;
               if (!allOK) {
                 if (kDebugMode) {
-                  print('_gameScoreErrors[$game]  scores have to be $maxScore5 and the other 2 have to match');
+                  print(
+                      '_gameScoreErrors[$game]  scores have to be $maxScore5 and the other 2 have to match');
                 }
               }
             }
@@ -288,24 +298,29 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
               // print('_gameScoreErrors[$game] found null');
               allOK = false;
             } else {
-              if ((scores[0] != scores[1]) || (scores[2] != scores[3])) allOK = false;
+              if ((scores[0] != scores[1]) || (scores[2] != scores[3]))
+                allOK = false;
               if (scores.last != maxScore3) allOK = false;
               if (!allOK) {
                 if (kDebugMode) {
-                  print('_gameScoreErrors[$game] 2 scores have to be $maxScore3 and the other 2 have to match');
+                  print(
+                      '_gameScoreErrors[$game] 2 scores have to be $maxScore3 and the other 2 have to match');
                 }
               }
             }
           } else {
-            if (((scores.first != null) && (scores.first != 0)) || (scores[1] == null)) {
+            if (((scores.first != null) && (scores.first != 0)) ||
+                (scores[1] == null)) {
               // print('_gameScoreErrors[$game] did not find one null or zero $scores');
               allOK = false;
             } else {
-              if ((scores[1] != scores[2]) || (scores[3] != scores[4])) allOK = false;
+              if ((scores[1] != scores[2]) || (scores[3] != scores[4]))
+                allOK = false;
               if (scores.last != maxScore5) allOK = false;
               if (!allOK) {
                 if (kDebugMode) {
-                  print('_gameScoreErrors[$game]  scores have to be $maxScore5 and the other 2 have to match');
+                  print(
+                      '_gameScoreErrors[$game]  scores have to be $maxScore5 and the other 2 have to match');
                 }
               }
             }
@@ -332,7 +347,8 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
               // print('_gameScoreErrors[$game] found null');
               allOK = false;
             } else {
-              if ((scores[0] != scores[1]) || (scores[2] != scores[3])) allOK = false;
+              if ((scores[0] != scores[1]) || (scores[2] != scores[3]))
+                allOK = false;
               if ((scores.first! + scores.last!) != addUpTo) allOK = false;
               if (!allOK) {
                 if (kDebugMode) {
@@ -341,11 +357,13 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
               }
             }
           } else {
-            if (((scores.first != null) && (scores.first != 0)) || (scores[1] == null)) {
+            if (((scores.first != null) && (scores.first != 0)) ||
+                (scores[1] == null)) {
               // print('_gameScoreErrors[$game] did not find one null or zero $scores');
               allOK = false;
             } else {
-              if ((scores[1] != scores[2]) || (scores[3] != scores[4])) allOK = false;
+              if ((scores[1] != scores[2]) || (scores[3] != scores[4]))
+                allOK = false;
               if ((scores[1]! + scores.last!) != addUpTo) allOK = false;
               if (!allOK) {
                 if (kDebugMode) {
@@ -365,7 +383,8 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
     if (player >= _playerList.length) return 0;
     if (game >= _numGames) return 0;
     // print('getScore: player: $player, game: $game $_workingGameScores');
-    if (_workingGameScores[player][game] != null) return _workingGameScores[player][game]!;
+    if (_workingGameScores[player][game] != null)
+      return _workingGameScores[player][game]!;
     if (_gameScores[player][game] != null) return _gameScores[player][game]!;
     return null;
   }
@@ -424,16 +443,13 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
   String emailToName(String email) {
     if (email.isEmpty) return '';
     QueryDocumentSnapshot<Object?>? doc = playerIdToDoc(email);
-    if (doc == null){
+    if (doc == null) {
       return 'Unknown';
     }
     return doc.get('Name');
-
-
-
   }
 
-   int getNextHigherRank() {
+  int getNextHigherRank() {
     int highestRank = playerIdToDoc(_playerList[0])!.get('Rank');
     int aboveRank = 0;
     for (var doc in widget.fullPlayerList!) {
@@ -459,10 +475,15 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
     return lowerRank;
   }
 
-  void updateBeingEditedBy(String newId){
-    if (newId.isEmpty){
-      _beingEditedById='';
-      firestore.collection('Ladder').doc(widget.ladderName).collection('Scores').doc(_scoreDocStr).update({
+  void updateBeingEditedBy(String newId) {
+    if (newId.isEmpty) {
+      _beingEditedById = '';
+      firestore
+          .collection('Ladder')
+          .doc(widget.ladderName)
+          .collection('Scores')
+          .doc(_scoreDocStr)
+          .update({
         'BeingEditedBy': '',
       });
       return;
@@ -472,7 +493,8 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
       // Get the document reference and make sure it is empty before updating it
       DocumentReference scoreDocRef = firestore
           .collection('Ladder')
-          .doc(activeLadderId) // Assuming activeLadderId is available and correct
+          .doc(
+              activeLadderId) // Assuming activeLadderId is available and correct
           .collection('Scores')
           .doc(widget.scoreDoc.id);
       firestore.runTransaction((transaction) async {
@@ -521,7 +543,8 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
     super.initState();
   }
 
-  Widget scoreBox(int? initialValue, int playerNum, int gameNum, {Color? backgroundColor}) {
+  Widget scoreBox(int? initialValue, int playerNum, int gameNum,
+      {Color? backgroundColor}) {
     bool scoreEdited = false;
     int? workingValue = initialValue;
     // print('workingGameScores: $workingGameScores');
@@ -568,19 +591,22 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
           decoration: BoxDecoration(
             color: scoreEdited
                 ? Colors.white
-                : (_beingEditedById.isNotEmpty && _beingEditedById!=activeUser.id)?Colors.grey.shade400:
-                   (_gameScoreErrors[gameNum])
-                    ? Colors.red.shade300
-                    : (colorBlue ? Colors.blue.shade300 : null),
+                : (_beingEditedById.isNotEmpty &&
+                        _beingEditedById != activeUser.id)
+                    ? Colors.grey.shade400
+                    : (_gameScoreErrors[gameNum])
+                        ? Colors.red.shade300
+                        : (colorBlue ? Colors.blue.shade300 : null),
             borderRadius: BorderRadius.circular(10), // Rounded border
             border: Border.all(color: Colors.black, width: 2), // Border styling
           ),
           child: InkWell(
             borderRadius: BorderRadius.circular(10),
             onTap: (allowedToEdit &&
-                ((_beingEditedById.isEmpty) || (_beingEditedById == activeUser.id)) &&
-                (_loggedInPlayerOnCourt || activeUser.helper))
-                ? ()  {
+                    ((_beingEditedById.isEmpty) ||
+                        (_beingEditedById == activeUser.id)) &&
+                    (_loggedInPlayerOnCourt || activeUser.helper))
+                ? () {
                     // print('clicked on P:$playerNum, G:$gameNum V:$initialValue/$workingValue');
                     workingValue = (workingValue ?? 0) + 1;
                     if (getSportDescriptor(0) == 'pickleballRG') {
@@ -713,7 +739,8 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
       } else if (getSportDescriptor(1) == 'rg_singles') {
         return null; // can not autofill for singles
       } else {
-        if (score1 > 8) return null; // this is just an error that should not occur
+        if (score1 > 8)
+          return null; // this is just an error that should not occur
         int score2 = 8 - score1;
         result[lastPlayerWithScore] = score1;
         result[playerWithSameScore] = score1;
@@ -788,7 +815,8 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
     if (!widget.allowEdit) return;
     if (_playerList.length != 4) {
       if (kDebugMode) {
-        print('ERROR: setScoresForGame4 but there are not 4 games but ${_playerList.length}');
+        print(
+            'ERROR: setScoresForGame4 but there are not 4 games but ${_playerList.length}');
       }
     }
     List newScores = autoFill4(game)!;
@@ -803,7 +831,8 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
     if (!widget.allowEdit) return;
     if (_playerList.length != 5) {
       if (kDebugMode) {
-        print('ERROR: setScoresForGame5 but there are not 5 games but ${_playerList.length}');
+        print(
+            'ERROR: setScoresForGame5 but there are not 5 games but ${_playerList.length}');
       }
     }
     List newScores = autoFill5(game)!;
@@ -853,7 +882,9 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                         : () {
                             setScoresForGame4(0);
                           },
-                    icon: Icon((autoFill4(0) == null) ? null : Icons.arrow_upward, size: 45)),
+                    icon: Icon(
+                        (autoFill4(0) == null) ? null : Icons.arrow_upward,
+                        size: 45)),
               ),
               Expanded(
                 flex: 1,
@@ -863,7 +894,9 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                         : () {
                             setScoresForGame4(1);
                           },
-                    icon: Icon((autoFill4(1) == null) ? null : Icons.arrow_upward, size: 45)),
+                    icon: Icon(
+                        (autoFill4(1) == null) ? null : Icons.arrow_upward,
+                        size: 45)),
               ),
               Expanded(
                 flex: 1,
@@ -873,7 +906,9 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                         : () {
                             setScoresForGame4(2);
                           },
-                    icon: Icon((autoFill4(2) == null) ? null : Icons.arrow_upward, size: 45)),
+                    icon: Icon(
+                        (autoFill4(2) == null) ? null : Icons.arrow_upward,
+                        size: 45)),
               ),
               Expanded(
                   flex: 1,
@@ -907,14 +942,39 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                         style: nameStyle,
                       ))),
             ),
-            Expanded(flex: 1, child: scoreBox(getScore(row, 0), row, 0, backgroundColor: [Colors.green.shade200, null, null, Colors.green.shade200][row])),
-            Expanded(flex: 1, child: scoreBox(getScore(row, 1), row, 1, backgroundColor: [Colors.green.shade200, null, Colors.green.shade200, null][row])),
-            Expanded(flex: 1, child: scoreBox(getScore(row, 2), row, 2, backgroundColor: [Colors.green.shade200, Colors.green.shade200, null, null][row])),
+            Expanded(
+                flex: 1,
+                child: scoreBox(getScore(row, 0), row, 0,
+                    backgroundColor: [
+                      Colors.green.shade200,
+                      null,
+                      null,
+                      Colors.green.shade200
+                    ][row])),
+            Expanded(
+                flex: 1,
+                child: scoreBox(getScore(row, 1), row, 1,
+                    backgroundColor: [
+                      Colors.green.shade200,
+                      null,
+                      Colors.green.shade200,
+                      null
+                    ][row])),
+            Expanded(
+                flex: 1,
+                child: scoreBox(getScore(row, 2), row, 2,
+                    backgroundColor: [
+                      Colors.green.shade200,
+                      Colors.green.shade200,
+                      null,
+                      null
+                    ][row])),
             Expanded(
                 flex: 1,
                 child: Padding(
                   padding: const EdgeInsets.only(top: 8.0),
-                  child: Align(child: Text(rowTotal.toString(), style: nameStyle)),
+                  child:
+                      Align(child: Text(rowTotal.toString(), style: nameStyle)),
                 )),
           ],
         );
@@ -960,7 +1020,9 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                         : () {
                             setScoresForGame5(0);
                           },
-                    icon: Icon((autoFill5(0) == null) ? null : Icons.arrow_upward, size: 45)),
+                    icon: Icon(
+                        (autoFill5(0) == null) ? null : Icons.arrow_upward,
+                        size: 45)),
               ),
               Expanded(
                 flex: 1,
@@ -970,7 +1032,9 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                         : () {
                             setScoresForGame5(1);
                           },
-                    icon: Icon((autoFill5(1) == null) ? null : Icons.arrow_upward, size: 45)),
+                    icon: Icon(
+                        (autoFill5(1) == null) ? null : Icons.arrow_upward,
+                        size: 45)),
               ),
               Expanded(
                 flex: 1,
@@ -980,7 +1044,9 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                         : () {
                             setScoresForGame5(2);
                           },
-                    icon: Icon((autoFill5(2) == null) ? null : Icons.arrow_upward, size: 45)),
+                    icon: Icon(
+                        (autoFill5(2) == null) ? null : Icons.arrow_upward,
+                        size: 45)),
               ),
               Expanded(
                 flex: 1,
@@ -990,7 +1056,9 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                         : () {
                             setScoresForGame5(3);
                           },
-                    icon: Icon((autoFill5(3) == null) ? null : Icons.arrow_upward, size: 45)),
+                    icon: Icon(
+                        (autoFill5(3) == null) ? null : Icons.arrow_upward,
+                        size: 45)),
               ),
               Expanded(
                 flex: 1,
@@ -1000,7 +1068,9 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                         : () {
                             setScoresForGame5(4);
                           },
-                    icon: Icon((autoFill5(4) == null) ? null : Icons.arrow_upward, size: 45)),
+                    icon: Icon(
+                        (autoFill5(4) == null) ? null : Icons.arrow_upward,
+                        size: 45)),
               ),
               Expanded(
                   flex: 1,
@@ -1033,16 +1103,62 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                         style: nameStyle,
                       ))),
             ),
-            Expanded(flex: 1, child: scoreBox(getScore(row, 0), row, 0, backgroundColor: [Colors.green.shade200, Colors.green.shade200, null, null, Colors.blue.shade200][row])),
-            Expanded(flex: 1, child: scoreBox(getScore(row, 1), row, 1, backgroundColor: [Colors.green.shade200, null, null, Colors.blue.shade200, Colors.green.shade200][row])),
-            Expanded(flex: 1, child: scoreBox(getScore(row, 2), row, 2, backgroundColor: [Colors.green.shade200, null, Colors.blue.shade200, Colors.green.shade200, null][row])),
-            Expanded(flex: 1, child: scoreBox(getScore(row, 3), row, 3, backgroundColor: [Colors.green.shade200, Colors.blue.shade200, Colors.green.shade200, null, null][row])),
-            Expanded(flex: 1, child: scoreBox(getScore(row, 4), row, 4, backgroundColor: [Colors.blue.shade200, Colors.green.shade200, null, Colors.green.shade200, null][row])),
+            Expanded(
+                flex: 1,
+                child: scoreBox(getScore(row, 0), row, 0,
+                    backgroundColor: [
+                      Colors.green.shade200,
+                      Colors.green.shade200,
+                      null,
+                      null,
+                      Colors.blue.shade200
+                    ][row])),
+            Expanded(
+                flex: 1,
+                child: scoreBox(getScore(row, 1), row, 1,
+                    backgroundColor: [
+                      Colors.green.shade200,
+                      null,
+                      null,
+                      Colors.blue.shade200,
+                      Colors.green.shade200
+                    ][row])),
+            Expanded(
+                flex: 1,
+                child: scoreBox(getScore(row, 2), row, 2,
+                    backgroundColor: [
+                      Colors.green.shade200,
+                      null,
+                      Colors.blue.shade200,
+                      Colors.green.shade200,
+                      null
+                    ][row])),
+            Expanded(
+                flex: 1,
+                child: scoreBox(getScore(row, 3), row, 3,
+                    backgroundColor: [
+                      Colors.green.shade200,
+                      Colors.blue.shade200,
+                      Colors.green.shade200,
+                      null,
+                      null
+                    ][row])),
+            Expanded(
+                flex: 1,
+                child: scoreBox(getScore(row, 4), row, 4,
+                    backgroundColor: [
+                      Colors.blue.shade200,
+                      Colors.green.shade200,
+                      null,
+                      Colors.green.shade200,
+                      null
+                    ][row])),
             Expanded(
                 flex: 1,
                 child: Padding(
                   padding: const EdgeInsets.only(top: 8.0),
-                  child: Align(child: Text(rowTotal.toString(), style: nameStyle)),
+                  child:
+                      Align(child: Text(rowTotal.toString(), style: nameStyle)),
                 )),
           ],
         );
@@ -1089,7 +1205,9 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                         : () {
                             setScoresForGame4(0);
                           },
-                    icon: Icon((autoFill4(0) == null) ? null : Icons.arrow_upward, size: 45)),
+                    icon: Icon(
+                        (autoFill4(0) == null) ? null : Icons.arrow_upward,
+                        size: 45)),
               ),
               Expanded(
                 flex: 1,
@@ -1099,7 +1217,9 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                         : () {
                             setScoresForGame4(1);
                           },
-                    icon: Icon((autoFill4(1) == null) ? null : Icons.arrow_upward, size: 45)),
+                    icon: Icon(
+                        (autoFill4(1) == null) ? null : Icons.arrow_upward,
+                        size: 45)),
               ),
               Expanded(
                 flex: 1,
@@ -1109,7 +1229,9 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                         : () {
                             setScoresForGame4(2);
                           },
-                    icon: Icon((autoFill4(2) == null) ? null : Icons.arrow_upward, size: 45)),
+                    icon: Icon(
+                        (autoFill4(2) == null) ? null : Icons.arrow_upward,
+                        size: 45)),
               ),
               Expanded(
                   flex: 1,
@@ -1144,11 +1266,38 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                       ))),
             ),
             Expanded(
-                flex: 1, child: scoreBox(getScore(row, 0), row, 0, backgroundColor: [Colors.green.shade200, Colors.green.shade400, null, null, Colors.green.shade400, Colors.green.shade200][row])),
+                flex: 1,
+                child: scoreBox(getScore(row, 0), row, 0,
+                    backgroundColor: [
+                      Colors.green.shade200,
+                      Colors.green.shade400,
+                      null,
+                      null,
+                      Colors.green.shade400,
+                      Colors.green.shade200
+                    ][row])),
             Expanded(
-                flex: 1, child: scoreBox(getScore(row, 1), row, 1, backgroundColor: [Colors.green.shade200, Colors.green.shade400, null, Colors.green.shade400, Colors.green.shade200, null][row])),
+                flex: 1,
+                child: scoreBox(getScore(row, 1), row, 1,
+                    backgroundColor: [
+                      Colors.green.shade200,
+                      Colors.green.shade400,
+                      null,
+                      Colors.green.shade400,
+                      Colors.green.shade200,
+                      null
+                    ][row])),
             Expanded(
-                flex: 1, child: scoreBox(getScore(row, 2), row, 2, backgroundColor: [Colors.green.shade200, Colors.green.shade400, Colors.green.shade400, Colors.green.shade200, null, null][row])),
+                flex: 1,
+                child: scoreBox(getScore(row, 2), row, 2,
+                    backgroundColor: [
+                      Colors.green.shade200,
+                      Colors.green.shade400,
+                      Colors.green.shade400,
+                      Colors.green.shade200,
+                      null,
+                      null
+                    ][row])),
             Expanded(
                 flex: 1,
                 child: scoreBox(getScore(row, 3), row, 3,
@@ -1161,13 +1310,23 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                       Colors.green.shade400,
                     ][row])),
             Expanded(
-                flex: 1, child: scoreBox(getScore(row, 4), row, 4, backgroundColor: [Colors.green.shade200, Colors.green.shade200, null, Colors.green.shade400, null, Colors.green.shade400][row])),
+                flex: 1,
+                child: scoreBox(getScore(row, 4), row, 4,
+                    backgroundColor: [
+                      Colors.green.shade200,
+                      Colors.green.shade200,
+                      null,
+                      Colors.green.shade400,
+                      null,
+                      Colors.green.shade400
+                    ][row])),
             // Expanded(flex: 1, child: scoreBox(getScore(row, 5), row, 5)),
             Expanded(
                 flex: 1,
                 child: Padding(
                   padding: const EdgeInsets.only(top: 8.0),
-                  child: Align(child: Text(rowTotal.toString(), style: nameStyle)),
+                  child:
+                      Align(child: Text(rowTotal.toString(), style: nameStyle)),
                 )),
           ],
         );
@@ -1216,7 +1375,8 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
     }
 
     _scoreDocStr = '${_dateStr}_C#${widget.court.toString()}';
-    _movementList = sportTennisRGDetermineMovement(widget.fullPlayerList, _dateStr);
+    _movementList =
+        sportTennisRGDetermineMovement(widget.fullPlayerList, _dateStr);
 
     _loggedInPlayerOnCourt = false;
     List<PlayerList> courtMovementList = List.empty(growable: true);
@@ -1232,7 +1392,8 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
     }
 
     String ranksChangeStr = '';
-    List<String> startingRanks = widget.scoreDoc.get('StartingRanks').split('|');
+    List<String> startingRanks =
+        widget.scoreDoc.get('StartingRanks').split('|');
     List<String> endingRanks = widget.scoreDoc.get('EndingRanks').split('|');
     if (startingRanks.length == endingRanks.length) {
       for (int i = 0; i < startingRanks.length; i++) {
@@ -1252,7 +1413,8 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
       child: Scaffold(
           backgroundColor: Colors.green[50],
           appBar: AppBar(
-            title: Text('Score: ${widget.ladderName} C:${widget.court.toString()}'),
+            title: Text(
+                'Score: ${widget.ladderName} C:${widget.court.toString()}'),
             backgroundColor: Colors.green[400],
             elevation: 0.0,
             // automaticallyImplyLeading: false,
@@ -1267,7 +1429,8 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                 else if (_playerList.length == 6)
                   show6Players()
                 else
-                  Text('Invalid number of players ${_playerList.length} ${_playerList.toString()}'),
+                  Text(
+                      'Invalid number of players ${_playerList.length} ${_playerList.toString()}'),
                 if (!widget.allowEdit) const Divider(color: Colors.black),
                 if (!widget.allowEdit)
                   Text(
@@ -1290,57 +1453,90 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                             String gameScoresStr = saveWorkingScores();
                             String thisUser = activeUser.id;
                             try {
-                              await firestore.runTransaction((transaction) async {
+                              await firestore
+                                  .runTransaction((transaction) async {
                                 List<int> scores = List.empty(growable: true);
-                                List<String> matchScores = List.empty(growable: true);
+                                List<String> matchScores =
+                                    List.empty(growable: true);
 
-                                DocumentReference scoreDoc = firestore.collection('Ladder').doc(widget.ladderName).collection('Scores').doc(_scoreDocStr);
-                                for (int play = 0; play < _gameScores.length; play++) {
+                                DocumentReference scoreDoc = firestore
+                                    .collection('Ladder')
+                                    .doc(widget.ladderName)
+                                    .collection('Scores')
+                                    .doc(_scoreDocStr);
+                                for (int play = 0;
+                                    play < _gameScores.length;
+                                    play++) {
                                   int score = 0;
                                   String matchScore = '';
-                                  for (int i = 0; i < _gameScores[0].length; i++) {
+                                  for (int i = 0;
+                                      i < _gameScores[0].length;
+                                      i++) {
                                     if (i != 0) matchScore += '|';
                                     if (_gameScores[play][i] != null) {
                                       score += _gameScores[play][i]!;
-                                      matchScore += _gameScores[play][i]!.toString();
+                                      matchScore +=
+                                          _gameScores[play][i]!.toString();
                                     }
                                   }
                                   scores.add(score);
                                   matchScores.add(matchScore);
                                   // playerRefs.add(firestore.collection('Ladder').doc(widget.ladderName).collection('Players').doc(_playerList[play]));
                                 }
-                                DocumentSnapshot scoreSnapshot = await transaction.get(scoreDoc);
+                                DocumentSnapshot scoreSnapshot =
+                                    await transaction.get(scoreDoc);
                                 // must handle case of this user no longer the active score enterer
-                                if (!scoreSnapshot.exists || scoreSnapshot.get('BeingEditedBy') != thisUser) {
+                                if (!scoreSnapshot.exists ||
+                                    scoreSnapshot.get('BeingEditedBy') !=
+                                        thisUser) {
                                   if (kDebugMode) {
-                                    print('this user $thisUser got kicked out by: ${scoreSnapshot.get('BeingEditedBy')}');
+                                    print(
+                                        'this user $thisUser got kicked out by: ${scoreSnapshot.get('BeingEditedBy')}');
                                   }
                                   return; // Abort the transaction
                                 }
 
-                                for (int play = 0; play < scores.length; play++) {
-                                  transaction.update(firestore.collection('Ladder').doc(widget.ladderName).collection('Players').doc(_playerList[play]), {
-                                    'TotalScore': scores[play],
-                                    'StartingOrder': play + 1,
-                                    'ScoresConfirmed': false,
-                                    'MatchScores': matchScores[play],
-                                  });
+                                for (int play = 0;
+                                    play < scores.length;
+                                    play++) {
+                                  transaction.update(
+                                      firestore
+                                          .collection('Ladder')
+                                          .doc(widget.ladderName)
+                                          .collection('Players')
+                                          .doc(_playerList[play]),
+                                      {
+                                        'TotalScore': scores[play],
+                                        'StartingOrder': play + 1,
+                                        'ScoresConfirmed': false,
+                                        'MatchScores': matchScores[play],
+                                      });
                                 }
                                 transactionAudit(
                                     transaction: transaction,
                                     user: activeUser.id,
-                                    documentName: '${widget.ladderName}/$_scoreDocStr',
+                                    documentName:
+                                        '${widget.ladderName}/$_scoreDocStr',
                                     action: 'EnterScore',
                                     newValue: gameScoresStr,
                                     oldValue: _gameScoresStr);
-                                String newScoresEnteredBy = scoreSnapshot.get('ScoresEnteredBy');
-                                if (newScoresEnteredBy.isNotEmpty) newScoresEnteredBy += '|';
-                                transaction.update(firestore.collection('Ladder').doc(widget.ladderName).collection('Scores').doc(_scoreDocStr), {
-                                  'BeingEditedBy': '',
-                                  'ScoresEnteredBy': '$newScoresEnteredBy$_beingEditedById',
-                                  'GameScores': gameScoresStr,
-                                  // 'EndingRanks': endingRanksStr,
-                                });
+                                String newScoresEnteredBy =
+                                    scoreSnapshot.get('ScoresEnteredBy');
+                                if (newScoresEnteredBy.isNotEmpty)
+                                  newScoresEnteredBy += '|';
+                                transaction.update(
+                                    firestore
+                                        .collection('Ladder')
+                                        .doc(widget.ladderName)
+                                        .collection('Scores')
+                                        .doc(_scoreDocStr),
+                                    {
+                                      'BeingEditedBy': '',
+                                      'ScoresEnteredBy':
+                                          '$newScoresEnteredBy$_beingEditedById',
+                                      'GameScores': gameScoresStr,
+                                      // 'EndingRanks': endingRanksStr,
+                                    });
                               });
                               updateBeingEditedBy('');
                             } catch (e) {
@@ -1351,9 +1547,9 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                               return; // skip the clearing
                             }
 
-                            setState(() {
+                            // setState(() {
                               cancelWorkingScores();
-                            });
+                            // });
                           },
                           child: Row(children: [
                             Icon(
@@ -1386,11 +1582,17 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                       ),
                     ],
                   ),
-                if ((_beingEditedById != activeUser.id) && _beingEditedById.isNotEmpty && widget.allowEdit)
+                if ((_beingEditedById != activeUser.id) &&
+                    _beingEditedById.isNotEmpty &&
+                    widget.allowEdit)
                   TextButton(
                       style: ButtonStyle(
-                        backgroundColor: WidgetStatePropertyAll(_isOverrideEditorEnabled ? Colors.blue.shade600 : Colors.blue.shade200),
-                        foregroundColor: const WidgetStatePropertyAll(Colors.white),
+                        backgroundColor: WidgetStatePropertyAll(
+                            _isOverrideEditorEnabled
+                                ? Colors.blue.shade600
+                                : Colors.blue.shade200),
+                        foregroundColor:
+                            const WidgetStatePropertyAll(Colors.white),
                       ),
                       onPressed: _isOverrideEditorEnabled
                           ? () {
@@ -1398,7 +1600,9 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                             }
                           : null,
                       child: Text(
-                        _isOverrideEditorEnabled ? 'Kick out $_beingEditedByName' : 'waiting 30 sec\nfor $_beingEditedByName',
+                        _isOverrideEditorEnabled
+                            ? 'Kick out $_beingEditedByName'
+                            : 'waiting 30 sec\nfor $_beingEditedByName',
                         style: nameStyle,
                       )),
                 if (_beingEditedByName.isNotEmpty)
@@ -1407,35 +1611,60 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                     style: nameStyle,
                   ),
                 if (((activeUser.admin && !_scoresConfirmed) ||
-                        (_allScoresEntered && _beingEditedById.isEmpty && notLastEditor && !_scoresConfirmed && (_loggedInPlayerOnCourt || activeUser.helper))) &&
+                        (_allScoresEntered &&
+                            _beingEditedById.isEmpty &&
+                            notLastEditor &&
+                            !_scoresConfirmed &&
+                            (_loggedInPlayerOnCourt || activeUser.helper))) &&
                     widget.allowEdit)
                   TextButton(
                     style: ButtonStyle(
-                      backgroundColor: WidgetStatePropertyAll(Colors.green.shade600),
-                      foregroundColor: const WidgetStatePropertyAll(Colors.white),
+                      backgroundColor:
+                          WidgetStatePropertyAll(Colors.green.shade600),
+                      foregroundColor:
+                          const WidgetStatePropertyAll(Colors.white),
                     ),
                     onPressed: () async {
                       String endingRanksStr = '';
                       for (int play = 0; play < _gameScores.length; play++) {
                         for (int i = 0; i < _movementList!.length; i++) {
-                          if (_movementList![i].snapshot.id == _playerList[play]) {
+                          if (_movementList![i].snapshot.id ==
+                              _playerList[play]) {
                             if (play != 0) endingRanksStr += '|';
-                            endingRanksStr += _movementList![i].afterWinLose.toString();
+                            endingRanksStr +=
+                                _movementList![i].afterWinLose.toString();
                             // print('ending ranks: play: $play i:$i ${_playerList[play]} =>$endingRanksStr');
                             break;
                           }
                         }
                       }
-                      writeAudit(user: activeUser.id, documentName: '${widget.ladderName}/$_scoreDocStr', action: 'ConfirmScore', newValue: 'True', oldValue: 'n/a');
+                      writeAudit(
+                          user: activeUser.id,
+                          documentName: '${widget.ladderName}/$_scoreDocStr',
+                          action: 'ConfirmScore',
+                          newValue: 'True',
+                          oldValue: 'n/a');
                       String newScoresEnteredBy = _scoresEnteredBy;
-                      if (newScoresEnteredBy.isNotEmpty) newScoresEnteredBy += '|';
-                      await firestore.collection('Ladder').doc(widget.ladderName).collection('Scores').doc(_scoreDocStr).update({
-                        'ScoresEnteredBy': '$newScoresEnteredBy${activeUser.id} CONFIRMED',
+                      if (newScoresEnteredBy.isNotEmpty)
+                        newScoresEnteredBy += '|';
+                      await firestore
+                          .collection('Ladder')
+                          .doc(widget.ladderName)
+                          .collection('Scores')
+                          .doc(_scoreDocStr)
+                          .update({
+                        'ScoresEnteredBy':
+                            '$newScoresEnteredBy${activeUser.id} CONFIRMED',
                         'EndingRanks': endingRanksStr,
                       });
 
                       for (int i = 0; i < _playerList.length; i++) {
-                        await firestore.collection('Ladder').doc(widget.ladderName).collection('Players').doc(_playerList[i]).update({
+                        await firestore
+                            .collection('Ladder')
+                            .doc(widget.ladderName)
+                            .collection('Players')
+                            .doc(_playerList[i])
+                            .update({
                           'ScoresConfirmed': true,
                         });
                       }
@@ -1443,7 +1672,9 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                     },
                     child: Text('Confirm Scores', style: nameStyle),
                   )
-                else if (!_scoresConfirmed && widget.allowEdit && _allScoresEntered)
+                else if (!_scoresConfirmed &&
+                    widget.allowEdit &&
+                    _allScoresEntered)
                   Text('Someone else has to confirm scores', style: nameStyle),
                 const Divider(color: Colors.black),
                 ((_scoresConfirmed && _neverEdited) && widget.allowEdit)
@@ -1465,7 +1696,8 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                             itemBuilder: (context, row) {
                               return Wrap(
                                 children: [
-                                  showRank(courtMovementList[row].rank, 'The Rank ${courtMovementList[row].snapshot.get('Name')} Started with'),
+                                  showRank(courtMovementList[row].rank,
+                                      'The Rank ${courtMovementList[row].snapshot.get('Name')} Started with'),
                                   Text(
                                     "=>",
                                     style: nameStyle,
@@ -1475,18 +1707,21 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                                   //   "=>",
                                   //   style: nameStyle,
                                   // ),
-                                  showRank(courtMovementList[row].afterDownTwo, 'after people away move down pushing you up'),
+                                  showRank(courtMovementList[row].afterDownTwo,
+                                      'after people away move down pushing you up'),
                                   // 'After others not present who did not mark themselves away moved down a second one'),
                                   Text(
                                     "=>",
                                     style: nameStyle,
                                   ),
-                                  showRank(courtMovementList[row].afterScores, 'Shuffle within your court as a result of your score'),
+                                  showRank(courtMovementList[row].afterScores,
+                                      'Shuffle within your court as a result of your score'),
                                   Text(
                                     "=>",
                                     style: nameStyle,
                                   ),
-                                  showRank(courtMovementList[row].afterWinLose, 'If you won the court you exchange places with whoever lost on the court above'),
+                                  showRank(courtMovementList[row].afterWinLose,
+                                      'If you won the court you exchange places with whoever lost on the court above'),
                                 ],
                               );
                             }),
@@ -1509,7 +1744,8 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                             style: nameStyle,
                           );
                         }
-                        int reverseOrder = _scoresEnteredBy.split('|').length - 1 - (row - 1);
+                        int reverseOrder =
+                            _scoresEnteredBy.split('|').length - 1 - (row - 1);
                         String id = _scoresEnteredBy.split('|')[reverseOrder];
                         return Text(playerIdToName(id), style: nameStyle);
                       }),
