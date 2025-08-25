@@ -110,24 +110,34 @@ class _PlayerHomeState extends State<PlayerHome>
     super.didChangeAppLifecycleState(state);
     switch (state) {
       case AppLifecycleState.resumed:
-        print("App is resumed (in the foreground).");
+        if (kDebugMode) {
+          print("App is resumed (in the foreground).");
+        }
         setState(() {});
         // Example: Refresh data, restart animations
         break;
       case AppLifecycleState.inactive:
-        print("App is inactive (e.g., an incoming call, or multitasking view).");
+        if (kDebugMode) {
+          print("App is inactive (e.g., an incoming call, or multitasking view).");
+        }
         // Example: Pause animations, save state lightly
         break;
       case AppLifecycleState.paused:
-        print("App is paused (in the background).");
+        if (kDebugMode) {
+          print("App is paused (in the background).");
+        }
         // Example: Release resources, save persistent state
         break;
       case AppLifecycleState.detached:
-        print("App is detached (Flutter engine is running but not attached to any view).");
+        if (kDebugMode) {
+          print("App is detached (Flutter engine is running but not attached to any view).");
+        }
         // This state is rarely used for typical app logic.
         break;
       case AppLifecycleState.hidden:
-        print("App is hidden (a new state, similar to paused but the UI is completely hidden).");
+        if (kDebugMode) {
+          print("App is hidden (a new state, similar to paused but the UI is completely hidden).");
+        }
         // This state is similar to paused but for platforms that support hiding without pausing.
         break;
     }

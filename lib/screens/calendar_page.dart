@@ -895,7 +895,7 @@ class CalendarPageState extends State<CalendarPage> {
       }
       return Text('Unsupported Event Type $typeOfCalendarEvent');
     } catch (e, stackTrace) {
-      return Text('calendar EXCEPTION: $e\n$stackTrace', style: TextStyle(color: Colors.red));
+      return Text('calendar EXCEPTION: $e\n$stackTrace', );//style: TextStyle(color: Colors.red));
     }
   }
 }

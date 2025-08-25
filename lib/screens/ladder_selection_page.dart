@@ -693,7 +693,9 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                       }
                       nextPlay1 =
                           ' ${DateFormat('E yyyy.MM.dd').format(nextPlay)} $numDaysAwayStr';
-                    } // print('building ladder selection entry: row: $row ${availableDocs[row].get('DisplayName')}');
+                    } else {
+                      nextPlay1 = 'Admin has not configured the next day of play';
+                    }
                     return Container(
                         // height: 350,
                         decoration: BoxDecoration(

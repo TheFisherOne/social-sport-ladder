@@ -18,6 +18,8 @@ void showFrozenLadderPage( dynamic context, DocumentSnapshot activeLadderDoc, bo
     page = const SportTennisRG();
   } else if (getSportDescriptor(0) == 'badmintonRG') {
     page = const SportTennisRG();
+  }else if (getSportDescriptor(0) == 'generic') {
+    page = const SportTennisRG();
   }else {
     page = Text('bad sport descriptor ${getSportDescriptor(0)} should be one of: tennisRG pickleballRG badmintonRG');
   }
@@ -27,6 +29,81 @@ void showFrozenLadderPage( dynamic context, DocumentSnapshot activeLadderDoc, bo
   } else {
     Navigator.push(context, MaterialPageRoute(builder: (context) => page));
   }
+}
+
+int getGamesFor4(){
+  int games=8;
+  if (getSportDescriptor(0) == 'generic')  {
+    List<String> tmpList = activeLadderDoc!.get('SportDescriptor').split('|');
+    if (tmpList.length <= 1) return games;
+    tmpList.removeAt(0);
+    for (String option in tmpList) {
+      if (option.startsWith('score4=')){
+        try{
+          games = int.parse(option.split('=')[1]);
+        } catch(_){}
+        return games;
+      }
+    }
+    return games;
+  }
+  return 8;
+}
+int getGamesFor5(){
+  int games=6;
+  if (getSportDescriptor(0) == 'generic')  {
+    List<String> tmpList = activeLadderDoc!.get('SportDescriptor').split('|');
+    if (tmpList.length <= 1) return games;
+    tmpList.removeAt(0);
+    for (String option in tmpList) {
+      if (option.startsWith('score5=')){
+        try{
+          games = int.parse(option.split('=')[1]);
+        } catch(_){}
+        return games;
+      }
+    }
+    return games;
+  }
+  return 8;
+}
+int getGamesFor6(){
+  int games=0;
+  if (getSportDescriptor(0) == 'generic')  {
+    List<String> tmpList = activeLadderDoc!.get('SportDescriptor').split('|');
+    if (tmpList.length <= 1) return games;
+    tmpList.removeAt(0);
+    for (String option in tmpList) {
+      if (option.startsWith('score6=')){
+        try{
+          games = int.parse(option.split('=')[1]);
+        } catch(_){}
+        return games;
+      }
+    }
+    return games;
+  } else if ((getSportDescriptor(0) == 'tennisRG') && (getSportDescriptor(1) == 'rg_single') ) {
+    return 6;
+  }
+  return 8;
+}
+String getScoringMethod(){
+  String scoringMethod = 'total';
+  if (getSportDescriptor(0) == 'generic')  {
+    List<String> tmpList = activeLadderDoc!.get('SportDescriptor').split('|');
+    if (tmpList.length <= 1) return scoringMethod;
+    tmpList.removeAt(0);
+    for (String option in tmpList) {
+      if (option.startsWith('scoring=')){
+        try{
+          scoringMethod = (option.split('=')[1]);
+        } catch(_){}
+        return scoringMethod;
+      }
+    }
+    return scoringMethod;
+  }
+  return scoringMethod;
 }
 
 String getSportDescriptor(int index){
@@ -53,6 +130,9 @@ if (getSportDescriptor(0) == 'tennisRG') {
 }else if (getSportDescriptor(0) == 'badmintonRG') {
   await sportTennisRGprepareForScoreEntry(players);
   return;
+} else if (getSportDescriptor(0) == 'generic') {
+  await sportTennisRGprepareForScoreEntry(players);
+  return;
 }
 if (kDebugMode) {
   print('ERROR: determineMovement could not find SportDescriptor: ${getSportDescriptor(0)}');
@@ -67,6 +147,8 @@ List<PlayerList>? determineMovement(DocumentSnapshot activeLadderDoc, List<Query
   } else if (getSportDescriptor(0) == 'pickleballRG')  {
     return sportTennisRGDetermineMovement(players, dateWithRoundStr);
   } else if (getSportDescriptor(0) == 'badmintonRG')  {
+    return sportTennisRGDetermineMovement(players, dateWithRoundStr);
+  }else if (getSportDescriptor(0) == 'generic')  {
     return sportTennisRGDetermineMovement(players, dateWithRoundStr);
   }
   if (kDebugMode) {
@@ -97,12 +179,55 @@ class ScoreBase extends StatefulWidget {
 }
 
 
-class _ScoreBaseState extends State<ScoreBase> {
+class _ScoreBaseState extends State<ScoreBase> with WidgetsBindingObserver {
   DocumentSnapshot<Object?>? _activeLadderDoc;
   String _dateStr = '';
   String _scoreDocStr = '';
   late DocumentSnapshot<Object?> _scoreDoc;
+  @override
+  void initState() {
+    super.initState();
+    // Register the observer
+    WidgetsBinding.instance.addObserver(this);
+  }
 
+  @override
+  void dispose() {
+    // Unregister the observer
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) { // <--- ADD THIS METHOD
+    super.didChangeAppLifecycleState(state);
+    if (kDebugMode) {
+      print("ScoreBase: AppLifecycleState changed to: $state");
+    }
+    switch (state) {
+      case AppLifecycleState.resumed:
+        if (kDebugMode) {
+          print("ScoreBase: App is resumed. Triggering setState.");
+        }
+        // Example: Update state or trigger a data refresh
+        // This setState will cause _ScoreBaseState's build method to run again.
+        setState(() {
+
+        });
+        break;
+      case AppLifecycleState.inactive:
+      // Handle inactive state
+        break;
+      case AppLifecycleState.paused:
+      // Handle paused state
+        break;
+      case AppLifecycleState.detached:
+      // Handle detached state
+        break;
+      case AppLifecycleState.hidden:
+      // Handle hidden state
+        break;
+    }
+  }
   @override
   Widget build(BuildContext context) {
     try{
@@ -167,7 +292,8 @@ class _ScoreBaseState extends State<ScoreBase> {
                 // print('StreamBuilder config page: activeLadderId: $activeLadderId id: ${snapshot.data!.id}');
                 _scoreDoc = snapshot.data!;
 
-                if ((getSportDescriptor(0)=='tennisRG')||(getSportDescriptor(0)=='pickleballRG') ||(getSportDescriptor(0)=='badmintonRG')) {
+                if ((getSportDescriptor(0)=='tennisRG')||(getSportDescriptor(0)=='pickleballRG')
+                    ||(getSportDescriptor(0)=='badmintonRG')||(getSportDescriptor(0)=='generic')) {
                   return ScoreTennisRg(ladderName: widget.ladderName,
                       round: widget.round,
                       court: widget.court,

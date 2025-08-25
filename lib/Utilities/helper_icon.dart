@@ -332,7 +332,7 @@ Widget helperIcon(BuildContext context, String activeLadderId,
                                                   documentName: activeLadderId,
                                                   action: 'Finalize and move',
                                                   newValue: true.toString(),
-                                                  oldValue: 'n/a');
+                                                  oldValue: 'new Random ${newSeed}');
                                             });
                                           }
                                           adminFunctionInProgress = false;

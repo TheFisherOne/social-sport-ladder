@@ -911,6 +911,14 @@ class _SportTennisRGState extends State<SportTennisRG> {
             ],
           );
 
+          if (_movement == null) {
+            return Scaffold(
+                backgroundColor: Colors.yellow.shade50,
+                appBar: thisAppBar,
+                body: Text('Admin needs to fix configuration ${PlayerList.errorString}',style: errorNameStyle),
+            );
+          }
+
           // var courtAssignments = assignCourtsStandard(_players);
           CourtAssignmentsRgStandard courtAssignments = CourtAssignmentsRgStandard(_players!);
           // courtAssignments['Movement'] = _movement;

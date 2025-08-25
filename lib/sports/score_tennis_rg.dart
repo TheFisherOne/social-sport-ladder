@@ -140,7 +140,208 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
         _allScoresEntered = false;
       }
     }
+    if (getSportDescriptor(0) == 'generic') {
+      _gameScoreErrors = List.filled(_numGames, false);
+      for (int game = 0; game < _numGames; game++) {
+        bool allOK = true;
+        List<int?> scores = [for (var row in _gameScores) row[game]];
+        scores.sort((a, b) {
+          if (a == null) return -1; // Place nulls at the beginning
+          if (b == null) return 1; // Place nulls at the beginning
+          return a.compareTo(b); // Ascending order
+        });
+        // if they are all null then it is ok nothing has been entered
+        if (scores.last != null) {
+          int numGames = 8;
+          if (_playerList.length == 4) numGames = getGamesFor4();
+          if (_playerList.length == 6) numGames = getGamesFor6();
+          if (_playerList.length == 5) numGames = getGamesFor5();
+          bool singles = false;
+          if (getSportDescriptor(1).contains('singles')) {
+            singles=true;
+          }
+          String method = getScoringMethod();
+          //print('numGames=$numGames, singles=$singles, method=$method');
+          if (singles) {
+            if (method == 'total') {
+              if (_playerList.length == 4) { // 4 players
+                // 2 scores have to add up to numGames and the other 2 have to add up to numGames
+                allOK = false;
+                if (scores.first != null) {
+                  // if one entered they all need to be entered
+                  for (int i = 1; i < 4; i++) {
+                    if ((scores[0]! + scores[i]!) == numGames) {
+                      int otherScore = 0;
+                      for (int j = 1; j < 4; j++) {
+                        if (i == j) continue;
+                        otherScore += scores[j]!;
+                      }
+                      if (otherScore == numGames) {
+                        allOK = true;
+                      }
+                    }
+                  }
+                }
+              } else if (_playerList.length == 5) {
+                // 2 scores have to add up to numGames and the other 2 have to add up to numGames
+                allOK = false;
+                // there should be one unentered score
+                if (((scores.first == null) || (scores.first == 0)) &&
+                    (scores[1] != null) &&
+                    (scores[2] != null) &&
+                    (scores[3] != null) &&
+                    (scores[4] != null)) {
+                  for (int i = 2; i < 5; i++) {
+                    // print('singles score check1: ${scores[1]} ${scores[i]} = ${scores[1]! + scores[i]!}');
+                    if ((scores[1]! + scores[i]!) == numGames) {
+                      // print('singles score check: $i ${scores[1]} ${scores[i]}');
+                      int otherScore = 0;
+                      for (int j = 2; j < 5; j++) {
+                        if (i == j) continue;
+                        otherScore += scores[j]!;
+                      }
+                      // print('singles score check2: $otherScore');
+                      if (otherScore == numGames) {
+                        allOK = true;
+                      }
+                    }
+                  }
+                }
+              } else if (_playerList.length == 6) {
+                // 2 scores have to add up to numGames and the other 2 have to add up to numGames
+                allOK = false;
+                var usedIndices = HashSet<int>();
+                int pairsCount = 0;
 
+                if (scores[0] != null) {
+                  for (int i = 0; i < scores.length; i++) {
+                    // Skip if this index has been used in forming a pair
+                    if (usedIndices.contains(i)) continue;
+
+                    for (int j = i + 1; j < scores.length; j++) {
+                      // If we find a pair that sums to 6 and neither index has been used
+                      // print('$i $j ${scores[i]} ${scores[j]} used: ${usedIndices}');
+                      if ((scores[i]! + scores[j]! == numGames) &&
+                          !usedIndices.contains(j)) {
+                        pairsCount++;
+                        usedIndices.addAll([i, j]);
+                        // print('FOUND: $i $j $pairsCount');
+                        break; // Move to the next number for pairing
+                      }
+                    }
+                  }
+                }
+                allOK = pairsCount == 3;
+              }
+            } else { // max score not total score
+              // there should be exactly 2 entries that match the total score
+              allOK = false;
+              if (((_playerList.length==4) && (scores.first == null)) ||
+                  ((_playerList.length==5) && (scores[1] == null)) ||
+                  ((_playerList.length==6) && (scores.first == null)) ){
+                allOK = false;
+              } else {
+                int countOfFullScore = 0;
+                for (int j = 0; j < scores.length; j++) {
+                  if (scores[j] == numGames) countOfFullScore++;
+                }
+                if (_playerList.length == 6) {
+                  if (countOfFullScore == 3) {
+                    allOK = true;
+                  }
+                } else if (countOfFullScore == 2) {
+                  allOK = true;
+                }
+              }
+            }
+          } else { // doubles
+            if (method == 'total') {
+              if (_playerList.length == 4) { // 4 players
+                // 2 scores have to add up to numGames and the other 2 have to add up to numGames
+                allOK = false;
+                if (scores.first != null) {
+                  // if one entered they all need to be entered
+                  for (int i = 1; i < 4; i++) {
+                    if ((scores[0]! + scores[i]!) == numGames) {
+                      int otherScore = 0;
+                      for (int j = 1; j < 4; j++) {
+                        if (i == j) continue;
+                        otherScore += scores[j]!;
+                      }
+                      if (otherScore == numGames) {
+                        // in doubles the scores should be in pairs
+                        if ((scores[0] == scores[1]) && (scores[2]==scores[3])) {
+                          allOK = true;
+                        }
+                      }
+                    }
+                  }
+                }
+              } else if (_playerList.length == 5) {
+                // 2 scores have to add up to numGames and the other 2 have to add up to numGames
+                allOK = false;
+                // there should be one unentered score
+                if (((scores.first == null) || (scores.first == 0)) &&
+                    (scores[1] != null) &&
+                    (scores[2] != null) &&
+                    (scores[3] != null) &&
+                    (scores[4] != null)) {
+                  for (int i = 2; i < 5; i++) {
+                    // print('singles score check1: ${scores[1]} ${scores[i]} = ${scores[1]! + scores[i]!}');
+                    if ((scores[1]! + scores[i]!) == numGames) {
+                      // print('singles score check: $i ${scores[1]} ${scores[i]}');
+                      int otherScore = 0;
+                      for (int j = 2; j < 5; j++) {
+                        if (i == j) continue;
+                        otherScore += scores[j]!;
+                      }
+                      // print('singles score check2: $otherScore');
+                      if (otherScore == numGames) {
+                        // now check that there are 2 pairs of scores the same
+                        if ((scores[1] == scores[2]) && (scores[3]==scores[4])) {
+                          allOK = true;
+                        }
+
+                      }
+                    }
+                  }
+                }
+              }
+              // note that there is no 6 players in doubles
+            } else { // max score not total score
+              // there should be exactly 2 entries that match the total score
+              allOK = false;
+              if (((_playerList.length==4) && (scores.first == null)) ||
+                (((_playerList.length==5) && (scores[1] == null)))){
+                allOK = false;
+              } else {
+                int countOfFullScore = 0;
+                int otherScore = -1;
+                for (int j = 0; j < scores.length; j++) {
+                  if (scores[j] == numGames) {
+                    countOfFullScore++;
+                  }
+                }
+                bool otherScoresTheSame = true;
+                for (int j = 0; j < scores.length; j++) {
+                  if (scores[j] != numGames) {
+                    if (otherScore < 0) {
+                      otherScore = scores[j]!;
+                    } else if (scores[j] != otherScore) {
+                      otherScoresTheSame = false;
+                    }
+                  }
+                }
+                if (otherScoresTheSame && (countOfFullScore == 2)) {
+                  allOK = true;
+                }
+              }
+            }
+          }
+        }
+        _gameScoreErrors[game] = !allOK;
+      }
+    } else
     if (getSportDescriptor(1) == 'rg_singles') {
       // print('gameScoreErrors, rg_singles _numGames: $_numGames');
       _gameScoreErrors = List.filled(_numGames, false);
@@ -249,8 +450,9 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
               // print('_gameScoreErrors[$game] found null');
               allOK = false;
             } else {
-              if ((scores[0] != scores[1]) || (scores[2] != scores[3]))
+              if ((scores[0] != scores[1]) || (scores[2] != scores[3])) {
                 allOK = false;
+              }
               if (scores.last != maxScore3) allOK = false;
               if (!allOK) {
                 if (kDebugMode) {
@@ -265,8 +467,9 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
               // print('_gameScoreErrors[$game] did not find one null or zero $scores');
               allOK = false;
             } else {
-              if ((scores[1] != scores[2]) || (scores[3] != scores[4]))
+              if ((scores[1] != scores[2]) || (scores[3] != scores[4])) {
                 allOK = false;
+              }
               if (scores.last != maxScore5) allOK = false;
               if (!allOK) {
                 if (kDebugMode) {
@@ -298,8 +501,9 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
               // print('_gameScoreErrors[$game] found null');
               allOK = false;
             } else {
-              if ((scores[0] != scores[1]) || (scores[2] != scores[3]))
+              if ((scores[0] != scores[1]) || (scores[2] != scores[3])) {
                 allOK = false;
+              }
               if (scores.last != maxScore3) allOK = false;
               if (!allOK) {
                 if (kDebugMode) {
@@ -314,8 +518,9 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
               // print('_gameScoreErrors[$game] did not find one null or zero $scores');
               allOK = false;
             } else {
-              if ((scores[1] != scores[2]) || (scores[3] != scores[4]))
+              if ((scores[1] != scores[2]) || (scores[3] != scores[4])) {
                 allOK = false;
+              }
               if (scores.last != maxScore5) allOK = false;
               if (!allOK) {
                 if (kDebugMode) {
@@ -347,12 +552,16 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
               // print('_gameScoreErrors[$game] found null');
               allOK = false;
             } else {
-              if ((scores[0] != scores[1]) || (scores[2] != scores[3]))
+              if ((scores[0] != scores[1]) || (scores[2] != scores[3])) {
                 allOK = false;
-              if ((scores.first! + scores.last!) != addUpTo) allOK = false;
-              if (!allOK) {
-                if (kDebugMode) {
-                  print('_gameScoreErrors[$game] scores don\'t add up');
+              }
+              if ((scores.first! + scores.last!) != addUpTo) {
+                allOK = false;
+
+                if (!allOK) {
+                  if (kDebugMode) {
+                    print('_gameScoreErrors[$game] scores don\'t add up');
+                  }
                 }
               }
             }
@@ -362,9 +571,12 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
               // print('_gameScoreErrors[$game] did not find one null or zero $scores');
               allOK = false;
             } else {
-              if ((scores[1] != scores[2]) || (scores[3] != scores[4]))
+              if ((scores[1] != scores[2]) || (scores[3] != scores[4])) {
                 allOK = false;
-              if ((scores[1]! + scores.last!) != addUpTo) allOK = false;
+                }
+              if ((scores[1]! + scores.last!) != addUpTo) {
+                allOK = false;
+              }
               if (!allOK) {
                 if (kDebugMode) {
                   print('_gameScoreErrors[$game] scores don\'t add up');
@@ -383,8 +595,9 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
     if (player >= _playerList.length) return 0;
     if (game >= _numGames) return 0;
     // print('getScore: player: $player, game: $game $_workingGameScores');
-    if (_workingGameScores[player][game] != null)
+    if (_workingGameScores[player][game] != null) {
       return _workingGameScores[player][game]!;
+    }
     if (_gameScores[player][game] != null) return _gameScores[player][game]!;
     return null;
   }
@@ -609,7 +822,16 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                 ? () {
                     // print('clicked on P:$playerNum, G:$gameNum V:$initialValue/$workingValue');
                     workingValue = (workingValue ?? 0) + 1;
-                    if (getSportDescriptor(0) == 'pickleballRG') {
+                    if (getSportDescriptor(0) == 'generic'){
+                      //print('workingValue: $workingValue, len=${_playerList.length}');
+                      if (_playerList.length == 4) {
+                        if (workingValue! > getGamesFor4()) workingValue = 0;
+                      } else if (_playerList.length == 5) {
+                        if (workingValue! > getGamesFor5()) workingValue = 0;
+                      } else  {
+                        if (workingValue! > getGamesFor6()) workingValue = 0;
+                      }
+                    } else if (getSportDescriptor(0) == 'pickleballRG') {
                       if (_numGames == 3) {
                         if (workingValue! > 11) workingValue = 0;
                       } else {
@@ -688,7 +910,9 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
       int partner = (orderOfPartners[game])[lastPlayerWithScore];
       List result = [-1, -1, -1, -1];
       int score1 = getScore(lastPlayerWithScore, game)!;
-      if (getSportDescriptor(0) == 'pickleballRG') {
+      if (getSportDescriptor(1).contains('singles')) {
+        return null;
+      } else  if (getSportDescriptor(0) == 'pickleballRG') {
         if (score1 >= 11) return null;
         int score2 = 11;
         result[lastPlayerWithScore] = score1;
@@ -704,9 +928,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
         for (int i = 0; i < result.length; i++) {
           if (result[i] < 0) result[i] = score2;
         }
-      } else if (getSportDescriptor(1) == 'rg_singles') {
-        return null;
-      } else {
+      } else  {
         if (score1 > 8) return null;
         int score2 = 8 - score1;
         result[lastPlayerWithScore] = score1;
@@ -739,8 +961,9 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
       } else if (getSportDescriptor(1) == 'rg_singles') {
         return null; // can not autofill for singles
       } else {
-        if (score1 > 8)
+        if (score1 > 8) {
           return null; // this is just an error that should not occur
+        }
         int score2 = 8 - score1;
         result[lastPlayerWithScore] = score1;
         result[playerWithSameScore] = score1;
@@ -776,7 +999,9 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
       int partner = (orderOfPartners[game])[lastPlayerWithScore];
       List result = [-1, -1, -1, -1, -1];
       int score1 = getScore(lastPlayerWithScore, game)!;
-      if (getSportDescriptor(0) == 'pickleballRG') {
+      if (getSportDescriptor(1).contains('singles')) {
+        return null;
+      } else if (getSportDescriptor(0) == 'pickleballRG') {
         if (score1 >= 9) return null;
         int score2 = 9;
         result[lastPlayerWithScore] = score1;
@@ -794,9 +1019,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
           if (result[i] < 0) result[i] = score2;
         }
         result[4 - game] = null;
-      } else if (getSportDescriptor(1) == 'rg_singles') {
-        return null;
-      } else {
+      } else  {
         if (score1 > 6) return null;
         int score2 = 6 - score1;
         result[lastPlayerWithScore] = score1;
@@ -1522,8 +1745,9 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                                     oldValue: _gameScoresStr);
                                 String newScoresEnteredBy =
                                     scoreSnapshot.get('ScoresEnteredBy');
-                                if (newScoresEnteredBy.isNotEmpty)
+                                if (newScoresEnteredBy.isNotEmpty) {
                                   newScoresEnteredBy += '|';
+                                }
                                 transaction.update(
                                     firestore
                                         .collection('Ladder')
@@ -1645,8 +1869,9 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                           newValue: 'True',
                           oldValue: 'n/a');
                       String newScoresEnteredBy = _scoresEnteredBy;
-                      if (newScoresEnteredBy.isNotEmpty)
+                      if (newScoresEnteredBy.isNotEmpty) {
                         newScoresEnteredBy += '|';
+                      }
                       await firestore
                           .collection('Ladder')
                           .doc(widget.ladderName)
