@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 // which is in batch file cors.refresh
 bool enableImages = true;
 const String fireStoreCollectionName = "social-sport-ladder";
-const int softwareVersion = 96;
+const int softwareVersion = 99;
 
 //colors
 Color surfaceColor = Colors.grey.shade300;
@@ -40,7 +40,8 @@ var errorNameStyle = TextStyle(
 var italicNameStyle = TextStyle(
     decoration: TextDecoration.none, fontStyle: FontStyle.italic, fontSize: appFontSize, fontWeight: FontWeight.normal);
 var nameBoldStyle = TextStyle(decoration: TextDecoration.none, fontSize: appFontSize, fontWeight: FontWeight.bold);
-
+var italicBoldNameStyle = TextStyle(
+    decoration: TextDecoration.none, fontStyle: FontStyle.italic, fontSize: appFontSize, fontWeight: FontWeight.bold);
 void setBaseFont(double fontSize){
   if (appFontSize == fontSize) return;
   appFontSize = fontSize;
@@ -56,6 +57,8 @@ void setBaseFont(double fontSize){
       fontWeight: FontWeight.bold);
   italicNameStyle = TextStyle(
       decoration: TextDecoration.none, fontStyle: FontStyle.italic, fontSize: appFontSize, fontWeight: FontWeight.normal);
+  italicBoldNameStyle = TextStyle(
+      decoration: TextDecoration.none, fontStyle: FontStyle.italic, fontSize: appFontSize, fontWeight: FontWeight.bold);
   nameBoldStyle = TextStyle(decoration: TextDecoration.none, fontSize: appFontSize, fontWeight: FontWeight.bold);
 }
 

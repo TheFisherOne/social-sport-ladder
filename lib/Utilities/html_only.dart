@@ -18,7 +18,13 @@ Text reloadWithNewVersion(double reqSoftwareVersion) {
     if (kDebugMode) {
       print('NEED NEW VERSION OF THE SOFTWARE $reqSoftwareVersion > $softwareVersion');
     }
-    web.window.location.reload();
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final currentUrl = web.window.location.href.split('?')[0]; // Remove existing query params
+    final newURL = '$currentUrl?v=$timestamp';
+
+    // Use assign() to navigate to the new URL, forcing a reload.
+    web.window.location.assign(newURL);
+    // web.window.location.reload();
 
     // print('trying web.window.location.assign to force reload');
     // final timestamp = DateTime.now().millisecondsSinceEpoch;

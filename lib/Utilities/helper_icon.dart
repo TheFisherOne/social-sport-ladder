@@ -189,151 +189,194 @@ Widget helperIcon(BuildContext context, String activeLadderId,
                                           adminFunctionInProgress = true;
                                           final navigator =
                                               Navigator.of(context);
-                                          if (courtAssignments != null) {
-                                            String result =
-                                                buildCsv(courtAssignments);
-                                            // print('RESULT: \n$result');
-                                            String filename =
-                                                '${activeLadderDoc!.get('DisplayName')}/History/'
-                                                        '${activeLadderDoc!.get('DisplayName')}_${activeLadderDoc!.get('FrozenDate')}.csv'
-                                                    .replaceAll(' ', '_');
-                                            try {
-                                              // print('writing to file $filename');
-                                              await firebase_storage
-                                                  .FirebaseStorage.instance
-                                                  .ref(filename)
-                                                  .putString(result,
-                                                      format: firebase_storage
-                                                          .PutStringFormat.raw);
-                                              // print('done writing to file 1');
-                                            } catch (e) {
-                                              if (kDebugMode) {
-                                                print(
-                                                    'Error on write to storage $e');
+                                          final scaffoldMessenger = ScaffoldMessenger.of(context);
+                                          try {
+                                            if (courtAssignments != null) {
+                                              String result =
+                                              buildCsv(courtAssignments);
+                                              // print('RESULT: \n$result');
+                                              String filename =
+                                              '${activeLadderDoc!.get(
+                                                  'DisplayName')}/History/'
+                                                  '${activeLadderDoc!.get(
+                                                  'DisplayName')}_${activeLadderDoc!
+                                                  .get('FrozenDate')}.csv'
+                                                  .replaceAll(' ', '_');
+                                              try {
+                                                // print('writing to file $filename');
+                                                await firebase_storage
+                                                    .FirebaseStorage.instance
+                                                    .ref(filename)
+                                                    .putString(result,
+                                                    format: firebase_storage
+                                                        .PutStringFormat.raw);
+                                                // print('done writing to file 1');
+                                              } catch (e) {
+                                                if (kDebugMode) {
+                                                  print(
+                                                      'Error on write to storage $e');
+                                                }
                                               }
-                                            }
-                                            // print('done writing to file');
+                                              // print('done writing to file');
 
-                                            await firestore.runTransaction(
-                                                (transaction) async {
-                                                  // print('starting transaction');
-                                              DocumentSnapshot activeLadderRef =
-                                                  await firestore
-                                                      .collection('Ladder')
-                                                      .doc(activeLadderId)
-                                                      .get();
-                                              // print('done get $activeLadderId');
-                                              List<String> daysOfPlay =
-                                                  activeLadderRef
-                                                      .get('DaysOfPlay')
-                                                      .split('|');
-                                              // print('daysOfPlay: $daysOfPlay');
-                                              List<String> newDaysOfPlay =
-                                                  List.empty(growable: true);
-                                              // DateTime now = DateTime.now();
-                                              TZDateTime now = getDateTimeNow();
-                                              for (int i = 0;
-                                                  i < daysOfPlay.length;
-                                                  i++) {
-                                                String thisDay = daysOfPlay[i];
-                                                // print('thisDay: $thisDay');
-                                                if (daysOfPlay[i].isEmpty) {
-                                                  continue;
-                                                }
-                                                DateTime? day;
-                                                try {
-                                                  day = DateFormat(
-                                                      'yyyy.MM.dd_HH:mm')
-                                                      .parse(thisDay);
-                                                } catch (e) {
-                                                  if (kDebugMode) {
-                                                    print('could not parse "$thisDay" in format yyyy.MM.dd_HH:mm');
-                                                  }
-                                                }
-                                                if ((day == null) || (day.compareTo(now) < 0)) {
-                                                  continue;
-                                                }
-                                                newDaysOfPlay.add(thisDay);
-                                              }
-                                              // print('newDaysOfPlay: $newDaysOfPlay');
-                                              int currentSeed =
-                                                  await activeLadderRef
-                                                      .get('RandomCourtOf5');
-                                              int newSeed =
-                                                  Random().nextInt(1000);
-                                              if (currentSeed < 1000) {
-                                                newSeed += 1000;
-                                              }
-                                              int currentRound =
-                                                  await activeLadderRef
-                                                      .get('CurrentRound');
-                                              if (getSportDescriptor(0) ==
-                                                  'pickleballRG') {
-                                                currentRound++;
-                                              }
-                                              // the Scores documents get initialized when the ladder is refrozen
-                                              for (var pl = 0;
-                                                  pl < courtAssignments.length;
-                                                  pl++) {
-                                                // print('in pl loop $pl');
-                                                DocumentReference playerRef =
-                                                    firestore
+                                              await firestore.runTransaction(
+                                                      (transaction) async {
+                                                    // print('starting transaction');
+                                                    DocumentSnapshot activeLadderRef =
+                                                    await firestore
                                                         .collection('Ladder')
                                                         .doc(activeLadderId)
-                                                        .collection('Players')
-                                                        .doc(
-                                                            courtAssignments[pl]
-                                                                .snapshot
-                                                                .id);
-                                                Map<String, dynamic>
-                                                    playerData = {
-                                                  'Rank': courtAssignments[pl]
-                                                      .afterWinLose,
-                                                  'ScoresConfirmed': false,
-                                                  'WeeksRegistered':
-                                                      FieldValue.increment(1),
-                                                };
-                                                if (getSportDescriptor(0) !=
-                                                    'pickleballRG') {
-                                                  playerData['Present'] = false;
-                                                }
-                                                if (!courtAssignments[pl]
-                                                    .present) {
-                                                  playerData['WeeksAway'] =
-                                                      FieldValue.increment(1);
+                                                        .get();
+                                                    // print('done get $activeLadderId');
+                                                    List<String> daysOfPlay =
+                                                    activeLadderRef
+                                                        .get('DaysOfPlay')
+                                                        .split('|');
+                                                    // print('daysOfPlay: $daysOfPlay');
+                                                    List<String> newDaysOfPlay =
+                                                    List.empty(growable: true);
+                                                    // DateTime now = DateTime.now();
+                                                    TZDateTime now = getDateTimeNow();
+                                                    for (int i = 0;
+                                                    i < daysOfPlay.length;
+                                                    i++) {
+                                                      String thisDay = daysOfPlay[i];
+                                                      // print('thisDay: $thisDay');
+                                                      if (daysOfPlay[i]
+                                                          .isEmpty) {
+                                                        continue;
+                                                      }
+                                                      DateTime? day;
+                                                      try {
+                                                        day = DateFormat(
+                                                            'yyyy.MM.dd_HH:mm')
+                                                            .parse(thisDay);
+                                                      } catch (e) {
+                                                        if (kDebugMode) {
+                                                          print(
+                                                              'could not parse "$thisDay" in format yyyy.MM.dd_HH:mm');
+                                                        }
+                                                      }
+                                                      if ((day == null) ||
+                                                          (day.compareTo(now) <
+                                                              0)) {
+                                                        continue;
+                                                      }
+                                                      newDaysOfPlay.add(
+                                                          thisDay);
+                                                    }
+                                                    // print('newDaysOfPlay: $newDaysOfPlay');
+                                                    int currentSeed =
+                                                    await activeLadderRef
+                                                        .get('RandomCourtOf5');
+                                                    int newSeed =
+                                                    Random().nextInt(1000);
+                                                    if (currentSeed < 1000) {
+                                                      newSeed += 1000;
+                                                    }
+                                                    int currentRound =
+                                                    await activeLadderRef
+                                                        .get('CurrentRound');
+                                                    if (getSportDescriptor(0) ==
+                                                        'pickleballRG') {
+                                                      currentRound++;
+                                                    }
+                                                    // the Scores documents get initialized when the ladder is refrozen
+                                                    for (var pl = 0;
+                                                    pl <
+                                                        courtAssignments.length;
+                                                    pl++) {
+                                                      // print('in pl loop $pl');
+                                                      DocumentReference playerRef =
+                                                      firestore
+                                                          .collection('Ladder')
+                                                          .doc(activeLadderId)
+                                                          .collection('Players')
+                                                          .doc(
+                                                          courtAssignments[pl]
+                                                              .snapshot
+                                                              .id);
+                                                      Map<String, dynamic>
+                                                      playerData = {
+                                                        'Rank': courtAssignments[pl]
+                                                            .afterWinLose,
+                                                        'ScoresConfirmed': false,
+                                                        'WeeksRegistered':
+                                                        FieldValue.increment(1),
+                                                      };
+                                                      if (getSportDescriptor(
+                                                          0) !=
+                                                          'pickleballRG') {
+                                                        playerData['Present'] =
+                                                        false;
+                                                      }
+                                                      if (!courtAssignments[pl]
+                                                          .present) {
+                                                        playerData['WeeksAway'] =
+                                                            FieldValue
+                                                                .increment(1);
 
-                                                  if (!courtAssignments[pl]
-                                                      .markedAway) {
-                                                    playerData[
-                                                            'WeeksAwayWithoutNotice'] =
-                                                        FieldValue.increment(1);
-                                                  }
-                                                }
-                                                transaction.update(
-                                                    playerRef, playerData);
-                                              }
-                                              DocumentReference ladderRef =
-                                                  firestore
-                                                      .collection('Ladder')
-                                                      .doc(activeLadderId);
-                                              transaction.update(ladderRef, {
-                                                'FreezeCheckIns': false,
-                                                'FrozenDate': '',
-                                                'RandomCourtOf5': newSeed,
-                                                'CurrentRound': currentRound,
-                                                'DaysOfPlay':
-                                                    newDaysOfPlay.join('|'),
-                                                'NumberFromWaitlist': 0,
-                                                'WeeksPlayed':
-                                                    FieldValue.increment(1),
-                                              });
-                                              writeAudit(
-                                                  user: activeUser.id,
-                                                  documentName: activeLadderId,
-                                                  action: 'Finalize and move',
-                                                  newValue: true.toString(),
-                                                  oldValue: 'new Random ${newSeed}');
-                                            });
+                                                        if (!courtAssignments[pl]
+                                                            .markedAway) {
+                                                          playerData[
+                                                          'WeeksAwayWithoutNotice'] =
+                                                              FieldValue
+                                                                  .increment(1);
+                                                        }
+                                                      }
+                                                      transaction.update(
+                                                          playerRef,
+                                                          playerData);
+                                                    }
+                                                    DocumentReference ladderRef =
+                                                    firestore
+                                                        .collection('Ladder')
+                                                        .doc(activeLadderId);
+                                                    transaction.update(
+                                                        ladderRef, {
+                                                      'FreezeCheckIns': false,
+                                                      'FrozenDate': '',
+                                                      'RandomCourtOf5': newSeed,
+                                                      'CurrentRound': currentRound,
+                                                      'DaysOfPlay':
+                                                      newDaysOfPlay.join('|'),
+                                                      'NumberFromWaitlist': 0,
+                                                      'WeeksPlayed':
+                                                      FieldValue.increment(1),
+                                                    });
+                                                    writeAudit(
+                                                        user: activeUser.id,
+                                                        documentName: activeLadderId,
+                                                        action: 'Finalize and move',
+                                                        newValue: true
+                                                            .toString(),
+                                                        oldValue: 'new Random $newSeed');
+                                                  });
+                                            }
+                                          } catch (e,s) {
+                                            // Log the error for debugging purposes
+                                            if (kDebugMode) {
+                                              print('An error occurred during finalization: $e');
+                                              print('Stack trace: $s');
+                                            }
+
+                                            // Show a SnackBar to the operator with the error message
+                                            scaffoldMessenger.showSnackBar(
+                                              SnackBar(
+                                                content: Text('Error finalizing results: $e\n\nStack trace: $s'),
+                                                backgroundColor: Colors.red,
+                                                duration: const Duration(seconds: 30),
+                                                action: SnackBarAction(
+                                                  label: 'DISMISS',
+                                                  textColor: Colors.black,
+                                                  backgroundColor: Colors.white,
+                                                  onPressed: () {
+                                                    // Hide the SnackBar when the button is pressed
+                                                    scaffoldMessenger.hideCurrentSnackBar();
+                                                  },
+                                                ),
+                                              ),
+                                            );
                                           }
                                           adminFunctionInProgress = false;
                                           navigator.pop();

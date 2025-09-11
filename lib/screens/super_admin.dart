@@ -348,16 +348,13 @@ class _SuperAdminState extends State<SuperAdmin> {
                               DocumentReference playerRef = firestore.collection('Ladder').doc(ladderId).collection('Players').doc(playerId);
                               Map<String, dynamic>? playerData = playerDoc.data() as Map<String, dynamic>?;
                               if (playerData == null) continue;
-                              if (playerData.containsKey('WeeksAwayWithOutNotice') ||
-                                  (playerDoc.get('WeeksRegistered') != 1) ||
-                                  (playerDoc.get('WeeksAway') != 0) ||
-                                  (playerDoc.get('WeeksAwayWithoutNotice') != 0)) {
+                              if (!playerData.containsKey('MatchScores') ) {
                                 if (kDebugMode) {
                                   print('update doc ${playerDoc.id}  count:$batchCount');
                                 }
                                 batchCount ++;
                                 batch.update(playerRef, {
-                                  // 'WeeksRegistered': 1,
+                                  // 'MatchScores': '',
                                   // 'WeeksAway': 0,
                                   // 'WeeksAwayWithOutNotice': FieldValue.delete(),
                                   // 'WeeksAwayWithoutNotice': 0,

@@ -1637,7 +1637,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
           backgroundColor: Colors.green[50],
           appBar: AppBar(
             title: Text(
-                'Score: ${widget.ladderName} C:${widget.court.toString()}'),
+                'Score: ${widget.activeLadderDoc.get('DisplayName')} C:${widget.court.toString()}'),
             backgroundColor: Colors.green[400],
             elevation: 0.0,
             // automaticallyImplyLeading: false,

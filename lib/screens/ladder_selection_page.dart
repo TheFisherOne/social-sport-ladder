@@ -312,7 +312,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
       } catch (_) {}
       String errorText = 'Not a supported user "$loggedInUser"';
       if (_userLadders.isEmpty) {
-        errorText = '"$loggedInUser" is not on any ladder';
+        errorText = '"$loggedInUser" is not on any ladder\nDo you have another email address?';
       }
 
       if (_userLadders.isEmpty || !userOk) {

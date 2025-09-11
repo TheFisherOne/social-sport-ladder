@@ -528,7 +528,7 @@ class _PlayerHomeState extends State<PlayerHome>
             Expanded(
               child: Text(
                 ' $rank${(waitListRank > 0) ? "w$waitListRank" : ""}: ${player.get('Name')}',
-                style: isUserRow ? nameBoldStyle : ((player.get('Helper') ?? false) ? italicNameStyle : nameStyle),
+                style: isUserRow ? ((player.get('Helper') ?? false) ? italicBoldNameStyle :italicNameStyle ): ((player.get('Helper') ?? false) ? italicNameStyle : nameStyle),
               ),
             ),
           ]),

@@ -100,6 +100,7 @@ Future<void> movePlayerDown(String fromLadder, String toLadder) async {
       'WeeksRegistered':highestPlayerDoc.get('WeeksRegistered'),
       'WeeksAway':highestPlayerDoc.get('WeeksAway'),
       'WeeksAwayWithoutNotice':highestPlayerDoc.get('WeeksAwayWithoutNotice'),
+      'MatchScores':'',
     });
 
     // now delete it from the fromLadder
@@ -181,6 +182,7 @@ Future<void> movePlayerUp(String fromLadder, String toLadder) async {
       'WeeksRegistered':fromPlayerDoc.get('WeeksRegistered'),
       'WeeksAway':fromPlayerDoc.get('WeeksAway'),
       'WeeksAwayWithoutNotice':fromPlayerDoc.get('WeeksAwayWithoutNotice'),
+      'MatchScores':'',
     });
 
     // now delete it from the fromLadder
@@ -357,6 +359,7 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
           'WeeksRegistered':0,
           'WeeksAway':0,
           'WeeksAwayWithoutNotice':0,
+          'MatchScores':'',
         });
 
         // print('addPlayer: audit');
