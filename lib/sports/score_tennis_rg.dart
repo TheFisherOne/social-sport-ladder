@@ -342,8 +342,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
         _gameScoreErrors[game] = !allOK;
       }
     } else
-    if (getSportDescriptor(1) == 'rg_singles') {
-      // print('gameScoreErrors, rg_singles _numGames: $_numGames');
+    if (getSportDescriptor(1).contains('singles')) {
       _gameScoreErrors = List.filled(_numGames, false);
       for (int game = 0; game < _numGames; game++) {
         bool allOK = true;
@@ -843,7 +842,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                       } else {
                         if (workingValue! > 21) workingValue = 0;
                       }
-                    } else if (getSportDescriptor(1) == 'rg_singles') {
+                    } else if (getSportDescriptor(1).contains('singles')) {
                       if (_numGames == 3) {
                         if (workingValue! > 8) workingValue = 0;
                       } else {
@@ -958,7 +957,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
         for (int i = 0; i < result.length; i++) {
           if (result[i] < 0) result[i] = score2;
         }
-      } else if (getSportDescriptor(1) == 'rg_singles') {
+      } else if (getSportDescriptor(1).contains('singles')) {
         return null; // can not autofill for singles
       } else {
         if (score1 > 8) {
@@ -1077,7 +1076,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
       //for last divider line
       itemBuilder: (BuildContext context, int row) {
         if (row == _playerList.length) {
-          if ((!widget.allowEdit) || (getSportDescriptor(1) == 'rg_singles')) {
+          if ((!widget.allowEdit) || (getSportDescriptor(1).contains('singles'))) {
             return SizedBox(
               height: 1,
             );
@@ -1215,7 +1214,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
       //for last divider line
       itemBuilder: (BuildContext context, int row) {
         if (row == _playerList.length) {
-          if (getSportDescriptor(1) == 'rg_singles') {
+          if (getSportDescriptor(1).contains('singles') ) {
             return SizedBox(
               height: 1,
             );
@@ -1400,7 +1399,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
       itemBuilder: (BuildContext context, int row) {
         if (row == _playerList.length) {
           // no autofill for singles
-          if (getSportDescriptor(1) == 'rg_singles') {
+          if (getSportDescriptor(1).contains('singles')) {
             return SizedBox(
               height: 1,
             );

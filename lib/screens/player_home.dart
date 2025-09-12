@@ -724,10 +724,11 @@ class _PlayerHomeState extends State<PlayerHome>
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),
                             icon: Icon(
-                              waitingForFreezeCheckins?Icons.hourglass_bottom:((activeLadderDoc!.get('FreezeCheckIns') ?? false) ? Icons.pause : Icons.play_arrow),
+                              waitingForFreezeCheckins?Icons.hourglass_bottom:
+                              ((activeLadderDoc!.get('FreezeCheckIns') ?? false) ? Icons.pause : Icons.play_arrow),
                               size: 30,
                             ),
-                            onPressed: () async {
+                            onPressed: () {
                               setState(() {
                                 waitingForFreezeCheckins = true;
                               });

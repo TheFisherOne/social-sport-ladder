@@ -152,7 +152,7 @@ List<PlayerList>? sportTennisRGDetermineMovement(List<QueryDocumentSnapshot>? pl
   PlayerList.numCourtsOf5 = 0;
   PlayerList.numCourtsOf6 = 0;
 
-  if ((getSportDescriptor(1) == 'rg_singles') && [6,11,16].contains(PlayerList.numPresent)){
+  if ((getSportDescriptor(1).contains('singles')) && [6,11,16].contains(PlayerList.numPresent)){
     if (PlayerList.numPresent == 6){
       PlayerList.numCourts=1;
       PlayerList.numCourtsOf6=1;
@@ -440,7 +440,7 @@ class CourtAssignmentsRgStandard{
     }
     
     // drop players if the number of players can not be handled
-    if ( (getSportDescriptor(1) == 'rg_singles') && (presentPlayers.length==6) || (presentPlayers.length==11)) {
+    if ( (getSportDescriptor(1).contains('singles')) && (presentPlayers.length==6) || (presentPlayers.length==11)) {
 
     } else {
       while ([6, 7, 11].contains(presentPlayers.length)) {
@@ -481,7 +481,7 @@ class CourtAssignmentsRgStandard{
     // now shorten the list of names to just what we will be using
     usedCourtNames = usedCourtNames.sublist(0,totalCourts);
 
-    if ( (getSportDescriptor(1) == 'rg_singles') && (presentPlayers.length==6)) {
+    if ( (getSportDescriptor(1).contains('singles')) && (presentPlayers.length==6)) {
       courtsOfFive=0;
       courtsOfFour=0;
       numberOnCourt = List.filled(1, 6);
@@ -491,7 +491,7 @@ class CourtAssignmentsRgStandard{
         assignedCourtNumber[pl] = 1;
         playersOnEachCourt[0].add(presentPlayers[pl]);
       }
-    } else if ( (getSportDescriptor(1) == 'rg_singles') && (presentPlayers.length==11)){
+    } else if ( (getSportDescriptor(1).contains('singles')) && (presentPlayers.length==11)){
       courtsOfFive=1;
       courtsOfFour=0;
       numberOnCourt = List.filled(2, 5);
@@ -513,7 +513,7 @@ class CourtAssignmentsRgStandard{
           currentCourt++;
         }
       }
-    } else if ( (getSportDescriptor(1) == 'rg_singles') && (presentPlayers.length==16)){
+    } else if ( (getSportDescriptor(1).contains('singles')) && (presentPlayers.length==16)){
       courtsOfFive=2;
       courtsOfFour=0;
       numberOnCourt = List.filled(3, 5);
@@ -627,7 +627,22 @@ class CourtAssignmentsRgStandard{
 
     // now shuffle the courtNames around to each court that is playing
     shuffledCourtNames = usedCourtNames.toList();
-    if (getSportDescriptor(1) == 'rg_mens') {
+    if (getSportDescriptor(0) == 'generic') {
+      int  courtCount = getSportDescriptorInt('alternate');
+      if (courtCount > 0) {
+        List<String> newNames = List.empty(growable: true);
+        for (int i = 0; i < courtCount; i++) {
+          if ((i + courtCount) < usedCourtNames.length) {
+            newNames.add(usedCourtNames[i + courtCount]);
+          }
+        }
+        for (int i = 0; i < (usedCourtNames.length - courtCount); i++) {
+          newNames.add(usedCourtNames[i]);
+        }
+        shuffledCourtNames = newNames;
+      }
+
+    } else if (getSportDescriptor(1) == 'rg_mens') {
       if (activeLadderDoc!.get('RandomCourtOf5') > 1000) {
         int numToMove = usedCourtNames.length - 3;
         if (numToMove > 0) {
@@ -671,11 +686,11 @@ class CourtAssignmentsRgStandard{
       // do no shuffle
     }else if (getSportDescriptor(0) == 'badmintonRG') {
       // do no shuffle
-    } else if (getSportDescriptor(1) == 'rg_singles') {
+    } else if (getSportDescriptor(1).contains('doubles')) {
       // do no shuffle
     }else {
       if (kDebugMode) {
-        print('ERROR: sportDesciptor[1] not found for shuffle ${getSportDescriptor(1)} for ${activeLadderDoc!.id}');
+        print('ERROR: sportDescriptor[1] not found for shuffle ${getSportDescriptor(1)} for ${activeLadderDoc!.id}');
       }
     }
     //print('shuffledCourtNames: $shuffledCourtNames');
@@ -684,63 +699,178 @@ class CourtAssignmentsRgStandard{
 
 }
 
-
-
-Future<void> sportTennisRGprepareForScoreEntry(List<QueryDocumentSnapshot>? players) async {
-  // this should be called once by the person switching the mode of the ladder
-  CourtAssignmentsRgStandard courtAssignments = CourtAssignmentsRgStandard(players!);
-  String currentDate = DateFormat('yyyy.MM.dd').format(getDateTimeNow());
-  int currentRound = activeLadderDoc!.get('CurrentRound');
-  int numCourts = courtAssignments.numberOnCourt.length;
-  String dateStr = '${currentDate}_${currentRound.toString()}';
-
-
-  // have to update all players even ones not assigned to a court
-  for (QueryDocumentSnapshot player in players){
-    await firestore.collection('Ladder').doc(activeLadderId).collection('Players').doc(player.id).update({
-      'TotalScore':0,
-      'MatchScores': '',
-      'StartingOrder': 0,
-    });
+Future<void> sportTennisRGPrepareForScoreEntry(List<QueryDocumentSnapshot>? players) async {
+  if (players == null || players.isEmpty) {
+    if (kDebugMode) {
+      print("No players provided, aborting score entry preparation.");
+    }
+    return;
   }
 
-  for (int court = 0; court < numCourts; court++) {
-    String docStr = '${dateStr}_C#${(court + 1).toString()}';
-    List crt = courtAssignments.playersOnEachCourt[court];
-    String players = '';
-    String ranks = '';
-    String gameScores = '';
-    for (int j = 0; j < crt.length; j++) {
-      if (j != 0) {
-        players += '|';
-        ranks += '|';
-        gameScores += '|';
+  CourtAssignmentsRgStandard courtAssignments = CourtAssignmentsRgStandard(players);
+  String currentDate = DateFormat('yyyy.MM.dd').format(getDateTimeNow());
+
+  await firestore.runTransaction((transaction) async {
+    DocumentReference ladderRef = firestore.collection('Ladder').doc(activeLadderId);
+    DocumentSnapshot activeLadderSnapshot = await transaction.get(ladderRef);
+
+    if (!activeLadderSnapshot.exists) {
+      throw Exception("Ladder document $activeLadderId does not exist!");
+    }
+
+    // Check if check-ins are already frozen
+    bool alreadyFrozen = false;
+    try {
+      alreadyFrozen = activeLadderSnapshot.get('FreezeCheckIns') as bool? ?? false;
+    } catch (e) {
+      // Field might not exist yet, treat as not frozen
+      if (kDebugMode) {
+        print("FreezeCheckIns field not found or not a boolean, assuming not frozen: $e");
       }
-      players += crt[j]!.id;
-      ranks += crt[j]!.get('Rank').toString();
-      gameScores += (courtAssignments.playersOnEachCourt[court].length == 4) ? ',,' : ',,,,';
-      await firestore.collection('Ladder').doc(activeLadderId).collection('Players').doc(crt[j]!.id).update({
-        'StartingOrder': j+1,
+    }
+
+    if (alreadyFrozen) {
+      if (kDebugMode) {
+        print("Check-ins are already frozen. No action taken.");
+      }
+      // If already frozen, we might want to log this attempt or simply do nothing.
+      // For now, we'll just return and not proceed with other operations.
+      return; // Exit the transaction early
+    }
+
+    int currentRound = activeLadderSnapshot.get('CurrentRound') as int? ?? 1; // Default to 1 if not found
+    int numCourts = courtAssignments.numberOnCourt.length;
+    String dateStr = '${currentDate}_${currentRound.toString()}';
+    String oldFreezeCheckInsValue = (activeLadderSnapshot.data() as Map<String, dynamic>).containsKey('FreezeCheckIns')
+        ? activeLadderSnapshot.get('FreezeCheckIns').toString()
+        : 'false'; // Or null if you prefer for "does not exist"
+
+    // Update all players
+    for (QueryDocumentSnapshot playerDocSnapshot in players) {
+      DocumentReference playerRef = ladderRef.collection('Players').doc(playerDocSnapshot.id);
+      transaction.update(playerRef, {
+        'TotalScore': 0,
+        'MatchScores': '',
+        'StartingOrder': 0,
       });
     }
 
-    await firestore.collection('Ladder').doc(activeLadderId).collection('Scores').doc(docStr).set({
-      'BeingEditedBy': '',
-      'EditedSince': getDateTimeNow(),
-      'GameScores': gameScores,
-      'Players': players,
-      'StartingRanks': ranks,
-      'EndingRanks': '',
-      'ScoresEnteredBy': '',
-    });
-  }
-  writeAudit(user: activeUser.id, documentName: 'LadderConfig', action: 'Set FreezeCheckIns', newValue: true.toString(), oldValue: false.toString());
+    for (int court = 0; court < numCourts; court++) {
+      String scoreDocId = '${dateStr}_C#${(court + 1).toString()}';
+      DocumentReference scoreRef = ladderRef.collection('Scores').doc(scoreDocId);
+      List<QueryDocumentSnapshot> courtPlayers = courtAssignments.playersOnEachCourt[court]; // Assuming this contains QueryDocumentSnapshot
+      String playersStr = '';
+      String ranksStr = '';
+      String gameScoresStr = '';
 
-  await firestore.collection('Ladder').doc(activeLadderId).update({
-    'FreezeCheckIns': true,
-    'FrozenDate': dateStr,
+      for (int j = 0; j < courtPlayers.length; j++) {
+        QueryDocumentSnapshot playerOnCourt = courtPlayers[j];
+        if (j != 0) {
+          playersStr += '|';
+          ranksStr += '|';
+          gameScoresStr += '|';
+        }
+        playersStr += playerOnCourt.id;
+        ranksStr += playerOnCourt.get('Rank').toString();
+        gameScoresStr += (courtAssignments.playersOnEachCourt[court].length == 4) ? ',,' : ',,,,';
+
+        DocumentReference playerRef = ladderRef.collection('Players').doc(playerOnCourt.id);
+        transaction.update(playerRef, {
+          'StartingOrder': j + 1,
+        });
+      }
+
+      transaction.set(scoreRef, {
+        'BeingEditedBy': '',
+        'EditedSince': FieldValue.serverTimestamp(), // Use server timestamp
+        'GameScores': gameScoresStr,
+        'Players': playersStr,
+        'StartingRanks': ranksStr,
+        'EndingRanks': '',
+        'ScoresEnteredBy': '',
+      });
+    }
+
+    transactionAudit(
+      transaction: transaction,
+      user: activeUser.id, // Ensure activeUser and its id are available
+      documentName: 'LadderConfig', // Or more specific like activeLadderId itself
+      action: 'Set FreezeCheckIns',
+      newValue: true.toString(),
+      oldValue: oldFreezeCheckInsValue,
+    );
+
+    transaction.update(ladderRef, {
+      'FreezeCheckIns': true,
+      'FrozenDate': dateStr,
+    });
+  }).then((_) {
+    if (kDebugMode) {
+      print("Score entry preparation transaction completed successfully.");
+    }
+  }).catchError((error) {
+    if (kDebugMode) {
+      print("Failed to prepare scores for entry: $error");
+    }
+    // Handle the error appropriately, e.g., show a message to the user
   });
 }
+
+// Future<void> sportTennisRGPrepareForScoreEntry(List<QueryDocumentSnapshot>? players) async {
+//   // this should be called once by the person switching the mode of the ladder
+//   CourtAssignmentsRgStandard courtAssignments = CourtAssignmentsRgStandard(players!);
+//   String currentDate = DateFormat('yyyy.MM.dd').format(getDateTimeNow());
+//   int currentRound = activeLadderDoc!.get('CurrentRound');
+//   int numCourts = courtAssignments.numberOnCourt.length;
+//   String dateStr = '${currentDate}_${currentRound.toString()}';
+//
+//
+//   // have to update all players even ones not assigned to a court
+//   for (QueryDocumentSnapshot player in players){
+//     await firestore.collection('Ladder').doc(activeLadderId).collection('Players').doc(player.id).update({
+//       'TotalScore':0,
+//       'MatchScores': '',
+//       'StartingOrder': 0,
+//     });
+//   }
+//
+//   for (int court = 0; court < numCourts; court++) {
+//     String docStr = '${dateStr}_C#${(court + 1).toString()}';
+//     List crt = courtAssignments.playersOnEachCourt[court];
+//     String players = '';
+//     String ranks = '';
+//     String gameScores = '';
+//     for (int j = 0; j < crt.length; j++) {
+//       if (j != 0) {
+//         players += '|';
+//         ranks += '|';
+//         gameScores += '|';
+//       }
+//       players += crt[j]!.id;
+//       ranks += crt[j]!.get('Rank').toString();
+//       gameScores += (courtAssignments.playersOnEachCourt[court].length == 4) ? ',,' : ',,,,';
+//       await firestore.collection('Ladder').doc(activeLadderId).collection('Players').doc(crt[j]!.id).update({
+//         'StartingOrder': j+1,
+//       });
+//     }
+//
+//     await firestore.collection('Ladder').doc(activeLadderId).collection('Scores').doc(docStr).set({
+//       'BeingEditedBy': '',
+//       'EditedSince': getDateTimeNow(),
+//       'GameScores': gameScores,
+//       'Players': players,
+//       'StartingRanks': ranks,
+//       'EndingRanks': '',
+//       'ScoresEnteredBy': '',
+//     });
+//   }
+//   writeAudit(user: activeUser.id, documentName: 'LadderConfig', action: 'Set FreezeCheckIns', newValue: true.toString(), oldValue: false.toString());
+//
+//   await firestore.collection('Ladder').doc(activeLadderId).update({
+//     'FreezeCheckIns': true,
+//     'FrozenDate': dateStr,
+//   });
+// }
 
 List<Color> courtColors = [Colors.yellow, Colors.green, Colors.cyan, Colors.grey];
 Widget courtTile(CourtAssignmentsRgStandard courtAssignments, int court, Color courtColor,

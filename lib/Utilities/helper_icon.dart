@@ -554,8 +554,8 @@ Widget helperIcon(BuildContext context, String activeLadderId,
                                         activeLadderDoc!.get('LowerLadder'));
                                     adminFunctionInProgress = false;
                                     if (!context.mounted) return;
-                                    navigator.pop(context);
-                                    navigator.pop(context);
+                                    navigator.pop();
+                                    navigator.pop();
                                   },
                                   label: Text(
                                       'Move bottom player down to lower ladder ${activeLadderDoc!.get('LowerLadder')}')),
@@ -621,8 +621,8 @@ Widget helperIcon(BuildContext context, String activeLadderId,
                                   }
                                   adminFunctionInProgress = false;
                                   if (!context.mounted) return;
-                                  navigator.pop(context);
-                                  navigator.pop(context);
+                                  navigator.pop();
+                                  navigator.pop();
                                 },
                                 label: Text(
                                     'Reset WeeksAway and WeeksAwayWithoutNotice stats'),

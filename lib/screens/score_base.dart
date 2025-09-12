@@ -30,7 +30,35 @@ void showFrozenLadderPage( dynamic context, DocumentSnapshot activeLadderDoc, bo
     Navigator.push(context, MaterialPageRoute(builder: (context) => page));
   }
 }
+String getSportDescriptorString(String key){
+  String result='';
+  List<String> fullList = activeLadderDoc!.get('SportDescriptor').split('|');
+  if (fullList.length <= 1) return result;
+  if (fullList[0] != 'generic') return result;
+  fullList.removeAt(0);
+  for (String option in fullList) {
+    if (option.startsWith('$key=')){
+      try{
+        result = (option.split('=')[1]);
+      } catch(_){}
+      return result;
+    }
+  }
+  return result;
+}
 
+int getSportDescriptorInt(String key){
+  int result = 0;
+  if (getSportDescriptor(0) == 'generic') {
+    String resultString = getSportDescriptorString(key);
+    if (resultString.isNotEmpty) {
+      try {
+        result = int.parse(resultString);
+      } catch (_) {}
+    }
+  }
+  return result;
+}
 int getGamesFor4(){
   int games=8;
   if (getSportDescriptor(0) == 'generic')  {
@@ -119,19 +147,19 @@ bool sportDescriptorIncludes(String descriptor){
   return false;
 }
 
-Future<void> prepareForScoreEntry(DocumentSnapshot activeLadderDoc, List<QueryDocumentSnapshot>? players) async {
+prepareForScoreEntry(DocumentSnapshot activeLadderDoc, List<QueryDocumentSnapshot>? players)  {
 
 if (getSportDescriptor(0) == 'tennisRG') {
-  await sportTennisRGprepareForScoreEntry(players);
+   sportTennisRGPrepareForScoreEntry(players);
   return;
 } else if (getSportDescriptor(0) == 'pickleballRG') {
-  await sportTennisRGprepareForScoreEntry(players);
+   sportTennisRGPrepareForScoreEntry(players);
   return;
 }else if (getSportDescriptor(0) == 'badmintonRG') {
-  await sportTennisRGprepareForScoreEntry(players);
+   sportTennisRGPrepareForScoreEntry(players);
   return;
 } else if (getSportDescriptor(0) == 'generic') {
-  await sportTennisRGprepareForScoreEntry(players);
+   sportTennisRGPrepareForScoreEntry(players);
   return;
 }
 if (kDebugMode) {
