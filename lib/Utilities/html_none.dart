@@ -6,7 +6,7 @@ import '../screens/calendar_page.dart';
 void reloadWithNewVersion(double reqSoftwareVersion) {
 
 }
-Text reloadHtml(double reqSoftwareVersion) {
+Text reloadHtml(BuildContext context,double reqSoftwareVersion) {
 return Text('You must update the app, the version is too old $softwareVersion<$reqSoftwareVersion');
 }
 

@@ -654,7 +654,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                             .get('RequiredSoftwareVersion') as num)
                         .toDouble();
                     if (reqSoftwareVersion > softwareVersion) {
-                      return reloadHtml(reqSoftwareVersion);
+                      return reloadHtml(context, reqSoftwareVersion);
                     }
 
                     bool disabled = availableDocs[row].get('Disabled');

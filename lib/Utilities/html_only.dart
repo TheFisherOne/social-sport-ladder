@@ -8,7 +8,7 @@ import 'package:flutter/material.dart';
 import '../constants/constants.dart';
 import '../screens/calendar_page.dart';
 
-Text reloadWithNewVersion(double reqSoftwareVersion) {
+Widget reloadWithNewVersion(BuildContext context, double reqSoftwareVersion) {
   if (kIsWeb) {
     // final timestamp = DateTime
     //     .now()
@@ -18,35 +18,75 @@ Text reloadWithNewVersion(double reqSoftwareVersion) {
     if (kDebugMode) {
       print('NEED NEW VERSION OF THE SOFTWARE $reqSoftwareVersion > $softwareVersion');
     }
-    final timestamp = DateTime.now().millisecondsSinceEpoch;
-    final currentUrl = web.window.location.href.split('?')[0]; // Remove existing query params
-    final newURL = '$currentUrl?v=$timestamp';
-
-    // Use assign() to navigate to the new URL, forcing a reload.
-    web.window.location.assign(newURL);
-    // web.window.location.reload();
-
-    // print('trying web.window.location.assign to force reload');
     // final timestamp = DateTime.now().millisecondsSinceEpoch;
-    // final newURL = '${web.window.location.href}?v=$timestamp';
+    // final currentUrl = web.window.location.href.split('?')[0]; // Remove existing query params
+    // final newURL = '$currentUrl?v=$timestamp';
+    //
+    // // Use assign() to navigate to the new URL, forcing a reload.
     // web.window.location.assign(newURL);
 
-    // web.window.location.replace(newURL);
-    // html.window.location.reload();
+      return Container(
+        padding: const EdgeInsets.all(16.0),
+        margin: const EdgeInsets.symmetric(horizontal: 8.0),
+        decoration: BoxDecoration(
+          color: Colors.red.withAlpha(100),
+          border: Border.all(color: Colors.red.shade700, width: 2),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Icon(Icons.system_update, color: Colors.red.shade700, size: 40),
+            const SizedBox(height: 12),
+            Text(
+              'Update Required',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: Theme.of(context).textTheme.titleLarge?.fontSize,
+                color: Colors.red.shade900,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'A mandatory update (v$reqSoftwareVersion) is available. Please reload the app to continue.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: Theme.of(context).textTheme.bodyMedium?.fontSize,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.refresh),
+              label: const Text('Reload Now'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red.shade700,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              onPressed: () {
+                // The reload is now safely triggered by direct user action.
+                if (kIsWeb) {
+                  final timestamp = DateTime.now().millisecondsSinceEpoch;
+                  // Get the base URL without any old query parameters.
+                  final currentUrl = web.window.location.href.split('?')[0];
+                  final newURL = '$currentUrl?v=$timestamp';
+                  // Use assign() to force a full page reload from the server.
+                  web.window.location.assign(newURL);
+                }
+              },
+            ),
+          ],
+        ),
+      );
 
-    // Future.delayed(Duration(milliseconds: 1000), () {
-    //   // if (html.window.location.href != newURL) {
-    //   //   html.window.location.href = newURL;
-    //   // }
-    //   if (web.window.location.href != newURL) {
-    //     web.window.location.href = newURL;
-    //   }
-    // });
   }
   return Text('YOU MUST FORCE A RELOAD you need V$reqSoftwareVersion', style: nameStyle,);
 
 }
-Text reloadHtml(double reqSoftwareVersion) {
+Widget reloadHtml(BuildContext context, double reqSoftwareVersion) {
   // if (web.window.navigator.serviceWorker != null) {
   //   web.window.navigator.serviceWorker!.getRegistrations().then((registrations) {
   //     for (var reg in registrations) {
@@ -58,7 +98,7 @@ Text reloadHtml(double reqSoftwareVersion) {
   //   });
   // } else
   {
-    return reloadWithNewVersion(reqSoftwareVersion);
+    return reloadWithNewVersion(context, reqSoftwareVersion);
   }
 }
 Future<void> downloadCsvFile(Event event) async {
