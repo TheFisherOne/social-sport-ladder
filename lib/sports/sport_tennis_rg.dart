@@ -1029,6 +1029,8 @@ class _SportTennisRGState extends State<SportTennisRG> {
           _players = playerSnapshots.data!.docs;
 
           _movement = sportTennisRGDetermineMovement(_players, _dateStr);
+          CourtAssignmentsRgStandard courtAssignments = CourtAssignmentsRgStandard(_players!);
+
           AppBar thisAppBar = AppBar(
             title: Text('${activeLadderDoc!.get('DisplayName')}'),
             backgroundColor: Color.lerp(activeLadderBackgroundColor, Colors.white,0.3),
@@ -1036,7 +1038,7 @@ class _SportTennisRGState extends State<SportTennisRG> {
             automaticallyImplyLeading: true,
             actions: [
               (activeUser.mayGetHelperIcon)?
-              helperIcon(context, activeLadderId, _movement) : SizedBox(width: 1),
+              helperIcon(context, activeLadderId, _movement, courtAssignments) : SizedBox(width: 1),
               SizedBox(width: 20),
             ],
           );
@@ -1049,9 +1051,6 @@ class _SportTennisRGState extends State<SportTennisRG> {
             );
           }
 
-          // var courtAssignments = assignCourtsStandard(_players);
-          CourtAssignmentsRgStandard courtAssignments = CourtAssignmentsRgStandard(_players!);
-          // courtAssignments['Movement'] = _movement;
           if (courtAssignments.errorString.isNotEmpty) {
             return Scaffold(
               backgroundColor: Colors.brown[50],

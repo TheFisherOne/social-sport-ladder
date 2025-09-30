@@ -12,6 +12,9 @@ import 'package:social_sport_ladder/sports/sport_tennis_rg.dart';
 import '../main.dart';
 import '../screens/audit_page.dart';
 
+
+Map<String,String> globalEmails={};
+
 class ScoreTennisRg extends StatefulWidget {
   final String ladderName;
 
@@ -52,6 +55,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
   late List<bool> _gameScoreErrors;
   bool _neverEdited = true;
   bool _loggedInPlayerOnCourt = false;
+  String _scoreEntryErrorString = '';
 
   List<PlayerList>? _movementList;
 
@@ -85,12 +89,22 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
   }
 
   void updateFromDoc() {
+    // print('updateFromDoc start');
     _scoresEnteredBy = widget.scoreDoc.get('ScoresEnteredBy');
     _scoresConfirmed = _scoresEnteredBy.endsWith(' CONFIRMED');
+
+    String playersStr = widget.scoreDoc.get('Players');
+    _playerList = playersStr.split('|');
+    // print('_playerList: ${_playerList.length}');
+
+    _numGames = 3;
+    if (_playerList.length == 5) _numGames = 5;
+    if (_playerList.length == 6) _numGames = 6;
 
     // we need to latch _beingEditedById to the current user if it has just been set
     // but the next update still shows it as empty
     String docBeingEditedById = widget.scoreDoc.get('BeingEditedBy');
+    // print('updateFromDoc start2 docBeingEditedById: $docBeingEditedById');
     if (docBeingEditedById.isNotEmpty) {
       // if it is someone else then we need to abort editing
       if ((_beingEditedById.isEmpty && (docBeingEditedById == activeUser.id))) {
@@ -103,18 +117,18 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
               'new user editing changes from "$_beingEditedById" to "$docBeingEditedById"');
         }
         _beingEditedById = docBeingEditedById;
+        // print('updateFromDoc4 _startTimer');
         _startTimer();
+        // print('updateFromDoc5 cancelWorkingScores');
         cancelWorkingScores();
+        // print('updateFromDoc6 after cancel');
       }
     }
-
+    // print('updateFromDoc3 _beingEditedById: $_beingEditedById');
     _beingEditedByName = playerIdToName(_beingEditedById);
 
-    String playersStr = widget.scoreDoc.get('Players');
-    _playerList = playersStr.split('|');
-    _numGames = 3;
-    if (_playerList.length == 5) _numGames = 5;
-    if (_playerList.length == 6) _numGames = 6;
+
+
 
     _allScoresEntered = true;
     _gameScoresStr = widget.scoreDoc.get('GameScores');
@@ -158,13 +172,14 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
           if (_playerList.length == 5) numGames = getGamesFor5();
           bool singles = false;
           if (getSportDescriptor(1).contains('singles')) {
-            singles=true;
+            singles = true;
           }
           String method = getScoringMethod();
           //print('numGames=$numGames, singles=$singles, method=$method');
           if (singles) {
             if (method == 'total') {
-              if (_playerList.length == 4) { // 4 players
+              if (_playerList.length == 4) {
+                // 4 players
                 // 2 scores have to add up to numGames and the other 2 have to add up to numGames
                 allOK = false;
                 if (scores.first != null) {
@@ -233,12 +248,13 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                 }
                 allOK = pairsCount == 3;
               }
-            } else { // max score not total score
+            } else {
+              // max score not total score
               // there should be exactly 2 entries that match the total score
               allOK = false;
-              if (((_playerList.length==4) && (scores.first == null)) ||
-                  ((_playerList.length==5) && (scores[1] == null)) ||
-                  ((_playerList.length==6) && (scores.first == null)) ){
+              if (((_playerList.length == 4) && (scores.first == null)) ||
+                  ((_playerList.length == 5) && (scores[1] == null)) ||
+                  ((_playerList.length == 6) && (scores.first == null))) {
                 allOK = false;
               } else {
                 int countOfFullScore = 0;
@@ -254,9 +270,11 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                 }
               }
             }
-          } else { // doubles
+          } else {
+            // doubles
             if (method == 'total') {
-              if (_playerList.length == 4) { // 4 players
+              if (_playerList.length == 4) {
+                // 4 players
                 // 2 scores have to add up to numGames and the other 2 have to add up to numGames
                 allOK = false;
                 if (scores.first != null) {
@@ -270,7 +288,8 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                       }
                       if (otherScore == numGames) {
                         // in doubles the scores should be in pairs
-                        if ((scores[0] == scores[1]) && (scores[2]==scores[3])) {
+                        if ((scores[0] == scores[1]) &&
+                            (scores[2] == scores[3])) {
                           allOK = true;
                         }
                       }
@@ -298,21 +317,22 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                       // print('singles score check2: $otherScore');
                       if (otherScore == numGames) {
                         // now check that there are 2 pairs of scores the same
-                        if ((scores[1] == scores[2]) && (scores[3]==scores[4])) {
+                        if ((scores[1] == scores[2]) &&
+                            (scores[3] == scores[4])) {
                           allOK = true;
                         }
-
                       }
                     }
                   }
                 }
               }
               // note that there is no 6 players in doubles
-            } else { // max score not total score
+            } else {
+              // max score not total score
               // there should be exactly 2 entries that match the total score
               allOK = false;
-              if (((_playerList.length==4) && (scores.first == null)) ||
-                (((_playerList.length==5) && (scores[1] == null)))){
+              if (((_playerList.length == 4) && (scores.first == null)) ||
+                  (((_playerList.length == 5) && (scores[1] == null)))) {
                 allOK = false;
               } else {
                 int countOfFullScore = 0;
@@ -341,8 +361,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
         }
         _gameScoreErrors[game] = !allOK;
       }
-    } else
-    if (getSportDescriptor(1).contains('singles')) {
+    } else if (getSportDescriptor(1).contains('singles')) {
       _gameScoreErrors = List.filled(_numGames, false);
       for (int game = 0; game < _numGames; game++) {
         bool allOK = true;
@@ -572,7 +591,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
             } else {
               if ((scores[1] != scores[2]) || (scores[3] != scores[4])) {
                 allOK = false;
-                }
+              }
               if ((scores[1]! + scores.last!) != addUpTo) {
                 allOK = false;
               }
@@ -651,11 +670,26 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
     }
     return null;
   }
+  void addToGlobalEmails(String email) async {
+    DocumentSnapshot<Map<String, dynamic>> userDoc =
+    await firestore.collection('Users').doc(email).get();
+    if (userDoc.exists && userDoc.data()!.containsKey('DisplayName')) {
+      // If it exists, add the email and DisplayName to the local map
+      setState(() {
+        globalEmails[email] = userDoc.data()!['DisplayName'];
+      });
+    }
+  }
 
   String emailToName(String email) {
     if (email.isEmpty) return '';
     QueryDocumentSnapshot<Object?>? doc = playerIdToDoc(email);
     if (doc == null) {
+      if (globalEmails.containsKey(email)) {
+        return globalEmails[email]!;
+      } else {
+        addToGlobalEmails(email);
+      }
       return 'Unknown';
     }
     return doc.get('Name');
@@ -690,6 +724,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
   void updateBeingEditedBy(String newId) {
     if (newId.isEmpty) {
       _beingEditedById = '';
+      cancelWorkingScores();
       firestore
           .collection('Ladder')
           .doc(widget.ladderName)
@@ -821,13 +856,13 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                 ? () {
                     // print('clicked on P:$playerNum, G:$gameNum V:$initialValue/$workingValue');
                     workingValue = (workingValue ?? 0) + 1;
-                    if (getSportDescriptor(0) == 'generic'){
+                    if (getSportDescriptor(0) == 'generic') {
                       //print('workingValue: $workingValue, len=${_playerList.length}');
                       if (_playerList.length == 4) {
                         if (workingValue! > getGamesFor4()) workingValue = 0;
                       } else if (_playerList.length == 5) {
                         if (workingValue! > getGamesFor5()) workingValue = 0;
-                      } else  {
+                      } else {
                         if (workingValue! > getGamesFor6()) workingValue = 0;
                       }
                     } else if (getSportDescriptor(0) == 'pickleballRG') {
@@ -911,7 +946,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
       int score1 = getScore(lastPlayerWithScore, game)!;
       if (getSportDescriptor(1).contains('singles')) {
         return null;
-      } else  if (getSportDescriptor(0) == 'pickleballRG') {
+      } else if (getSportDescriptor(0) == 'pickleballRG') {
         if (score1 >= 11) return null;
         int score2 = 11;
         result[lastPlayerWithScore] = score1;
@@ -927,7 +962,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
         for (int i = 0; i < result.length; i++) {
           if (result[i] < 0) result[i] = score2;
         }
-      } else  {
+      } else {
         if (score1 > 8) return null;
         int score2 = 8 - score1;
         result[lastPlayerWithScore] = score1;
@@ -1018,7 +1053,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
           if (result[i] < 0) result[i] = score2;
         }
         result[4 - game] = null;
-      } else  {
+      } else {
         if (score1 > 6) return null;
         int score2 = 6 - score1;
         result[lastPlayerWithScore] = score1;
@@ -1076,7 +1111,8 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
       //for last divider line
       itemBuilder: (BuildContext context, int row) {
         if (row == _playerList.length) {
-          if ((!widget.allowEdit) || (getSportDescriptor(1).contains('singles'))) {
+          if ((!widget.allowEdit) ||
+              (getSportDescriptor(1).contains('singles'))) {
             return SizedBox(
               height: 1,
             );
@@ -1214,7 +1250,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
       //for last divider line
       itemBuilder: (BuildContext context, int row) {
         if (row == _playerList.length) {
-          if (getSportDescriptor(1).contains('singles') ) {
+          if (getSportDescriptor(1).contains('singles')) {
             return SizedBox(
               height: 1,
             );
@@ -1588,7 +1624,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
   @override
   Widget build(BuildContext context) {
     _dateStr = widget.activeLadderDoc.get('FrozenDate');
-    // print('score_tennis_rg: id: ${_scoreDoc.id} ');
+    // print('score_tennis_rg build: id: $_dateStr ');
     updateFromDoc();
 
     bool notLastEditor = true;
@@ -1627,7 +1663,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
 
     return PopScope(
       onPopInvokedWithResult: (bool result, dynamic _) {
-        cancelWorkingScores();
+        // cancelWorkingScores();
         if (widget.allowEdit) {
           updateBeingEditedBy('');
         }
@@ -1674,6 +1710,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                           onTap: () async {
                             String gameScoresStr = saveWorkingScores();
                             String thisUser = activeUser.id;
+                            String whereInScores = '';
                             try {
                               await firestore
                                   .runTransaction((transaction) async {
@@ -1681,6 +1718,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                                 List<String> matchScores =
                                     List.empty(growable: true);
 
+                                whereInScores = 'scoreDoc';
                                 DocumentReference scoreDoc = firestore
                                     .collection('Ladder')
                                     .doc(widget.ladderName)
@@ -1694,6 +1732,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                                   for (int i = 0;
                                       i < _gameScores[0].length;
                                       i++) {
+                                    whereInScores = 'matchScores $play : $i';
                                     if (i != 0) matchScore += '|';
                                     if (_gameScores[play][i] != null) {
                                       score += _gameScores[play][i]!;
@@ -1705,6 +1744,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                                   matchScores.add(matchScore);
                                   // playerRefs.add(firestore.collection('Ladder').doc(widget.ladderName).collection('Players').doc(_playerList[play]));
                                 }
+                                whereInScores = 'beingEditedBy';
                                 DocumentSnapshot scoreSnapshot =
                                     await transaction.get(scoreDoc);
                                 // must handle case of this user no longer the active score enterer
@@ -1715,12 +1755,14 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                                     print(
                                         'this user $thisUser got kicked out by: ${scoreSnapshot.get('BeingEditedBy')}');
                                   }
+                                  _scoreEntryErrorString = 'this user $thisUser got kicked out by: ${scoreSnapshot.get('BeingEditedBy')}';
                                   return; // Abort the transaction
                                 }
 
                                 for (int play = 0;
                                     play < scores.length;
                                     play++) {
+                                  whereInScores = 'update players $play';
                                   transaction.update(
                                       firestore
                                           .collection('Ladder')
@@ -1734,6 +1776,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                                         'MatchScores': matchScores[play],
                                       });
                                 }
+                                whereInScores = 'audit1';
                                 transactionAudit(
                                     transaction: transaction,
                                     user: activeUser.id,
@@ -1747,6 +1790,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                                 if (newScoresEnteredBy.isNotEmpty) {
                                   newScoresEnteredBy += '|';
                                 }
+                                whereInScores = 'Scores final';
                                 transaction.update(
                                     firestore
                                         .collection('Ladder')
@@ -1762,17 +1806,19 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                                     });
                               });
                               updateBeingEditedBy('');
+                              _scoreEntryErrorString = '';
+                              whereInScores = '';
+                              // cancelWorkingScores();
                             } catch (e) {
                               // Handle transaction failure
                               if (kDebugMode) {
-                                print('Error saving scores: $e');
+                                print('Error saving scores: $whereInScores// ${e.toString()}');
                               }
-                              return; // skip the clearing
+                              _scoreEntryErrorString = '$whereInScores// ${e.toString()}';
+                              // return; // skip the clearing
                             }
 
-                            // setState(() {
-                              cancelWorkingScores();
-                            // });
+                            setState(() {});
                           },
                           child: Row(children: [
                             Icon(
@@ -1798,7 +1844,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                             onPressed: () {
                               updateBeingEditedBy('');
                               setState(() {
-                                cancelWorkingScores();
+                                // cancelWorkingScores();
                               });
                             },
                             icon: Icon(Icons.cancel, size: 50)),
@@ -1832,6 +1878,11 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
                   Text(
                     'Scores being entered by:\n$_beingEditedByName',
                     style: nameStyle,
+                  ),
+                if (_scoreEntryErrorString.isNotEmpty)
+                  Text(
+                    'Error:\n$_scoreEntryErrorString',
+                    style: errorNameStyle,
                   ),
                 if (((activeUser.admin && !_scoresConfirmed) ||
                         (_allScoresEntered &&

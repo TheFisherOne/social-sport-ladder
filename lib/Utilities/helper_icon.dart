@@ -52,11 +52,12 @@ class ActiveUser {
   }
 }
 
-String buildCsv(List<PlayerList>? courtAssignments) {
+String buildCsv(List<PlayerList>? listOfPlayers, CourtAssignmentsRgStandard courtAssignments) {
+  
   String result =
       'Rank,NewR,Present,Unassigned,Away,Player Name,Score,Pos,Court#,CourtName,aw+-,tot+-,TimePresent,Scr1,Scr2,Scr3,Scr4,Scr5,WeeksAwayWithoutNotice,WeeksAway,WeeksPlayed\n';
-  for (int i = 0; i < courtAssignments!.length; i++) {
-    PlayerList pl = courtAssignments[i];
+  for (int i = 0; i < listOfPlayers!.length; i++) {
+    PlayerList pl = listOfPlayers[i];
     List<String> matchScores = pl.snapshot.get('MatchScores').split('|');
     while (matchScores.length < 5) {
       matchScores.add('');
@@ -64,7 +65,7 @@ String buildCsv(List<PlayerList>? courtAssignments) {
     String matchScoreStr = matchScores.join(',');
     result +=
         '${pl.startingRank},${pl.newRank},${pl.present ? 'true' : ''},${pl.unassigned ? 'true' : ''},${pl.markedAway ? 'true' : ''},${pl.snapshot.get('Name')},'
-        '${pl.totalScore},${pl.startingOrder},${pl.courtNumber >= 0 ? pl.courtNumber + 1 : ''},${pl.courtNumber >= 0 ? PlayerList.usedCourtNames[pl.courtNumber] : ''},'
+        '${pl.totalScore},${pl.startingOrder},${pl.courtNumber >= 0 ? pl.courtNumber + 1 : ''},${pl.courtNumber >= 0 ? courtAssignments.shuffledCourtNames[pl.courtNumber ]  : ''},'
         '${pl.startingRank - pl.afterDownTwo},${pl.startingRank - pl.afterWinLose},'
         '${pl.present ? DateFormat('yyyy.MM.dd_HH:mm:ss').format(pl.snapshot.get('TimePresent').toDate()) : ''},$matchScoreStr,'
         '${pl.snapshot.get('WeeksAwayWithoutNotice')},${pl.snapshot.get('WeeksAway')},${activeLadderDoc!.get('WeeksPlayed')}\n';
@@ -74,7 +75,7 @@ String buildCsv(List<PlayerList>? courtAssignments) {
 bool adminFunctionInProgress = false;
 
 Widget helperIcon(BuildContext context, String activeLadderId,
-    List<PlayerList>? courtAssignments) {
+    List<PlayerList>? listOfPlayers, CourtAssignmentsRgStandard courtAssignments) {
   // print('helperIcon: helper: ${activeUser.canBeHelper} ${activeUser.helperEnabled} admin: ${activeUser.canBeAdmin} ${activeUser.adminEnabled} ');
   // check the courtAssignments to make sure it is ready to finalize
   bool courtAssignmentsOkForFinalize = true;
@@ -83,13 +84,13 @@ Widget helperIcon(BuildContext context, String activeLadderId,
     courtAssignmentsOkForFinalize = false;
   }
 
-  if (courtAssignments != null) {
-    for (var pl = 0; pl < courtAssignments.length; pl++) {
-      if (courtAssignments[pl].afterWinLose <= 0) {
+  if (listOfPlayers != null) {
+    for (var pl = 0; pl < listOfPlayers.length; pl++) {
+      if (listOfPlayers[pl].afterWinLose <= 0) {
         courtAssignmentsOkForFinalize = false;
         break;
       }
-      if (courtAssignments[pl].totalScore>0){
+      if (listOfPlayers[pl].totalScore>0){
         numPlayersWithScores++;
       }
     }
@@ -191,9 +192,9 @@ Widget helperIcon(BuildContext context, String activeLadderId,
                                               Navigator.of(context);
                                           final scaffoldMessenger = ScaffoldMessenger.of(context);
                                           try {
-                                            if (courtAssignments != null) {
+                                            if (listOfPlayers != null) {
                                               String result =
-                                              buildCsv(courtAssignments);
+                                              buildCsv(listOfPlayers, courtAssignments);
                                               // print('RESULT: \n$result');
                                               String filename =
                                               '${activeLadderDoc!.get(
@@ -284,7 +285,7 @@ Widget helperIcon(BuildContext context, String activeLadderId,
                                                     // the Scores documents get initialized when the ladder is refrozen
                                                     for (var pl = 0;
                                                     pl <
-                                                        courtAssignments.length;
+                                                        listOfPlayers.length;
                                                     pl++) {
                                                       // print('in pl loop $pl');
                                                       DocumentReference playerRef =
@@ -293,12 +294,12 @@ Widget helperIcon(BuildContext context, String activeLadderId,
                                                           .doc(activeLadderId)
                                                           .collection('Players')
                                                           .doc(
-                                                          courtAssignments[pl]
+                                                          listOfPlayers[pl]
                                                               .snapshot
                                                               .id);
                                                       Map<String, dynamic>
                                                       playerData = {
-                                                        'Rank': courtAssignments[pl]
+                                                        'Rank': listOfPlayers[pl]
                                                             .afterWinLose,
                                                         'ScoresConfirmed': false,
                                                         'WeeksRegistered':
@@ -310,13 +311,13 @@ Widget helperIcon(BuildContext context, String activeLadderId,
                                                         playerData['Present'] =
                                                         false;
                                                       }
-                                                      if (!courtAssignments[pl]
+                                                      if (!listOfPlayers[pl]
                                                           .present) {
                                                         playerData['WeeksAway'] =
                                                             FieldValue
                                                                 .increment(1);
 
-                                                        if (!courtAssignments[pl]
+                                                        if (!listOfPlayers[pl]
                                                             .markedAway) {
                                                           playerData[
                                                           'WeeksAwayWithoutNotice'] =
@@ -394,7 +395,7 @@ Widget helperIcon(BuildContext context, String activeLadderId,
                                   onPressed: () async {
                                     adminFunctionInProgress = true;
                                     final navigator = Navigator.of(context);
-                                    if (courtAssignments != null) {
+                                    if (listOfPlayers != null) {
                                       await firestore
                                           .runTransaction((transaction) async {
                                         DocumentReference activeLadderRef =
@@ -406,14 +407,14 @@ Widget helperIcon(BuildContext context, String activeLadderId,
                                           'CurrentRound': 1,
                                         });
                                         for (var pl = 0;
-                                            pl < courtAssignments.length;
+                                            pl < listOfPlayers.length;
                                             pl++) {
                                           DocumentReference playerRef =
                                               firestore
                                                   .collection('Ladder')
                                                   .doc(activeLadderId)
                                                   .collection('Players')
-                                                  .doc(courtAssignments[pl]
+                                                  .doc(listOfPlayers[pl]
                                                       .snapshot
                                                       .id);
                                           // print('clearing present for $activeLadderId / ${movement[pl].snapshot.id}');
@@ -528,7 +529,7 @@ Widget helperIcon(BuildContext context, String activeLadderId,
                             TextButton.icon(
                                 icon: Icon(Icons.file_download),
                                 onPressed: () async {
-                                  String result = buildCsv(courtAssignments);
+                                  String result = buildCsv(listOfPlayers, courtAssignments);
                                   // print('RESULT: \n$result');
                                   FileSaver.instance.saveFile(
                                     name:
@@ -584,11 +585,11 @@ Widget helperIcon(BuildContext context, String activeLadderId,
                                 onPressed: adminFunctionInProgress? null: () async {
                                   adminFunctionInProgress = true;
                                   final navigator = Navigator.of(context);
-                                  if (courtAssignments != null) {
+                                  if (listOfPlayers != null) {
                                     await firestore
                                         .runTransaction((transaction) async {
                                       for (var pl = 0;
-                                          pl < courtAssignments.length;
+                                          pl < listOfPlayers.length;
                                           pl++) {
                                         DocumentReference ladderRef = firestore
                                             .collection('Ladder')
@@ -597,7 +598,7 @@ Widget helperIcon(BuildContext context, String activeLadderId,
                                             .collection('Ladder')
                                             .doc(activeLadderId)
                                             .collection('Players')
-                                            .doc(courtAssignments[pl]
+                                            .doc(listOfPlayers[pl]
                                                 .snapshot
                                                 .id);
                                         // print('clearing present for $activeLadderId / ${movement[pl].snapshot.id}');

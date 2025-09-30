@@ -528,7 +528,8 @@ class _PlayerHomeState extends State<PlayerHome>
             Expanded(
               child: Text(
                 ' $rank${(waitListRank > 0) ? "w$waitListRank" : ""}: ${player.get('Name')}',
-                style: isUserRow ? ((player.get('Helper') ?? false) ? italicBoldNameStyle :italicNameStyle ): ((player.get('Helper') ?? false) ? italicNameStyle : nameStyle),
+                style: isUserRow ? ((player.get('Helper') ?? false) ? italicBoldNameStyle :nameBoldStyle ):
+                   ((player.get('Helper') ?? false) ? italicNameStyle : nameStyle),
               ),
             ),
           ]),
@@ -680,7 +681,8 @@ class _PlayerHomeState extends State<PlayerHome>
                   }
                 }
                 // print('mayFreeze: $mayFreeze, nextDate $nextPlayDate, now: ${DateTime.now()}');
-                List<PlayerList>? courtAssignments = determineMovement(activeLadderDoc!, _players); //getCourtAssignmentNumbers(_players);
+                List<PlayerList>? listOfPlayers = determineMovement(activeLadderDoc!, _players);
+                CourtAssignmentsRgStandard courtAssignments = CourtAssignmentsRgStandard(_players!);
                 return Scaffold(
                   backgroundColor: Color.lerp(activeLadderBackgroundColor, Colors.white,0.8),
                   appBar: AppBar(
@@ -743,7 +745,7 @@ class _PlayerHomeState extends State<PlayerHome>
                           ),
                         ),
                       const SizedBox(width: 10),
-                      (activeUser.mayGetHelperIcon) ? helperIcon(context, activeLadderId, courtAssignments) : SizedBox(width: 1),
+                      (activeUser.mayGetHelperIcon) ? helperIcon(context, activeLadderId, listOfPlayers, courtAssignments) : SizedBox(width: 1),
                       SizedBox(width: 20),
                     ],
                   ),
@@ -761,13 +763,13 @@ class _PlayerHomeState extends State<PlayerHome>
                             : const SizedBox(
                                 height: 100,
                               ),
-                        (courtAssignments != null)
-                            ? headerSummary(_players, courtAssignments)
+                        (listOfPlayers != null)
+                            ? headerSummary(_players, listOfPlayers)
                             : Text(
                                 '. . . . . ',
                                 style: nameStyle,
                               ),
-                        (courtAssignments != null)
+                        (listOfPlayers != null)
                             ? ListView.separated(
                                 key: PageStorageKey('playerListView'),
                                 scrollDirection: Axis.vertical,
@@ -780,7 +782,7 @@ class _PlayerHomeState extends State<PlayerHome>
                                   if (row == _players!.length) {
                                     return const Text("END OF PLAYER LIST");
                                   }
-                                  return buildPlayerLine(row, courtAssignments);
+                                  return buildPlayerLine(row, listOfPlayers);
                                 },
                               )
                             : Text(
