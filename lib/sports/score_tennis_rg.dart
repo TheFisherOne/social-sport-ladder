@@ -40,7 +40,8 @@ class ScoreTennisRg extends StatefulWidget {
   State<ScoreTennisRg> createState() => _ScoreTennisRgState();
 }
 
-class _ScoreTennisRgState extends State<ScoreTennisRg> {
+class _ScoreTennisRgState extends State<ScoreTennisRg>
+    with WidgetsBindingObserver{
   String _beingEditedById = '';
   late String _beingEditedByName;
   late String _gameScoresStr;
@@ -85,6 +86,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
   void dispose() {
     _timer?.cancel(); // Cancel the timer to avoid memory leaks
     _timer = null;
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
@@ -786,9 +788,37 @@ class _ScoreTennisRgState extends State<ScoreTennisRg> {
     _workingGameScores.add(List<int?>.filled(6, null));
     _workingGameScores.add(List<int?>.filled(6, null));
     _workingGameScores.add(List<int?>.filled(6, null));
-
+    WidgetsBinding.instance.addObserver(this);
     super.initState();
   }
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    switch (state) {
+      case AppLifecycleState.resumed:
+        if (kDebugMode) {
+          print("App is resumed (in the foreground or tab is visible).");
+        }
+        // It's often useful to refresh state when the user comes back.
+        setState(() {});
+        break;
+
+    // These states mean the app is no longer active and visible.
+    // Group them together to handle all platforms.
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.paused:
+      case AppLifecycleState.hidden: // This is the key state for web browsers
+      case AppLifecycleState.detached:
+        if (kDebugMode) {
+          print("App is no longer active or visible (state: $state).");
+        }
+        if (widget.allowEdit) {
+          updateBeingEditedBy('');
+        }
+        break;
+    }
+  }
+
 
   Widget scoreBox(int? initialValue, int playerNum, int gameNum,
       {Color? backgroundColor}) {

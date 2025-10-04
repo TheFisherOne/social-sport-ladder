@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 // which is in batch file cors.refresh
 bool enableImages = true;
 const String fireStoreCollectionName = "social-sport-ladder";
-const int softwareVersion = 102;
+const int softwareVersion = 103;
 
 //colors
 Color surfaceColor = Colors.grey.shade300;

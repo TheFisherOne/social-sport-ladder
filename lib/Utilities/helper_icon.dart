@@ -218,6 +218,27 @@ Widget helperIcon(BuildContext context, String activeLadderId,
                                                       'Error on write to storage $e');
                                                 }
                                               }
+                                              // save the data twice as we want to eventually move to not using the DisplayName
+                                              filename =
+                                              '${activeLadderDoc!.id}/History/'
+                                                  '${activeLadderDoc!
+                                                  .get('FrozenDate')}.csv'
+                                                  .replaceAll(' ', '%');
+                                              try {
+                                                // print('writing to file $filename');
+                                                await firebase_storage
+                                                    .FirebaseStorage.instance
+                                                    .ref(filename)
+                                                    .putString(result,
+                                                    format: firebase_storage
+                                                        .PutStringFormat.raw);
+                                                // print('done writing to file 1');
+                                              } catch (e) {
+                                                if (kDebugMode) {
+                                                  print(
+                                                      'Error on write to storage $e');
+                                                }
+                                              }
                                               // print('done writing to file');
 
                                               await firestore.runTransaction(
