@@ -112,7 +112,7 @@ Future<void> movePlayerDown(String fromLadder, String toLadder) async {
   return;
 }
 
-Future<void> movePlayerUp(String fromLadder, String toLadder) async {
+Future<void> movePlayerUp(String fromLadder, String toLadder, {int fromRank = 1}) async {
   CollectionReference toPlayerRef = firestore.collection('Ladder').doc(toLadder).collection('Players');
   CollectionReference fromPlayerRef = firestore.collection('Ladder').doc(fromLadder).collection('Players');
   await firestore.runTransaction((transaction) async {
@@ -129,11 +129,17 @@ Future<void> movePlayerUp(String fromLadder, String toLadder) async {
     List<int> fromPlayerRanks = [];
     for (int i = 0; i < fromPlayerDocs.docs.length; i++) {
       QueryDocumentSnapshot doc = fromPlayerDocs.docs[i];
-      if (doc.get('Rank') == 1) {
+      if (doc.get('Rank') == fromRank) {
         fromPlayerDoc = doc;
       }
-      fromPlayerRanks.add(doc.get('Rank') - 1);
+      if (doc.get('Rank') > fromRank) {
+        fromPlayerRanks.add(doc.get('Rank') - 1);
+      } else {
+        fromPlayerRanks.add(doc.get('Rank'));
+      }
     }
+    // print('movePlayersUp: fromPlayerRanks: $fromPlayerRanks');
+
     DocumentReference fromUserRef = firestore.collection('Users').doc(fromPlayerDoc!.id);
     DocumentSnapshot? userDoc = await fromUserRef.get();
     String laddersStr = userDoc.get('Ladders');

@@ -147,19 +147,19 @@ bool sportDescriptorIncludes(String descriptor){
   return false;
 }
 
-prepareForScoreEntry(DocumentSnapshot activeLadderDoc, List<QueryDocumentSnapshot>? players)  {
+Future<void> prepareForScoreEntry(DocumentSnapshot activeLadderDoc, List<QueryDocumentSnapshot>? players) async {
 
 if (getSportDescriptor(0) == 'tennisRG') {
-   sportTennisRGPrepareForScoreEntry(players);
+   await sportTennisRGPrepareForScoreEntry(players);
   return;
 } else if (getSportDescriptor(0) == 'pickleballRG') {
-   sportTennisRGPrepareForScoreEntry(players);
+   await sportTennisRGPrepareForScoreEntry(players);
   return;
 }else if (getSportDescriptor(0) == 'badmintonRG') {
-   sportTennisRGPrepareForScoreEntry(players);
+   await sportTennisRGPrepareForScoreEntry(players);
   return;
 } else if (getSportDescriptor(0) == 'generic') {
-   sportTennisRGPrepareForScoreEntry(players);
+   await sportTennisRGPrepareForScoreEntry(players);
   return;
 }
 if (kDebugMode) {
@@ -272,9 +272,9 @@ class _ScoreBaseState extends State<ScoreBase> with WidgetsBindingObserver {
           }
           // print('in StreamBuilder ladder 0');
           if (!snapshot.hasData || (snapshot.connectionState != ConnectionState.active)) {
-            if (kDebugMode) {
-              print('hasData: ${snapshot.hasData} ConnectionState: ${snapshot.connectionState}');
-            }
+            // if (kDebugMode) {
+            //   print('hasData: ${snapshot.hasData} ConnectionState: ${snapshot.connectionState}');
+            // }
             // print('ladder_selection_page getting user $loggedInUser but hasData is false');
             return const CircularProgressIndicator();
           }

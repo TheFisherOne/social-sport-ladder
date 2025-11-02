@@ -1195,7 +1195,7 @@ class _ConfigPageState extends State<ConfigPage> {
                                           color: Colors.grey,
                                           width: 2.0,
                                         ))),
-                                value: activeLadderDoc!.get('Disabled') ? 'True' : 'False',
+                                initialValue: activeLadderDoc!.get('Disabled') ? 'True' : 'False',
                                 items: trueFalse.map((String value) {
                                   return DropdownMenuItem<String>(
                                     value: value,
@@ -1264,7 +1264,7 @@ class _ConfigPageState extends State<ConfigPage> {
                                             color: Colors.grey,
                                             width: 2.0,
                                           ))),
-                                  value: activeLadderDoc!.get('SuperDisabled') ? 'True' : 'False',
+                                  initialValue: activeLadderDoc!.get('SuperDisabled') ? 'True' : 'False',
                                   items: trueFalse.map((String value) {
                                     return DropdownMenuItem<String>(
                                       value: value,

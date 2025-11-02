@@ -110,34 +110,34 @@ class _PlayerHomeState extends State<PlayerHome>
     super.didChangeAppLifecycleState(state);
     switch (state) {
       case AppLifecycleState.resumed:
-        if (kDebugMode) {
-          print("App is resumed (in the foreground).");
-        }
+        // if (kDebugMode) {
+        //   print("App is resumed (in the foreground).");
+        // }
         setState(() {});
         // Example: Refresh data, restart animations
         break;
       case AppLifecycleState.inactive:
-        if (kDebugMode) {
-          print("App is inactive (e.g., an incoming call, or multitasking view).");
-        }
+        // if (kDebugMode) {
+        //   print("App is inactive (e.g., an incoming call, or multitasking view).");
+        // }
         // Example: Pause animations, save state lightly
         break;
       case AppLifecycleState.paused:
-        if (kDebugMode) {
-          print("App is paused (in the background).");
-        }
+        // if (kDebugMode) {
+        //   print("App is paused (in the background).");
+        // }
         // Example: Release resources, save persistent state
         break;
       case AppLifecycleState.detached:
-        if (kDebugMode) {
-          print("App is detached (Flutter engine is running but not attached to any view).");
-        }
+        // if (kDebugMode) {
+        //   print("App is detached (Flutter engine is running but not attached to any view).");
+        // }
         // This state is rarely used for typical app logic.
         break;
       case AppLifecycleState.hidden:
-        if (kDebugMode) {
-          print("App is hidden (a new state, similar to paused but the UI is completely hidden).");
-        }
+        // if (kDebugMode) {
+        //   print("App is hidden (a new state, similar to paused but the UI is completely hidden).");
+        // }
         // This state is similar to paused but for platforms that support hiding without pausing.
         break;
     }
@@ -582,14 +582,14 @@ class _PlayerHomeState extends State<PlayerHome>
           // print('ladder_selection_page getting user global ladder but data is null');
           return const CircularProgressIndicator();
         }
-        developer.log('${DateTime.now()} player_home StreamBuilder');
+        // developer.log('${DateTime.now()} player_home StreamBuilder');
         try {
           activeLadderDoc = ladderSnapshot.data!;
           activeLadderBackgroundColor = stringToColor(activeLadderDoc!.get('Color'))??Colors.pink;
 
           if (activeLadderDoc!.get('FreezeCheckIns')) {
             waitingForFreezeCheckins = false;
-            developer.log('${DateTime.now()} player_home StreamBuilder FROZEN');
+            // developer.log('${DateTime.now()} player_home StreamBuilder FROZEN');
             return SportTennisRG();
           }
 
@@ -730,12 +730,12 @@ class _PlayerHomeState extends State<PlayerHome>
                               ((activeLadderDoc!.get('FreezeCheckIns') ?? false) ? Icons.pause : Icons.play_arrow),
                               size: 30,
                             ),
-                            onPressed: () {
+                            onPressed: () async {
                               setState(() {
                                 waitingForFreezeCheckins = true;
                               });
                               developer.log('${DateTime.now()} FreezeCheckIns pressed',name:'stage1');
-                              prepareForScoreEntry(activeLadderDoc!, _players);
+                              await prepareForScoreEntry(activeLadderDoc!, _players);
                               developer.log('${DateTime.now()} FreezeCheckIns pressed',name:'after prepareForScoreEntry');
                               // showFrozenLadderPage(context, activeLadderDoc!, true);
                             },

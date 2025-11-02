@@ -276,6 +276,12 @@ class CalendarPageState extends State<CalendarPage> {
     if (tmpStr.length >= 14) {
       _lastPlayOnTime = tmpStr.substring(9, 14);
     }
+    try {
+      DateTime dateNextPlay = DateFormat('yyyy.MM.dd').parse(
+          tmpStr.substring(0, 10));
+      _selectedDay = dateNextPlay;
+    } catch (_) {};
+
     _selectedEvents = ValueNotifier(_getEventsForDay(_selectedDay!));
     if (typeOfCalendarEvent == EventTypes.playOn) {
       listAllFiles();
