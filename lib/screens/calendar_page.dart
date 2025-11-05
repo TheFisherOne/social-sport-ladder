@@ -280,7 +280,7 @@ class CalendarPageState extends State<CalendarPage> {
       DateTime dateNextPlay = DateFormat('yyyy.MM.dd').parse(
           tmpStr.substring(0, 10));
       _selectedDay = dateNextPlay;
-    } catch (_) {};
+    } catch (_) {}
 
     _selectedEvents = ValueNotifier(_getEventsForDay(_selectedDay!));
     if (typeOfCalendarEvent == EventTypes.playOn) {

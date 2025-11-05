@@ -28,7 +28,8 @@ QueryDocumentSnapshot? clickedOnPlayerDoc;
 QueryDocumentSnapshot<Object?>? loggedInPlayerDoc;
 bool headerSummarySelected = false;
 
-Widget headerSummary(List<QueryDocumentSnapshot>? players, List<PlayerList> assign) {
+Widget headerSummary(
+    List<QueryDocumentSnapshot>? players, List<PlayerList> assign) {
   String unAssignedStr = '';
   if (PlayerList.numUnassigned > 0) {
     unAssignedStr = '(${PlayerList.numUnassigned})';
@@ -43,15 +44,28 @@ Widget headerSummary(List<QueryDocumentSnapshot>? players, List<PlayerList> assi
     child: (headerSummarySelected)
         ? Column(
             children: [
-              Text('Present: ${PlayerList.numPresent} out of ${PlayerList.numExpected} expected', style: nameStyle),
-              Text('Courts of 4=${PlayerList.numCourtsOf4}  Courts of 5=${PlayerList.numCourtsOf5}', style: nameStyle),
-              if (PlayerList.numCourtsOf6 > 0) Text('Courts of 6=${PlayerList.numCourtsOf6}', style: nameStyle),
-              (PlayerList.numCourts == (PlayerList.numCourtsOf4 + PlayerList.numCourtsOf5 + PlayerList.numCourtsOf6))
-                  ? Text('Courts used ${PlayerList.numCourts} of ${PlayerList.totalCourtsAvailable} available', style: nameStyle)
+              Text(
+                  'Present: ${PlayerList.numPresent} out of ${PlayerList.numExpected} expected',
+                  style: nameStyle),
+              Text(
+                  'Courts of 4=${PlayerList.numCourtsOf4}  Courts of 5=${PlayerList.numCourtsOf5}',
+                  style: nameStyle),
+              if (PlayerList.numCourtsOf6 > 0)
+                Text('Courts of 6=${PlayerList.numCourtsOf6}',
+                    style: nameStyle),
+              (PlayerList.numCourts ==
+                      (PlayerList.numCourtsOf4 +
+                          PlayerList.numCourtsOf5 +
+                          PlayerList.numCourtsOf6))
+                  ? Text(
+                      'Courts used ${PlayerList.numCourts} of ${PlayerList.totalCourtsAvailable} available',
+                      style: nameStyle)
                   : SizedBox(
                       height: 1,
                     ),
-              if ((PlayerList.numUnassigned > 0) && (PlayerList.numCourtsOf5 == PlayerList.numCourts) && (PlayerList.numCourts == PlayerList.totalCourtsAvailable))
+              if ((PlayerList.numUnassigned > 0) &&
+                  (PlayerList.numCourtsOf5 == PlayerList.numCourts) &&
+                  (PlayerList.numCourts == PlayerList.totalCourtsAvailable))
                 Text(
                   'Players not on court ${PlayerList.numUnassigned}:marked (Last)\nall available courts are full',
                   style: nameStyle,
@@ -77,8 +91,7 @@ class PlayerHome extends StatefulWidget {
   State<PlayerHome> createState() => _PlayerHomeState();
 }
 
-class _PlayerHomeState extends State<PlayerHome>
-    with WidgetsBindingObserver {
+class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
   List<QueryDocumentSnapshot>? _players;
   int _clickedOnRank = -1;
   int _checkInProgress = -1;
@@ -92,6 +105,7 @@ class _PlayerHomeState extends State<PlayerHome>
   @override
   void initState() {
     _loc.init();
+    _loc.addListener(refresh);
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     waitingForFreezeCheckins = false;
@@ -100,11 +114,13 @@ class _PlayerHomeState extends State<PlayerHome>
   @override
   void dispose() {
     playerHomeInstance = null;
-    _loc.askForSetState(null);
+    _loc.removeListener(refresh);
+    _loc.dispose();
     WidgetsBinding.instance.removeObserver(this);
     _scrollController.dispose();
     super.dispose();
   }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
@@ -142,6 +158,7 @@ class _PlayerHomeState extends State<PlayerHome>
         break;
     }
   }
+
   (IconData, String) presentCheckBoxInfo(QueryDocumentSnapshot player) {
     IconData standardIcon = Icons.check_box_outline_blank;
     if (player.get('Present') ?? false) {
@@ -152,7 +169,8 @@ class _PlayerHomeState extends State<PlayerHome>
     // this should not happen, as this function should not be called in this circumstance
     if (activeLadderDoc!.get('FreezeCheckIns') ?? false) {
       if (kDebugMode) {
-        print('ERROR: checkbox trying to be displayed while the ladder has been frozen');
+        print(
+            'ERROR: checkbox trying to be displayed while the ladder has been frozen');
       }
       return (Icons.cancel_outlined, 'not while the ladder is frozen');
     }
@@ -160,22 +178,35 @@ class _PlayerHomeState extends State<PlayerHome>
     (nextPlayDate, _) = getNextPlayDateTime(activeLadderDoc!);
     DateTime timeNow = getDateTimeNow();
     if (nextPlayDate == null) {
-      return (Icons.cancel_outlined, 'no start time specified for next day of play');
+      return (
+        Icons.cancel_outlined,
+        'no start time specified for next day of play'
+      );
     }
 
     String nextPlayDateStr = DateFormat('yyyy.MM.dd').format(nextPlayDate);
 
     List<String> awayList = player.get('DaysAway').split('|');
     if (awayList.contains(nextPlayDateStr)) {
-      return (Icons.airplanemode_active, 'You have marked yourself as away for $nextPlayDateStr');
+      return (
+        Icons.airplanemode_active,
+        'You have marked yourself as away for $nextPlayDateStr'
+      );
     }
 
     // print(' ${dayOfPlay.substring(0, 8)} != ${DateFormat('yyyyMMdd').format(DateTime.now())}');
-    if ((timeNow.year != nextPlayDate.year) || (timeNow.month != nextPlayDate.month) || (timeNow.day != nextPlayDate.day)) {
-      return (Icons.access_time, 'It is not yet the day of the ladder $nextPlayDateStr');
+    if ((timeNow.year != nextPlayDate.year) ||
+        (timeNow.month != nextPlayDate.month) ||
+        (timeNow.day != nextPlayDate.day)) {
+      return (
+        Icons.access_time,
+        'It is not yet the day of the ladder $nextPlayDateStr'
+      );
     }
 
-    if (((nextPlayDate.hour + nextPlayDate.minute / 100.0) - (timeNow.hour + timeNow.minute / 100.0)) < activeLadderDoc!.get('CheckInStartHours')) {
+    if (((nextPlayDate.hour + nextPlayDate.minute / 100.0) -
+            (timeNow.hour + timeNow.minute / 100.0)) <
+        activeLadderDoc!.get('CheckInStartHours')) {
       if ((!player.get('Present')) && (player.id == activeUser.id)) {
         Position? where;
         int secAgo = 9999;
@@ -184,7 +215,10 @@ class _PlayerHomeState extends State<PlayerHome>
           return (Icons.location_off, 'Your location has not been determined');
         }
         if (!_loc.isLastLocationOk()) {
-          return (Icons.location_off, 'You are too far away ${_loc.getLastDistanceAway().toInt()} m');
+          return (
+            Icons.location_off,
+            'You are too far away ${_loc.getLastDistanceAway().toInt()} m'
+          );
         }
       }
 
@@ -193,20 +227,33 @@ class _PlayerHomeState extends State<PlayerHome>
       }
       if (player.id == activeUser.id) {
         if (player.get('WaitListRank') > 0) {
-          if (player.get('WaitListRank') <= activeLadderDoc!.get('NumberFromWaitList')) {
-            return (Icons.check_box_outline_blank, 'Ready to check in from wait list if you are going to play');
+          if (player.get('WaitListRank') <=
+              activeLadderDoc!.get('NumberFromWaitList')) {
+            return (
+              Icons.check_box_outline_blank,
+              'Ready to check in from wait list if you are going to play'
+            );
           } else {
-            return (Icons.edit_off, 'You are on the wait list and not enabled to play this week');
+            return (
+              Icons.edit_off,
+              'You are on the wait list and not enabled to play this week'
+            );
           }
         } else {
-          return (Icons.check_box_outline_blank, 'Ready to check in if you are going to play');
+          return (
+            Icons.check_box_outline_blank,
+            'Ready to check in if you are going to play'
+          );
         }
       } else if (activeUser.helper) {
         return (Icons.check_box_outline_blank, 'Helper check in');
       }
     } else {
       if ((player.id == activeUser.id) || (activeUser.helper)) {
-        return (Icons.access_time, 'you have to wait until ${activeLadderDoc!.get('CheckInStartHours')} hours before ladder start');
+        return (
+          Icons.access_time,
+          'you have to wait until ${activeLadderDoc!.get('CheckInStartHours')} hours before ladder start'
+        );
       }
     }
 
@@ -214,20 +261,25 @@ class _PlayerHomeState extends State<PlayerHome>
     if (loggedInPlayerDoc != null) {
       loggedInPlayerName = loggedInPlayerDoc!.get('Name');
     } else {
-      return (Icons.access_time, 'You are logged in as a Guest:"${activeUser.id}" you can not change the player "${player.get('Name')}"');
+      return (
+        Icons.access_time,
+        'You are logged in as a Guest:"${activeUser.id}" you can not change the player "${player.get('Name')}"'
+      );
     }
 
-    return (Icons.access_time, 'You are logged in as "$loggedInPlayerName"" you can not change the player "${player.get('Name')}"');
+    return (
+      Icons.access_time,
+      'You are logged in as "$loggedInPlayerName"" you can not change the player "${player.get('Name')}"'
+    );
   }
-
 
   Widget unfrozenSubLine(QueryDocumentSnapshot player) {
     _getPlayerImage(player.id);
     clickedOnPlayerDoc = player;
     if (player.id == activeUser.id) {
-      if (!player.get('Present')) {
-        _loc.askForSetState(this);
-        _loc.startTimer();
+      if (player.get('Present')) {
+        // print('unfrozen stopTimer');
+        _loc.stopTimer();
       }
     }
     IconData checkBoxIcon;
@@ -237,7 +289,9 @@ class _PlayerHomeState extends State<PlayerHome>
     // print('unfrozenSubLine: presentCheckBoxText: $presentCheckBoxText');
     // print('unfrozenSubLine: ${checkBoxIcon == Icons.check_box} || ${(checkBoxIcon == Icons.check_outline_blank)}');
     return Container(
-      color: (player.id == activeUser.id) ? Colors.green.shade100 : Colors.blue.shade100,
+      color: (player.id == activeUser.id)
+          ? Colors.green.shade100
+          : Colors.blue.shade100,
       child: Padding(
         padding: const EdgeInsets.all(15.0),
         child: Row(
@@ -247,33 +301,58 @@ class _PlayerHomeState extends State<PlayerHome>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if ((player.id == activeUser.id) &&
-                    ((checkBoxIcon == Icons.check_box) || (checkBoxIcon == Icons.check_box_outline_blank)))
-                Text('you are ${_loc.getLastDistanceAway().toStringAsFixed(1)}m away'),
-
+                    ((checkBoxIcon == Icons.check_box) ||
+                        (checkBoxIcon == Icons.check_box_outline_blank)))
+                  Text(
+                      'you are ${_loc.getLastDistanceAway().toStringAsFixed(1)}m away'),
                 Container(
                   height: 50,
                   width: 50,
-                  color: (player.id == activeUser.id) ? Colors.green.shade100 : Colors.blue.shade100,
+                  color: (player.id == activeUser.id)
+                      ? Colors.green.shade100
+                      : Colors.blue.shade100,
                   child: Padding(
                     padding: const EdgeInsets.all(0.0),
                     child: InkWell(
-                      onTap: (((player.id == activeUser.id) || activeUser.helper)&&((checkBoxIcon == Icons.check_box) || (checkBoxIcon == Icons.check_box_outline_blank)))
+                      onTap: (((player.id == activeUser.id) ||
+                                  activeUser.helper) &&
+                              ((checkBoxIcon == Icons.check_box) ||
+                                  (checkBoxIcon ==
+                                      Icons.check_box_outline_blank)))
                           ? () async {
                               bool newPresent = false;
-                              if (checkBoxIcon == Icons.check_box_outline_blank) {
+                              if (checkBoxIcon ==
+                                  Icons.check_box_outline_blank) {
                                 newPresent = true;
                               }
 
-                              writeAudit(user: activeUser.id, documentName: player.id, action: 'Set Present', newValue: newPresent.toString(), oldValue: player.get('Present').toString());
-                              firestore.collection('Ladder').doc(activeLadderId).collection('Players').doc(player.id).update({
+                              writeAudit(
+                                  user: activeUser.id,
+                                  documentName: player.id,
+                                  action: 'Set Present',
+                                  newValue: newPresent.toString(),
+                                  oldValue: player.get('Present').toString());
+                              firestore
+                                  .collection('Ladder')
+                                  .doc(activeLadderId)
+                                  .collection('Players')
+                                  .doc(player.id)
+                                  .update({
                                 'Present': newPresent,
                                 'TimePresent': DateTime.now(),
                               });
                             }
                           : null,
                       child: (_checkInProgress >= 0)
-                          ? const Icon(Icons.refresh, color: Colors.black, size: 60)
-                          : Icon(checkBoxIcon, size: 60, color: ((checkBoxIcon == Icons.check_box) || (checkBoxIcon == Icons.check_box_outline_blank)) ? Colors.black : Colors.red),
+                          ? const Icon(Icons.refresh,
+                              color: Colors.black, size: 60)
+                          : Icon(checkBoxIcon,
+                              size: 60,
+                              color: ((checkBoxIcon == Icons.check_box) ||
+                                      (checkBoxIcon ==
+                                          Icons.check_box_outline_blank))
+                                  ? Colors.black
+                                  : Colors.red),
                     ),
                   ),
                 ),
@@ -286,7 +365,8 @@ class _PlayerHomeState extends State<PlayerHome>
                           // print('Select Picture');
                           XFile? pickedFile;
                           try {
-                            pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
+                            pickedFile = await ImagePicker()
+                                .pickImage(source: ImageSource.gallery);
                           } catch (e) {
                             if (kDebugMode) {
                               print('Exception while picking image $e');
@@ -300,8 +380,8 @@ class _PlayerHomeState extends State<PlayerHome>
                             if (mounted) {
                               setState(() {
                                 if (kDebugMode) {
-                                  print('picture uploaded for player ${player
-                                      .id}');
+                                  print(
+                                      'picture uploaded for player ${player.id}');
                                 }
                               });
                             }
@@ -310,61 +390,71 @@ class _PlayerHomeState extends State<PlayerHome>
                           }
                         }
                       : null,
-                  child: (playerImageCache.containsKey(player.id) && (playerImageCache[player.id] != null) && enableImages)
+                  child: (playerImageCache.containsKey(player.id) &&
+                          (playerImageCache[player.id] != null) &&
+                          enableImages)
                       ? Image.network(
                           playerImageCache[player.id]!,
                           width: 100,
                         )
                       : Container(
                           decoration: BoxDecoration(
-                            border: Border.all(color: activeLadderBackgroundColor, width: 5),
+                            border: Border.all(
+                                color: activeLadderBackgroundColor, width: 5),
                             borderRadius: BorderRadius.circular(15.0),
-                            color: Color.lerp(activeLadderBackgroundColor, Colors.white,0.8),
+                            color: Color.lerp(
+                                activeLadderBackgroundColor, Colors.white, 0.8),
                           ),
                           width: 100,
                           height: 100,
                           child: Center(
                               child: Text(
-                            enableImages ? "Please\nupload\npicture" : 'Images\nhidden',
+                            enableImages
+                                ? "Please\nupload\npicture"
+                                : 'Images\nhidden',
                             // style: nameStyle,
                           )),
                         ),
                 ),
-                SizedBox(key: _targetKey,height: 10),
+                SizedBox(key: _targetKey, height: 10),
                 (activeUser.helper || (loggedInUser == player.id))
                     ? Container(
                         height: max(60, appFontSize * 2.7),
                         // width: 50,
-                        color: (player.id == activeUser.id) ? Colors.green.shade100 : Colors.blue.shade100,
+                        color: (player.id == activeUser.id)
+                            ? Colors.green.shade100
+                            : Colors.blue.shade100,
                         child: Padding(
                           padding: const EdgeInsets.all(0.0),
-                          child: Row(
-                            children: [
-                              InkWell(
-                                onTap: () {
-                                  typeOfCalendarEvent = EventTypes.standard;
-                                  Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                          builder: (context) => CalendarPage(
-                                                fullPlayerList: _players,
-                                              )));
-                                },
-                                child: const Icon(Icons.edit_calendar, size: 60, color: Colors.green),
-                              ),
-                              Text(
-                                'Calendar:\nfor Away',
-                                style: nameStyle,
-                              ),
-                            ],
-                          ),
+                          child: InkWell(
+                              onTap: () {
+                                typeOfCalendarEvent = EventTypes.standard;
+                                Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (context) => CalendarPage(
+                                              fullPlayerList: _players,
+                                            )));
+                              },
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.edit_calendar,
+                                      size: 60, color: Colors.green),
+                                  Text(
+                                    'Calendar:\nfor Away',
+                                    style: nameStyle,
+                                  ),
+                                ],
+                              )),
                         ),
                       )
                     : SizedBox(
                         width: 1,
                       ),
-                if (((player.get('WeeksAwayWithoutNotice') >= 3) || (player.get('WeeksAway') >= 7))
-                    || (loggedInUser == player.id) || activeUser.admin)
+                if (((player.get('WeeksAwayWithoutNotice') >= 3) ||
+                        (player.get('WeeksAway') >= 7)) ||
+                    (loggedInUser == player.id) ||
+                    activeUser.admin)
                   Text(
                     'No Notice: ${player.get('WeeksAwayWithoutNotice')}\ntotal Away ${player.get('WeeksAway')}\n'
                     'Total weeks: ${activeLadderDoc!.get('WeeksPlayed')}',
@@ -393,18 +483,19 @@ class _PlayerHomeState extends State<PlayerHome>
       );
     }
 
-    if ((row == courtAssignments!.length-1) && (_clickedOnRank >= 0)){
+    if ((row == courtAssignments!.length - 1) && (_clickedOnRank >= 0)) {
       final context = _targetKey.currentContext;
       if (context != null) {
         // Ensure the widget is already laid out before trying to scroll
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          final RenderObject? widgetRenderObject = _targetKey.currentContext
-              ?.findRenderObject();
-          final RenderObject? scrollRenderObject = _scrollController.position
-              .context.storageContext
+          final RenderObject? widgetRenderObject =
+              _targetKey.currentContext?.findRenderObject();
+          final RenderObject? scrollRenderObject = _scrollController
+              .position.context.storageContext
               .findRenderObject(); // A bit indirect to get the ScrollView's RenderObject
 
-          if (widgetRenderObject != null && scrollRenderObject != null &&
+          if (widgetRenderObject != null &&
+              scrollRenderObject != null &&
               widgetRenderObject is RenderBox &&
               scrollRenderObject is RenderBox) {
             final RenderBox widgetBox = widgetRenderObject;
@@ -419,8 +510,8 @@ class _PlayerHomeState extends State<PlayerHome>
             // Get the height of the widget
             final double widgetHeight = widgetBox.size.height;
             final bool isTopVisible = widgetOffsetInScroll.dy >= 0;
-            final bool isBottomVisible = (widgetOffsetInScroll.dy +
-                widgetHeight) <= scrollViewHeight;
+            final bool isBottomVisible =
+                (widgetOffsetInScroll.dy + widgetHeight) <= scrollViewHeight;
 
             // print('buildPlayerLine: isTopVisible: $isTopVisible isBottomVisible: $isBottomVisible');
             if (!isTopVisible || !isBottomVisible) {
@@ -430,7 +521,8 @@ class _PlayerHomeState extends State<PlayerHome>
                 // Optional: animation duration
                 curve: Curves.easeInOut,
                 // Optional: animation curve
-                alignment: 0.5, // Optional: 0.0 for top, 0.5 for center, 1.0 for bottom
+                alignment:
+                    0.5, // Optional: 0.0 for top, 0.5 for center, 1.0 for bottom
               );
             }
           }
@@ -468,27 +560,28 @@ class _PlayerHomeState extends State<PlayerHome>
       icon = Icon(Icons.check_box_outline_blank, color: Colors.black);
     }
     int weeksRegistered = -1;
-    try{
+    try {
       weeksRegistered = player.get('WeeksRegistered');
-    }catch(e){
+    } catch (e) {
       return Text('ERROR: ${player.id} missing WeeksRegistered (Number)');
     }
     int weeksAwayWithoutNotice = -1;
-    try{
+    try {
       weeksAwayWithoutNotice = player.get('WeeksAwayWithoutNotice');
-    }catch(e){
-      return Text('ERROR: ${player.id} missing WeeksAwayWithoutNotice (Number)');
+    } catch (e) {
+      return Text(
+          'ERROR: ${player.id} missing WeeksAwayWithoutNotice (Number)');
     }
     int weeksAway = -1;
-    try{
+    try {
       weeksAway = player.get('WeeksAway');
-    }catch(e) {
+    } catch (e) {
       return Text('ERROR: ${player.id} missing WeeksAway (Number)');
     }
     int waitListRank = -1;
-    try{
+    try {
       waitListRank = player.get('WaitListRank');
-    }catch(e){
+    } catch (e) {
       return Text('ERROR: ${player.id} missing WaitListRank (Number)');
     }
 
@@ -499,7 +592,13 @@ class _PlayerHomeState extends State<PlayerHome>
           onTap: () {
             setState(() {
               if (_clickedOnRank != row) {
+                // user just clicked on a new row
                 setState(() {
+                  if (isUserRow && !player.get('Present')) {
+                    _loc.startTimer();
+                  } else if (!isUserRow ){
+                    _loc.stopTimer();
+                  }
                   _clickedOnRank = row;
                 });
               } else {
@@ -511,9 +610,7 @@ class _PlayerHomeState extends State<PlayerHome>
               }
             });
           },
-          child: Row(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
+          child: Row(mainAxisAlignment: MainAxisAlignment.start, children: [
             icon,
             if (weeksRegistered <= 0)
               Icon(
@@ -528,13 +625,18 @@ class _PlayerHomeState extends State<PlayerHome>
             Expanded(
               child: Text(
                 ' $rank${(waitListRank > 0) ? "w$waitListRank" : ""}: ${player.get('Name')}',
-                style: isUserRow ? ((player.get('Helper') ?? false) ? italicBoldNameStyle :nameBoldStyle ):
-                   ((player.get('Helper') ?? false) ? italicNameStyle : nameStyle),
+                style: isUserRow
+                    ? ((player.get('Helper') ?? false)
+                        ? italicBoldNameStyle
+                        : nameBoldStyle)
+                    : ((player.get('Helper') ?? false)
+                        ? italicNameStyle
+                        : nameStyle),
               ),
             ),
           ]),
         ),
-        // if ((_clickedOnRank == row) && ((player.id == loggedInUser) || activeLadderDoc!.get('Admins').split(",").contains(loggedInUser) || player.get('Helper') || loggedInUserIsSuper))
+        // if ((_clickedOnRank == row) && ((player.id == loggedInUser) || activeLadderDoc!.get('Admins').split(",').contains(loggedInUser) || player.get('Helper') || loggedInUserIsSuper))
         (_clickedOnRank == row)
             ? unfrozenSubLine(player)
             : SizedBox(
@@ -566,15 +668,18 @@ class _PlayerHomeState extends State<PlayerHome>
     // print('loggedInUserIsAdmin: $_loggedInUserIsAdmin');
     return StreamBuilder<DocumentSnapshot>(
       stream: firestore.collection('Ladder').doc(activeLadderId).snapshots(),
-      builder: (BuildContext context, AsyncSnapshot<DocumentSnapshot<Object?>> ladderSnapshot) {
+      builder: (BuildContext context,
+          AsyncSnapshot<DocumentSnapshot<Object?>> ladderSnapshot) {
         if (ladderSnapshot.error != null) {
-          String error = 'Snapshot error: ${ladderSnapshot.error.toString()} on getting the active ladder $activeLadderId ';
+          String error =
+              'Snapshot error: ${ladderSnapshot.error.toString()} on getting the active ladder $activeLadderId ';
           if (kDebugMode) {
             print(error);
           }
           return Text(error);
         }
-        if (!ladderSnapshot.hasData || (ladderSnapshot.connectionState != ConnectionState.active)) {
+        if (!ladderSnapshot.hasData ||
+            (ladderSnapshot.connectionState != ConnectionState.active)) {
           // print('ladder_selection_page getting user $loggedInUser but hasData is false');
           return const CircularProgressIndicator();
         }
@@ -585,7 +690,8 @@ class _PlayerHomeState extends State<PlayerHome>
         // developer.log('${DateTime.now()} player_home StreamBuilder');
         try {
           activeLadderDoc = ladderSnapshot.data!;
-          activeLadderBackgroundColor = stringToColor(activeLadderDoc!.get('Color'))??Colors.pink;
+          activeLadderBackgroundColor =
+              stringToColor(activeLadderDoc!.get('Color')) ?? Colors.pink;
 
           if (activeLadderDoc!.get('FreezeCheckIns')) {
             waitingForFreezeCheckins = false;
@@ -594,18 +700,27 @@ class _PlayerHomeState extends State<PlayerHome>
           }
 
           return StreamBuilder<QuerySnapshot>(
-              stream: firestore.collection('Ladder').doc(activeLadderId).collection('Players').orderBy('Rank').snapshots(),
-              builder: (BuildContext context, AsyncSnapshot<QuerySnapshot<Object?>> playerSnapshots) {
+              stream: firestore
+                  .collection('Ladder')
+                  .doc(activeLadderId)
+                  .collection('Players')
+                  .orderBy('Rank')
+                  .snapshots(),
+              builder: (BuildContext context,
+                  AsyncSnapshot<QuerySnapshot<Object?>> playerSnapshots) {
                 // print('Ladder snapshot');
                 if (playerSnapshots.error != null) {
-                  String error = 'Snapshot error: ${playerSnapshots.error.toString()} on getting global ladders ';
+                  String error =
+                      'Snapshot error: ${playerSnapshots.error.toString()} on getting global ladders ';
                   if (kDebugMode) {
                     print(error);
                   }
                   return Text(error);
                 }
                 // print('in StreamBuilder ladder 0');
-                if (!playerSnapshots.hasData || (playerSnapshots.connectionState != ConnectionState.active)) {
+                if (!playerSnapshots.hasData ||
+                    (playerSnapshots.connectionState !=
+                        ConnectionState.active)) {
                   // print('ladder_selection_page getting user $loggedInUser but hasData is false');
                   return const CircularProgressIndicator();
                 }
@@ -639,7 +754,8 @@ class _PlayerHomeState extends State<PlayerHome>
                     }
                   }
                 }
-                List<String> nonPlayingHelperStr = activeLadderDoc!.get('NonPlayingHelper').split(',');
+                List<String> nonPlayingHelperStr =
+                    activeLadderDoc!.get('NonPlayingHelper').split(',');
                 // print('nonPlayingHelper: $nonPlayingHelperStr activeUser: ${activeUser.id}');
                 if (nonPlayingHelperStr.contains(activeUser.id)) {
                   activeUser.canBeHelper = true;
@@ -674,28 +790,44 @@ class _PlayerHomeState extends State<PlayerHome>
                     if (activeUser.helper) {
                       //TODO: can not unfreeze if scores are entered
                       mayFreeze = true;
-                    } else if (((minToStart < 5.0) && (numberOfHelpersPresent == 0)) ||(minToStart <= 0.0)) {
+                    } else if (((minToStart < 5.0) &&
+                            (numberOfHelpersPresent == 0)) ||
+                        (minToStart <= 0.0)) {
                       // print('mayFreeze: special override, no helpers present, less than 5 minutes to go $nextPlayDate');
                       mayFreeze = true;
                     }
                   }
                 }
                 // print('mayFreeze: $mayFreeze, nextDate $nextPlayDate, now: ${DateTime.now()}');
-                List<PlayerList>? listOfPlayers = determineMovement(activeLadderDoc!, _players);
-                CourtAssignmentsRgStandard courtAssignments = CourtAssignmentsRgStandard(_players!);
+                List<PlayerList>? listOfPlayers =
+                    determineMovement(activeLadderDoc!, _players);
+                CourtAssignmentsRgStandard courtAssignments =
+                    CourtAssignmentsRgStandard(_players!);
+
+                if (_clickedOnRank <= 0) {
+                  _loc.stopTimer();
+                }
                 return Scaffold(
-                  backgroundColor: Color.lerp(activeLadderBackgroundColor, Colors.white,0.8),
+                  backgroundColor: Color.lerp(
+                      activeLadderBackgroundColor, Colors.white, 0.8),
                   appBar: AppBar(
-                    title: Text('${activeLadderDoc!.get('DisplayName') ?? 'No DisplayName attr'}'),
-                    backgroundColor: Color.lerp(activeLadderBackgroundColor, Colors.white,0.3),
+                    title: Text(
+                        '${activeLadderDoc!.get('DisplayName') ?? 'No DisplayName attr'}'),
+                    backgroundColor: Color.lerp(
+                        activeLadderBackgroundColor, Colors.white, 0.3),
                     elevation: 0.0,
                     automaticallyImplyLeading: true,
                     actions: [
                       IconButton.filled(
-                          style: IconButton.styleFrom(backgroundColor: Colors.white),
+                          style: IconButton.styleFrom(
+                              backgroundColor: Colors.white),
                           padding: EdgeInsets.zero,
                           onPressed: () {
-                            Navigator.push(context, MaterialPageRoute(builder: (context) => HelpPage(page: 'Player')));
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) =>
+                                        HelpPage(page: 'Player')));
                           },
                           icon: Icon(
                             Icons.help,
@@ -708,13 +840,19 @@ class _PlayerHomeState extends State<PlayerHome>
                               child: IconButton.filled(
                                 padding: EdgeInsets.zero,
                                 constraints: const BoxConstraints(),
-                                icon: const Icon(Icons.supervisor_account, size: 30),
+                                icon: const Icon(Icons.supervisor_account,
+                                    size: 30),
                                 onPressed: () {
-                                  Navigator.push(context, MaterialPageRoute(builder: (context) => const ConfigPage()));
+                                  Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (context) =>
+                                              const ConfigPage()));
                                 },
                                 enableFeedback: true,
                                 color: Colors.redAccent,
-                                style: IconButton.styleFrom(backgroundColor: Colors.white),
+                                style: IconButton.styleFrom(
+                                    backgroundColor: Colors.white),
                               ),
                             )
                           : const SizedBox(width: 2),
@@ -726,26 +864,39 @@ class _PlayerHomeState extends State<PlayerHome>
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),
                             icon: Icon(
-                              waitingForFreezeCheckins?Icons.hourglass_bottom:
-                              ((activeLadderDoc!.get('FreezeCheckIns') ?? false) ? Icons.pause : Icons.play_arrow),
+                              waitingForFreezeCheckins
+                                  ? Icons.hourglass_bottom
+                                  : ((activeLadderDoc!.get('FreezeCheckIns') ??
+                                          false)
+                                      ? Icons.pause
+                                      : Icons.play_arrow),
                               size: 30,
                             ),
                             onPressed: () async {
                               setState(() {
                                 waitingForFreezeCheckins = true;
                               });
-                              developer.log('${DateTime.now()} FreezeCheckIns pressed',name:'stage1');
-                              await prepareForScoreEntry(activeLadderDoc!, _players);
-                              developer.log('${DateTime.now()} FreezeCheckIns pressed',name:'after prepareForScoreEntry');
+                              developer.log(
+                                  '${DateTime.now()} FreezeCheckIns pressed',
+                                  name: 'stage1');
+                              await prepareForScoreEntry(
+                                  activeLadderDoc!, _players);
+                              developer.log(
+                                  '${DateTime.now()} FreezeCheckIns pressed',
+                                  name: 'after prepareForScoreEntry');
                               // showFrozenLadderPage(context, activeLadderDoc!, true);
                             },
                             enableFeedback: true,
                             color: Colors.green,
-                            style: IconButton.styleFrom(backgroundColor: Colors.white),
+                            style: IconButton.styleFrom(
+                                backgroundColor: Colors.white),
                           ),
                         ),
                       const SizedBox(width: 10),
-                      (activeUser.mayGetHelperIcon) ? helperIcon(context, activeLadderId, listOfPlayers, courtAssignments) : SizedBox(width: 1),
+                      (activeUser.mayGetHelperIcon)
+                          ? helperIcon(context, activeLadderId, listOfPlayers,
+                              courtAssignments)
+                          : SizedBox(width: 1),
                       SizedBox(width: 20),
                     ],
                   ),
@@ -755,7 +906,9 @@ class _PlayerHomeState extends State<PlayerHome>
                     scrollDirection: Axis.vertical,
                     child: Column(
                       children: [
-                        (urlCache.containsKey(activeLadderId) && (urlCache[activeLadderId] != null) && enableImages)
+                        (urlCache.containsKey(activeLadderId) &&
+                                (urlCache[activeLadderId] != null) &&
+                                enableImages)
                             ? Image.network(
                                 urlCache[activeLadderId]!,
                                 height: 100,
@@ -775,9 +928,11 @@ class _PlayerHomeState extends State<PlayerHome>
                                 scrollDirection: Axis.vertical,
                                 shrinkWrap: true,
                                 physics: const ScrollPhysics(),
-                                separatorBuilder: (context, index) => const Divider(color: Colors.black),
+                                separatorBuilder: (context, index) =>
+                                    const Divider(color: Colors.black),
                                 padding: const EdgeInsets.all(8),
-                                itemCount: _players!.length + 1, //for last divider line
+                                itemCount: _players!.length +
+                                    1, //for last divider line
                                 itemBuilder: (BuildContext context, int row) {
                                   if (row == _players!.length) {
                                     return const Text("END OF PLAYER LIST");
@@ -795,7 +950,8 @@ class _PlayerHomeState extends State<PlayerHome>
                 );
               });
         } catch (e, stackTrace) {
-          return Text('player home EXCEPTION: $e\n$stackTrace', style: TextStyle(color: Colors.red));
+          return Text('player home EXCEPTION: $e\n$stackTrace',
+              style: TextStyle(color: Colors.red));
         }
       },
     );

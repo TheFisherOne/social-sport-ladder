@@ -346,7 +346,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
       }
       if (lastLoggedInUser != activeUser.id) {
         if (kDebugMode) {
-          print('swiching logged in user from "$lastLoggedInUser" to "${activeUser.id}"');
+          print('switching logged in user from "$lastLoggedInUser" to "${activeUser.id}"');
         }
         firestore.collection('Users').doc(activeUser.id).update({
           'LastLogin': DateTime.now(),
@@ -441,6 +441,11 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
           if (kDebugMode) {
             print('SYSTEM CONFIG RequiredSoftwareVersion: $requiredSoftwareVersion ');
           }
+          if (requiredSoftwareVersion! > softwareVersion) {
+            return reloadHtml(context, requiredSoftwareVersion as double);
+          }
+
+
           if ((_tipOfTheDayBody == null) ||
               ((tipOfTheDayNumber + _tipOfTheDayOffset) !=
                   _workingTipOfTheDayNumber)) {

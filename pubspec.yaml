@@ -35,7 +35,7 @@ dependencies:
   firebase_storage:
   google_sign_in:
   cloud_firestore:
-  geolocator: ^14.0.0
+  geolocator:
 #  sign_in_button:
   intl:
   image_picker:
@@ -60,7 +60,7 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.6
-  firebase_ui_auth: ^3.0.0
+  firebase_ui_auth:
   firebase_ui_oauth_google:
 
 
@@ -70,7 +70,6 @@ dev_dependencies:
   test: ^1.24.0
 #  mockito: ^5.0.17
   firebase_auth_mocks:
-  firebase_core_platform_interface: ^6.0.0
   fake_cloud_firestore:
   integration_test:
     sdk: flutter
