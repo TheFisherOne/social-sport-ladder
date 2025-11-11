@@ -50,7 +50,8 @@ Widget reloadWithNewVersion(BuildContext context, double reqSoftwareVersion) {
             ),
             const SizedBox(height: 8),
             Text(
-              'A mandatory update (v$reqSoftwareVersion) is available. Please reload the app to continue.',
+              'A mandatory update (v$reqSoftwareVersion) is available. Please reload the app to continue.'
+              '\nyou may have to reload several times to see the update',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: Theme.of(context).textTheme.bodyMedium?.fontSize,

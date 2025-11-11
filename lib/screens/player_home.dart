@@ -620,7 +620,7 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
             if ((weeksAwayWithoutNotice >= 3) || (weeksAway >= 7))
               Icon(
                 Icons.warning,
-                color: Colors.red,
+                color: Colors.yellow,
               ),
             Expanded(
               child: Text(

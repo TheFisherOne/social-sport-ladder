@@ -16,6 +16,11 @@ if [ "$1" = "debug" ]; then
 else
  echo deploying in normal mode V$next_version
 
- flutter build web
+ flutter build web --no-wasm-dry-run
 fi
+
+echo adding custom-pages
+cp -r custom-pages/info build/web/
+
+echo Deploying web to firebase
 firebase deploy
