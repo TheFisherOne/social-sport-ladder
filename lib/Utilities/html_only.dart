@@ -16,7 +16,8 @@ Widget reloadWithNewVersion(BuildContext context, double reqSoftwareVersion) {
     // String newURL = '${web.window.location.href}?v=$timestamp';
     // String newURL = '${html.window.location.pathname}?v=$timestamp';
     if (kDebugMode) {
-      print('NEED NEW VERSION OF THE SOFTWARE $reqSoftwareVersion > $softwareVersion');
+      print(
+          'NEED NEW VERSION OF THE SOFTWARE $reqSoftwareVersion > $softwareVersion');
     }
     // final timestamp = DateTime.now().millisecondsSinceEpoch;
     // final currentUrl = web.window.location.href.split('?')[0]; // Remove existing query params
@@ -25,68 +26,71 @@ Widget reloadWithNewVersion(BuildContext context, double reqSoftwareVersion) {
     // // Use assign() to navigate to the new URL, forcing a reload.
     // web.window.location.assign(newURL);
 
-      return Container(
-        padding: const EdgeInsets.all(16.0),
-        margin: const EdgeInsets.symmetric(horizontal: 8.0),
-        decoration: BoxDecoration(
-          color: Colors.red.withAlpha(100),
-          border: Border.all(color: Colors.red.shade700, width: 2),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Icon(Icons.system_update, color: Colors.red.shade700, size: 40),
-            const SizedBox(height: 12),
-            Text(
-              'Update Required',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: Theme.of(context).textTheme.titleLarge?.fontSize,
-                color: Colors.red.shade900,
-              ),
-              textAlign: TextAlign.center,
+    return Container(
+      padding: const EdgeInsets.all(16.0),
+      margin: const EdgeInsets.symmetric(horizontal: 8.0),
+      decoration: BoxDecoration(
+        color: Colors.red.withAlpha(100),
+        border: Border.all(color: Colors.red.shade700, width: 2),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Icon(Icons.system_update, color: Colors.red.shade700, size: 40),
+          const SizedBox(height: 12),
+          Text(
+            'Update Required',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: Theme.of(context).textTheme.titleLarge?.fontSize,
+              color: Colors.red.shade900,
             ),
-            const SizedBox(height: 8),
-            Text(
-              'A mandatory update (v$reqSoftwareVersion) is available. Please reload the app to continue.'
-              '\nyou may have to reload several times to see the update',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: Theme.of(context).textTheme.bodyMedium?.fontSize,
-                color: Colors.black87,
-              ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'A mandatory update (v$reqSoftwareVersion) is available. Please reload the app to continue.'
+            '\nyou may have to reload several times to see the update',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: Theme.of(context).textTheme.bodyMedium?.fontSize,
+              color: Colors.black87,
             ),
-            const SizedBox(height: 16),
-            ElevatedButton.icon(
-              icon: const Icon(Icons.refresh),
-              label: const Text('Reload Now'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red.shade700,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-              onPressed: () {
-                // The reload is now safely triggered by direct user action.
-                if (kIsWeb) {
-                  final timestamp = DateTime.now().millisecondsSinceEpoch;
-                  // Get the base URL without any old query parameters.
-                  final currentUrl = web.window.location.href.split('?')[0];
-                  final newURL = '$currentUrl?v=$timestamp';
-                  // Use assign() to force a full page reload from the server.
-                  web.window.location.assign(newURL);
-                }
-              },
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            icon: const Icon(Icons.refresh),
+            label: const Text('Reload Now'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade700,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
             ),
-          ],
-        ),
-      );
-
+            onPressed: () {
+              // The reload is now safely triggered by direct user action.
+              if (kIsWeb) {
+                final timestamp = DateTime.now().millisecondsSinceEpoch;
+                // Get the base URL without any old query parameters.
+                final currentUrl = web.window.location.href.split('?')[0];
+                final newURL = '$currentUrl?v=$timestamp';
+                // Use assign() to force a full page reload from the server.
+                web.window.location.assign(newURL);
+              }
+            },
+          ),
+        ],
+      ),
+    );
   }
-  return Text('YOU MUST FORCE A RELOAD you need V$reqSoftwareVersion', style: nameStyle,);
-
+  return Text(
+    'YOU MUST FORCE A RELOAD you need V$reqSoftwareVersion',
+    style: nameStyle,
+  );
 }
+
 Widget reloadHtml(BuildContext context, double reqSoftwareVersion) {
   // if (web.window.navigator.serviceWorker != null) {
   //   web.window.navigator.serviceWorker!.getRegistrations().then((registrations) {
@@ -102,6 +106,7 @@ Widget reloadHtml(BuildContext context, double reqSoftwareVersion) {
     return reloadWithNewVersion(context, reqSoftwareVersion);
   }
 }
+
 Future<void> downloadCsvFile(Event event) async {
   // this function exists so that the parent function does not have to be async
   Reference ref = event.fileRef!;
@@ -117,5 +122,4 @@ Future<void> downloadCsvFile(Event event) async {
     ..href = url
     ..setAttribute('download', event.toString())
     ..click();
-
 }

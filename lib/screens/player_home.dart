@@ -22,6 +22,8 @@ import '../sports/sport_tennis_rg.dart';
 import 'audit_page.dart';
 import 'calendar_page.dart';
 import 'ladder_selection_page.dart';
+import '../Utilities/html_none.dart'
+if (dart.library.html) '../Utilities/html_only.dart';
 
 dynamic playerHomeInstance;
 QueryDocumentSnapshot? clickedOnPlayerDoc;
@@ -690,6 +692,16 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
         // developer.log('${DateTime.now()} player_home StreamBuilder');
         try {
           activeLadderDoc = ladderSnapshot.data!;
+
+          // this is needed because iphones cache way too much and so do not rebuild
+          // the ladder selection page when they are brought up from scratch
+          double reqSoftwareVersion = (activeLadderDoc!
+              .get('RequiredSoftwareVersion') as num)
+              .toDouble();
+          if (reqSoftwareVersion > softwareVersion) {
+            return reloadHtml(context, reqSoftwareVersion);
+          }
+
           activeLadderBackgroundColor =
               stringToColor(activeLadderDoc!.get('Color')) ?? Colors.pink;
 
