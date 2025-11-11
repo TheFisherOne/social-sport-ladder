@@ -125,6 +125,8 @@ class _ScoreTennisRgState extends State<ScoreTennisRg>
         cancelWorkingScores();
         // print('updateFromDoc6 after cancel');
       }
+    } else {
+      _beingEditedById = '';
     }
     // print('updateFromDoc3 _beingEditedById: $_beingEditedById');
     _beingEditedByName = playerIdToName(_beingEditedById);
