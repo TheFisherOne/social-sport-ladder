@@ -8,8 +8,8 @@ echo Changing Version from "$current_version" to "$next_version"
 
 sed -i "s/const int softwareVersion = $current_version;/const int softwareVersion = $next_version;/;s/bool enableImages = false;/bool enableImages = true;/" lib/constants/constants.dart
 
-# removed after flutter upgraded index.html
-# sed -i -E "s/(flutter\.js\?version=)[0-9]+/\1$next_version/" web/index.html
+# this updates pubspec.yaml which in turn will update build/web/version.json which is used to clear the cache
+sed -i -E "s/(version: 1\.0\.0\+)[0-9]+/\1$next_version/" pubspec.yaml
 
 if [ "$1" = "debug" ]; then
   echo deploying debug version to make stack traces readable V$next_version
