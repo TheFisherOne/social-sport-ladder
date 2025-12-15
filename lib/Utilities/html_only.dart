@@ -72,12 +72,13 @@ Widget reloadWithNewVersion(BuildContext context, double reqSoftwareVersion) {
             onPressed: () {
               // The reload is now safely triggered by direct user action.
               if (kIsWeb) {
-                final timestamp = DateTime.now().millisecondsSinceEpoch;
-                // Get the base URL without any old query parameters.
-                final currentUrl = web.window.location.href.split('?')[0];
-                final newURL = '$currentUrl?v=$timestamp';
+                // final timestamp = DateTime.now().millisecondsSinceEpoch;
+                // // Get the base URL without any old query parameters.
+                // final currentUrl = web.window.location.href.split('?')[0];
+                // final newURL = '$currentUrl?v=$timestamp';
                 // Use assign() to force a full page reload from the server.
-                web.window.location.assign(newURL);
+                // web.window.location.assign(newURL);
+                web.window.location.reload();
               }
             },
           ),
