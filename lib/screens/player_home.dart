@@ -586,6 +586,8 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
     } catch (e) {
       return Text('ERROR: ${player.id} missing WaitListRank (Number)');
     }
+    final data = player.data() as Map<String, dynamic>?;
+    bool cantMakeIt =  data != null && data.containsKey('CantMakeIt') && player.get('CantMakeIt');
 
     // print('buildPlayerLine: _clickedOnRank: $_clickedOnRank vs $row admin: ${activeLadderDoc!.get('Admins').split(",").contains(loggedInUser) } ${player.id} vs $loggedInUser OR $loggedInUserIsSuper');
     return Column(
@@ -624,6 +626,9 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
                 Icons.warning,
                 color: Colors.yellow,
               ),
+            if (cantMakeIt)
+              Icon(Icons.close, color: Colors.red),
+
             Expanded(
               child: Text(
                 ' $rank${(waitListRank > 0) ? "w$waitListRank" : ""}: ${player.get('Name')}',

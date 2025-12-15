@@ -1,7 +1,7 @@
 import 'package:timezone/timezone.dart';
 
 import '../Utilities/html_none.dart'
-if (dart.library.html ) '../Utilities/html_only.dart';
+    if (dart.library.html) '../Utilities/html_only.dart';
 import 'dart:collection';
 import 'package:convert/convert.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -27,13 +27,17 @@ dynamic currentCalendarPage;
 bool mapContainsDateKey(Map<dynamic, dynamic> events, DateTime key) {
   return events.keys.any((date) {
     // print('date: $date ${date.runtimeType}');
-    return (date.year == key.year) && (date.month == key.month) && (date.day == key.day);
+    return (date.year == key.year) &&
+        (date.month == key.month) &&
+        (date.day == key.day);
   });
 }
 
 (DateTime?, String) getNextPlayDateTime(DocumentSnapshot<Object?> ladderDoc) {
   List<String> daysOfPlayOrig = ladderDoc.get('DaysOfPlay').split('|');
-  if ((daysOfPlayOrig.length == 1) && (daysOfPlayOrig[0].isEmpty)) return (null, '');
+  if ((daysOfPlayOrig.length == 1) && (daysOfPlayOrig[0].isEmpty)) {
+    return (null, '');
+  }
   // remove any that are too short
   List<String> daysOfPlayChecked = [];
   for (int i = 0; i < daysOfPlayOrig.length; i++) {
@@ -41,16 +45,18 @@ bool mapContainsDateKey(Map<dynamic, dynamic> events, DateTime key) {
       daysOfPlayChecked.add(daysOfPlayOrig[i]);
     } else {
       if (kDebugMode) {
-        print('getNextPlayDateTime: length check failed ${ladderDoc.id} "${daysOfPlayOrig[i]}"');
+        print(
+            'getNextPlayDateTime: length check failed ${ladderDoc.id} "${daysOfPlayOrig[i]}"');
       }
     }
   }
   DateTime? result;
   try {
-    result = FixedDateTimeFormatter('YYYY.MM.DD_hh:mm', isUtc: false).decode(daysOfPlayChecked.first);
+    result = FixedDateTimeFormatter('YYYY.MM.DD_hh:mm', isUtc: false)
+        .decode(daysOfPlayChecked.first);
   } catch (e) {
     if (kDebugMode) {
-      if (testFirestore==null) {
+      if (testFirestore == null) {
         print('exception: $e from ${daysOfPlayChecked.first}');
       }
     }
@@ -68,7 +74,9 @@ bool isVacationTimeOk(DocumentSnapshot<Object?> ladderDoc) {
   int daysAhead = (vacationStopTime ~/ 100);
   vacationStopTime -= daysAhead * 100.0;
   timeNow.subtract(Duration(days: daysAhead));
-  if ((timeNow.year == nextPlay.year) && (timeNow.month == nextPlay.month) && (timeNow.day == nextPlay.day)) {
+  if ((timeNow.year == nextPlay.year) &&
+      (timeNow.month == nextPlay.month) &&
+      (timeNow.day == nextPlay.day)) {
     if ((timeNow.hour < vacationStopTime) || (timeNow.hour > nextPlay.hour)) {
       return true;
     } else {
@@ -121,6 +129,7 @@ class EventsList {
   Map<Object, Object?> getDBUpdateMap() {
     var working = dbList;
     added.forEach((k, v) {
+      // print('getDBUpdateMap: checking entry $k');
       String dateStr = DateFormat('yyyy.MM.dd').format(k);
       // check if there is an entry already
       int found = -1;
@@ -154,6 +163,23 @@ class EventsList {
         working.removeAt(found);
       }
     });
+    final DateFormat formatter = DateFormat('yyyy.MM.dd');
+    // Get today's date as a string in the same format (yyyy.MM.dd)
+    String todayFormatted = formatter.format(DateTime.now());
+    DateTime startOfToday = formatter.parse(todayFormatted);
+
+    // Remove all dates before today (keep today and future)
+    working.removeWhere((entry) {
+      // Extract the first 10 characters
+      String datePart = entry.substring(0, 10);
+
+      // Parse the date string directly
+      DateTime entryDate = formatter.parse(datePart);
+
+      // Remove if entry is before today
+      return entryDate.isBefore(startOfToday);
+    });
+
     working.sort();
     String result = working.join('|');
     return {
@@ -261,24 +287,26 @@ class CalendarPageState extends State<CalendarPage> {
     return kEvents[day] ?? [];
   }
 
+  late DateTime _initTime;
   @override
   void initState() {
     super.initState();
-
+    _initTime = DateTime.now();
     _selectedDay = _focusedDay;
     addedPlayEvents = {};
 
     _playOnEvents = EventsList('DaysOfPlay', 'play');
     _specialEvents = EventsList('DaysSpecial', 'misc');
-    _awayEvents = EventsList('DaysAway', 'AWAY: you have indicated that you will not play');
+    _awayEvents = EventsList(
+        'DaysAway', 'AWAY: you have indicated that you will not play');
 
     String tmpStr = activeLadderDoc!.get('DaysOfPlay').split('|')[0];
     if (tmpStr.length >= 14) {
       _lastPlayOnTime = tmpStr.substring(9, 14);
     }
     try {
-      DateTime dateNextPlay = DateFormat('yyyy.MM.dd').parse(
-          tmpStr.substring(0, 10));
+      DateTime dateNextPlay =
+          DateFormat('yyyy.MM.dd').parse(tmpStr.substring(0, 10));
       _selectedDay = dateNextPlay;
     } catch (_) {}
 
@@ -295,32 +323,53 @@ class CalendarPageState extends State<CalendarPage> {
   void dispose() {
     _selectedEvents.dispose();
 
-    Map<Object, Object?> m1 = _playOnEvents.getDBUpdateMap();
-    // print('_playOnEvents: $m1');
+    // if someone brings up this page and leaves it up then
+    // it is dangerous to save their work. In particular
+    // the next day of play might be in the past.
+    int minutesAgo = _initTime.difference(DateTime.now()).inMinutes;
+    if (minutesAgo < 60) {
+      Map<Object, Object?> m1 = _playOnEvents.getDBUpdateMap();
+      // print('_playOnEvents: $m1');
 
-    Map<Object, Object?> m2 = _specialEvents.getDBUpdateMap();
-    // print('_specialLEvents: $m2');
+      Map<Object, Object?> m2 = _specialEvents.getDBUpdateMap();
+      // print('_specialLEvents: $m2');
 
-    m1.addAll(m2);
-    // print('_playOnEvents2: $m1');
+      m1.addAll(m2);
+      // print('_playOnEvents2: $m1');
 
-    Map<Object, Object?> m3 = _awayEvents.getDBUpdateMap();
-    // print('_awayEvents: $m3');
+      Map<Object, Object?> m3 = _awayEvents.getDBUpdateMap();
+      // print('_awayEvents: $m3');
 
-    if (typeOfCalendarEvent == EventTypes.playOn) {
-      String newValue = m1['DaysOfPlay'].toString();
-      String oldValue = activeLadderDoc!.get('DaysOfPlay');
-      if (newValue != oldValue) {
-        writeAudit(user: loggedInUser, documentName: activeLadderId, action: 'Set DaysOfPlay', newValue: newValue, oldValue: oldValue);
-        firestore.collection('Ladder').doc(activeLadderId).update(m1);
+      if (typeOfCalendarEvent == EventTypes.playOn) {
+        String newValue = m1['DaysOfPlay'].toString();
+        String oldValue = activeLadderDoc!.get('DaysOfPlay');
+        if (newValue != oldValue) {
+          writeAudit(
+              user: loggedInUser,
+              documentName: activeLadderId,
+              action: 'Set DaysOfPlay',
+              newValue: newValue,
+              oldValue: oldValue);
+          firestore.collection('Ladder').doc(activeLadderId).update(m1);
+        }
       }
-    }
-    if (typeOfCalendarEvent == EventTypes.standard) {
-      String newValue = m3['DaysAway'].toString();
-      String oldValue = _playerDoc!.get('DaysAway');
-      if (newValue != oldValue) {
-        writeAudit(user: loggedInUser, documentName: _playerDoc!.id, action: 'Set DaysAway', newValue: newValue, oldValue: oldValue);
-        firestore.collection('Ladder').doc(activeLadderId).collection('Players').doc(_playerDoc!.id).update(m3);
+      if (typeOfCalendarEvent == EventTypes.standard) {
+        String newValue = m3['DaysAway'].toString();
+        String oldValue = _playerDoc!.get('DaysAway');
+        if (newValue != oldValue) {
+          writeAudit(
+              user: loggedInUser,
+              documentName: _playerDoc!.id,
+              action: 'Set DaysAway',
+              newValue: newValue,
+              oldValue: oldValue);
+          firestore
+              .collection('Ladder')
+              .doc(activeLadderId)
+              .collection('Players')
+              .doc(_playerDoc!.id)
+              .update(m3);
+        }
       }
     }
     currentCalendarPage = null;
@@ -335,12 +384,15 @@ class CalendarPageState extends State<CalendarPage> {
 
   DocumentSnapshot? _playerDoc;
 
-  final TextEditingController _specialTextFieldController = TextEditingController();
+  final TextEditingController _specialTextFieldController =
+      TextEditingController();
   final List<Reference> _fileList = [];
   Future<void> listAllFiles() async {
-    String folderPath = '${activeLadderDoc!.get('DisplayName')}/History/'.replaceAll(' ', '_');
+    String folderPath =
+        '${activeLadderDoc!.get('DisplayName')}/History/'.replaceAll(' ', '_');
     // print('listAllFiles: $folderPath');
-    final storageRef = FirebaseStorage.instance.ref().child(folderPath); // Replace 'your-directory-path/' with the path to your directory
+    final storageRef = FirebaseStorage.instance.ref().child(
+        folderPath); // Replace 'your-directory-path/' with the path to your directory
 
     try {
       final ListResult result = await storageRef.listAll();
@@ -368,8 +420,12 @@ class CalendarPageState extends State<CalendarPage> {
   final List<QueryDocumentSnapshot<Map<String, dynamic>>> _scoresList = [];
   Future<void> listScoreDocs() async {
     DateTime timeLimit = DateTime.now().subtract(const Duration(days: 180));
-    QuerySnapshot<Map<String, dynamic>> scores =
-        await firestore.collection('Ladder').doc(activeLadderId).collection('Scores').where('EditedSince', isGreaterThanOrEqualTo: timeLimit).get();
+    QuerySnapshot<Map<String, dynamic>> scores = await firestore
+        .collection('Ladder')
+        .doc(activeLadderId)
+        .collection('Scores')
+        .where('EditedSince', isGreaterThanOrEqualTo: timeLimit)
+        .get();
     // print('listScoreDocs: found ${scores.docs.length} score docs');
     for (var doc in scores.docs) {
       _scoresList.add(doc);
@@ -386,7 +442,8 @@ class CalendarPageState extends State<CalendarPage> {
           title: const Text('Text for Special Announcement'),
           content: TextField(
             controller: _specialTextFieldController,
-            decoration: const InputDecoration(hintText: "Text that will appear on the calendar"),
+            decoration: const InputDecoration(
+                hintText: "Text that will appear on the calendar"),
           ),
           actions: <Widget>[
             TextButton(
@@ -400,7 +457,8 @@ class CalendarPageState extends State<CalendarPage> {
               onPressed: () {
                 // print(_specialTextFieldController.text);
                 setState(() {
-                  _specialEvents.addEvent(_selectedDay!, Event(_specialTextFieldController.text));
+                  _specialEvents.addEvent(
+                      _selectedDay!, Event(_specialTextFieldController.text));
                 });
                 currentCalendarPage.refresh();
                 Navigator.pop(context);
@@ -412,7 +470,8 @@ class CalendarPageState extends State<CalendarPage> {
     );
   }
 
-  final TextEditingController _playTextFieldController = TextEditingController();
+  final TextEditingController _playTextFieldController =
+      TextEditingController();
 
   Future<void> _playTextInputDialog(BuildContext context) async {
     return showDialog(
@@ -442,14 +501,17 @@ class CalendarPageState extends State<CalendarPage> {
                           initialTime: currentSetting!,
                         );
                         setState(() {
-                          dateStr = '${currentSetting!.hour.toString().padLeft(2, '0')}:${currentSetting!.minute.toString().padLeft(2, '0')}';
+                          dateStr =
+                              '${currentSetting!.hour.toString().padLeft(2, '0')}:${currentSetting!.minute.toString().padLeft(2, '0')}';
                         });
                         // print('enteredTime: $currentSetting ${currentSetting!.hour.toString().padLeft(2,'0')}:${currentSetting!.minute.toString().padLeft(2,'0')}');
                       },
-                      child: Text('StartTime(24hr): $dateStr', style: nameStyle)),
+                      child:
+                          Text('StartTime(24hr): $dateStr', style: nameStyle)),
                   TextField(
                     controller: _playTextFieldController,
-                    decoration: const InputDecoration(hintText: "Text that will appear on this event"),
+                    decoration: const InputDecoration(
+                        hintText: "Text that will appear on this event"),
                   ),
                 ],
               ),
@@ -463,10 +525,14 @@ class CalendarPageState extends State<CalendarPage> {
                 TextButton(
                   child: const Text('OK'),
                   onPressed: () {
-                    _lastPlayOnTime = '${currentSetting!.hour.toString().padLeft(2, '0')}:${currentSetting!.minute.toString().padLeft(2, '0')}';
+                    _lastPlayOnTime =
+                        '${currentSetting!.hour.toString().padLeft(2, '0')}:${currentSetting!.minute.toString().padLeft(2, '0')}';
                     // print('$_lastPlayOnTime ${_playTextFieldController.text}');
                     setState(() {
-                      _playOnEvents.addEvent(_selectedDay!, Event('$_lastPlayOnTime ${_playTextFieldController.text}'));
+                      _playOnEvents.addEvent(
+                          _selectedDay!,
+                          Event(
+                              '$_lastPlayOnTime ${_playTextFieldController.text}'));
                     });
                     currentCalendarPage.refresh();
                     Navigator.pop(context);
@@ -482,12 +548,17 @@ class CalendarPageState extends State<CalendarPage> {
 
   void _onDaySelected(DateTime selectedDay, DateTime focusedDay) {
     setState(() {
-      _selectedDay = DateTime(selectedDay.year, selectedDay.month, selectedDay.day);
+      _selectedDay =
+          DateTime(selectedDay.year, selectedDay.month, selectedDay.day);
       _focusedDay = DateTime(focusedDay.year, focusedDay.month, focusedDay.day);
     });
     if (typeOfCalendarEvent == EventTypes.playOn) {
-      if (_selectedDay!.compareTo(DateTime.now().subtract(Duration(days:1))) < 0) return;
-      if (!mapContainsDateKey(_playOnEvents.convertToCalendarEvents(), _selectedDay!)) {
+      if (_selectedDay!.compareTo(DateTime.now().subtract(Duration(days: 1))) <
+          0) {
+        return;
+      }
+      if (!mapContainsDateKey(
+          _playOnEvents.convertToCalendarEvents(), _selectedDay!)) {
         // String eventString = 'play - this is a scheduled day of play';
         _playOnEvents.addEvent(_selectedDay!, Event(_lastPlayOnTime));
       } else {
@@ -524,7 +595,8 @@ class CalendarPageState extends State<CalendarPage> {
         }
       } catch (_) {}
     }
-    String thisLine = '$eventType ${hour.toString().padLeft(2, ' ')}:${min.toString().padLeft(2, '0')}${isPM ? 'PM' : 'AM'} ${str.substring(10)}';
+    String thisLine =
+        '$eventType ${hour.toString().padLeft(2, ' ')}:${min.toString().padLeft(2, '0')}${isPM ? 'PM' : 'AM'} ${str.substring(10)}';
     bool includesSelectedPlayer = false;
     if (eventType == 'AWAY:') {
       thisLine = str;
@@ -534,19 +606,27 @@ class CalendarPageState extends State<CalendarPage> {
       thisLine = str;
     } else if (eventType == 'SCORE') {
       thisLine = str;
-      if (value[index].scoreDoc!.get('Players').split('|').contains(_playerDoc!.id)) {
+      if (value[index]
+          .scoreDoc!
+          .get('Players')
+          .split('|')
+          .contains(_playerDoc!.id)) {
         includesSelectedPlayer = true;
       }
     }
     // print('thisLine:$thisLine');
     return Row(children: [
       Flexible(
-        child: Text('$thisLine$clickText', style: includesSelectedPlayer ? nameBoldStyle : nameStyle),
+        child: Text('$thisLine$clickText',
+            style: includesSelectedPlayer ? nameBoldStyle : nameStyle),
       ),
-      if ((typeOfCalendarEvent == EventTypes.playOn) && (!value[index].toString().startsWith('FILE') && (!value[index].toString().startsWith('SCORE'))))
+      if ((typeOfCalendarEvent == EventTypes.playOn) &&
+          (!value[index].toString().startsWith('FILE') &&
+              (!value[index].toString().startsWith('SCORE'))))
         IconButton(
             onPressed: () {
-              if (value[index].toString().startsWith('play') || value[index].toString().startsWith('AWAY')) {
+              if (value[index].toString().startsWith('play') ||
+                  value[index].toString().startsWith('AWAY')) {
                 // print('delete button on playOn on $_selectedDay with text:${value[index]}');
 
                 setState(() {
@@ -560,7 +640,10 @@ class CalendarPageState extends State<CalendarPage> {
               }
             },
             icon: const Icon(Icons.delete)),
-      if ((typeOfCalendarEvent == EventTypes.playOn) && (!value[index].toString().startsWith('misc') && (!value[index].toString().startsWith('FILE'))) && (!value[index].toString().startsWith('SCORE')))
+      if ((typeOfCalendarEvent == EventTypes.playOn) &&
+          (!value[index].toString().startsWith('misc') &&
+              (!value[index].toString().startsWith('FILE'))) &&
+          (!value[index].toString().startsWith('SCORE')))
         IconButton(
             onPressed: () {
               setState(() {
@@ -570,8 +653,6 @@ class CalendarPageState extends State<CalendarPage> {
             icon: const Icon(Icons.star)),
     ]);
   }
-
-
 
   CalendarFormat _calendarFormat = CalendarFormat.month;
   Widget calendarScaffold() {
@@ -591,7 +672,11 @@ class CalendarPageState extends State<CalendarPage> {
           actions: [
             IconButton(
                 onPressed: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => HelpPage(page: 'Player Calendar')));
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) =>
+                              HelpPage(page: 'Player Calendar')));
                 },
                 icon: Icon(
                   Icons.help,
@@ -647,11 +732,14 @@ class CalendarPageState extends State<CalendarPage> {
                           children: events.map((event) {
                             return Container(
                               // color: Colors.yellow,
-                              margin: const EdgeInsets.symmetric(horizontal: 0.2),
+                              margin:
+                                  const EdgeInsets.symmetric(horizontal: 0.2),
                               width: 15.0,
                               height: 15.0,
                               decoration: BoxDecoration(
-                                shape: event.toString().startsWith('play') ? BoxShape.circle : BoxShape.rectangle,
+                                shape: event.toString().startsWith('play')
+                                    ? BoxShape.circle
+                                    : BoxShape.rectangle,
                                 color: event.toString().startsWith('play')
                                     ? Colors.green
                                     : event.toString().startsWith('AWAY')
@@ -680,19 +768,36 @@ class CalendarPageState extends State<CalendarPage> {
                       DateTime? nextPlayDate;
                       (nextPlayDate, _) = getNextPlayDateTime(activeLadderDoc!);
                       // print('ListView.builder calendar page: nextPlayDate: $nextPlayDate _selectedDay: $_selectedDay');
-                      if ((typeOfCalendarEvent == EventTypes.standard) && (value[index].toString().startsWith('play') || value[index].toString().startsWith('AWAY'))) {
+                      if ((typeOfCalendarEvent == EventTypes.standard) &&
+                          (value[index].toString().startsWith('play') ||
+                              value[index].toString().startsWith('AWAY'))) {
                         if (activeUser.admin ||
                             isVacationTimeOk(activeLadderDoc!) ||
                             ((_selectedDay != null) &&
                                 (nextPlayDate != null) &&
-                                ((_selectedDay!.year != nextPlayDate.year) || (_selectedDay!.month != nextPlayDate.month) || (_selectedDay!.day != nextPlayDate.day)))) {
-                          clickText = '\nClick to ${value[index].toString().startsWith('play') ? 'Mark as away' : 'change back to playing'}';
-                        } else if (!isVacationTimeOk(activeLadderDoc!)){
-                          clickText = '\nit is after ${activeLadderDoc!.get('VacationStopTime')}! too late on day of ladder to change AWAY';
+                                ((_selectedDay!.year != nextPlayDate.year) ||
+                                    (_selectedDay!.month !=
+                                        nextPlayDate.month) ||
+                                    (_selectedDay!.day != nextPlayDate.day)))) {
+                          clickText =
+                              '\nClick to ${value[index].toString().startsWith('play') ? 'Mark as away' : 'change back to playing'}';
+                        } else if (!isVacationTimeOk(activeLadderDoc!)) {
+                          final data = _playerDoc!.data() as Map<String, dynamic>?;
+                          bool cantMakeIt =  data != null && data.containsKey('CantMakeIt') && _playerDoc!.get('CantMakeIt');
+
+                          if (cantMakeIt){
+                            clickText =
+                            '\nit is after ${activeLadderDoc!.get('VacationStopTime')}! too late on day of ladder to change AWAY\n'
+                                'but you can Click to CHANGE YOUR MIND and play.';
+                          } else {
+                            clickText =
+                            '\nit is after ${activeLadderDoc!.get('VacationStopTime')}! too late on day of ladder to change AWAY\n'
+                            'but you can Click to tell everyone you can no longer make it.';
+                          }
                         }
-                        // print('_buildEvent: $index ${value[index]} hour: $thisPlayHour $_selectedDay $_clickText');
                       }
-                      //print('before event Click: $typeOfCalendarEvent clickText: $clickText str: ${value[index].toString()}');
+                      // print(
+                      //     'before event Click: $typeOfCalendarEvent str: ${value[index].toString()} clickText: $clickText \n');
                       return Container(
                         margin: const EdgeInsets.symmetric(
                           horizontal: 12.0,
@@ -717,25 +822,72 @@ class CalendarPageState extends State<CalendarPage> {
                                       Icons.square,
                                       color: Colors.blue,
                                     ),
-                          onTap: (((typeOfCalendarEvent == EventTypes.standard) && clickText.isEmpty) && !((typeOfCalendarEvent == EventTypes.standard) && (value[index].toString().startsWith('SCORE'))))
+                          onTap: (((typeOfCalendarEvent ==
+                                          EventTypes.standard) &&
+                                      !clickText.contains("Click to ")) &&
+                                  !((typeOfCalendarEvent ==
+                                          EventTypes.standard) &&
+                                      (value[index]
+                                          .toString()
+                                          .startsWith('SCORE'))))
                               ? null
                               : () {
-                                  //print('event Click: $typeOfCalendarEvent clickText: $clickText str: ${value[index].toString()}');
-                                  if (typeOfCalendarEvent == EventTypes.standard) {
-                                    if (value[index].toString().startsWith('play')) {
+                                  // print(
+                                  //     'event Click: $typeOfCalendarEvent clickText: $clickText str: ${value[index].toString()}');
+                                  if (typeOfCalendarEvent ==
+                                      EventTypes.standard) {
+                                    if (clickText.contains("tell everyone you can no longer make it")){
+                                      writeAudit(
+                                          user: loggedInUser,
+                                          documentName: _playerDoc!.id,
+                                          action: 'Set CantMakeIt',
+                                          newValue: 'true',
+                                          oldValue: 'false');
+                                      firestore
+                                          .collection('Ladder')
+                                          .doc(activeLadderId)
+                                          .collection('Players')
+                                          .doc(_playerDoc!.id)
+                                          .update({'CantMakeIt': true});
+                                    } else if (clickText.contains("CHANGE YOUR MIND")){
+                                      writeAudit(
+                                          user: loggedInUser,
+                                          documentName: _playerDoc!.id,
+                                          action: 'Set CantMakeIt',
+                                          newValue: 'false',
+                                          oldValue: 'true');
+                                      firestore
+                                          .collection('Ladder')
+                                          .doc(activeLadderId)
+                                          .collection('Players')
+                                          .doc(_playerDoc!.id)
+                                          .update({'CantMakeIt': false});
+                                    } else
+                                    if (value[index]
+                                        .toString()
+                                        .startsWith('play')) {
                                       setState(() {
-                                        _awayEvents.addEvent(_selectedDay!, Event(''));
+                                        _awayEvents.addEvent(
+                                            _selectedDay!, Event(''));
                                       });
-                                    } else if (value[index].toString().startsWith('AWAY')) {
+                                    } else if (value[index]
+                                        .toString()
+                                        .startsWith('AWAY')) {
                                       setState(() {
                                         _awayEvents.removeEvent(_selectedDay!);
                                       });
-                                    } else if (value[index].toString().startsWith('SCORE')) {
-                                      DocumentSnapshot doc = value[index].scoreDoc!;
+                                    } else if (value[index]
+                                        .toString()
+                                        .startsWith('SCORE')) {
+                                      DocumentSnapshot doc =
+                                          value[index].scoreDoc!;
                                       //print('launch SCORE on ${doc.id}');
                                       // Navigator.push(context, )
-                                      String roundStr = doc.id.substring('yyyy.MM.dd_'.length, doc.id.indexOf('_C#'));
-                                      String courtStr = doc.id.substring(doc.id.indexOf('_C#') + '_C#'.length);
+                                      String roundStr = doc.id.substring(
+                                          'yyyy.MM.dd_'.length,
+                                          doc.id.indexOf('_C#'));
+                                      String courtStr = doc.id.substring(
+                                          doc.id.indexOf('_C#') + '_C#'.length);
                                       int round = 1;
                                       int court = 1;
                                       try {
@@ -743,7 +895,8 @@ class CalendarPageState extends State<CalendarPage> {
                                         court = int.parse(courtStr);
                                       } catch (e) {
                                         if (kDebugMode) {
-                                          print('ERROR: could not parse round and court from doc.id ${doc.id} $roundStr $courtStr');
+                                          print(
+                                              'ERROR: could not parse round and court from doc.id ${doc.id} $roundStr $courtStr');
                                         }
                                       }
                                       var page = ScoreTennisRg(
@@ -755,22 +908,41 @@ class CalendarPageState extends State<CalendarPage> {
                                         scoreDoc: value[index].scoreDoc!,
                                         allowEdit: false,
                                       );
-                                      Navigator.push(context, MaterialPageRoute(builder: (context) => page));
+                                      Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                              builder: (context) => page));
                                     }
-                                  } else if ((typeOfCalendarEvent == EventTypes.playOn) && (value[index].toString().startsWith('misc'))) {
-                                    String initialText = value[index].toString();
-                                    _specialTextFieldController.text = initialText.substring(5);
+                                  } else if ((typeOfCalendarEvent ==
+                                          EventTypes.playOn) &&
+                                      (value[index]
+                                          .toString()
+                                          .startsWith('misc'))) {
+                                    String initialText =
+                                        value[index].toString();
+                                    _specialTextFieldController.text =
+                                        initialText.substring(5);
 
                                     _specialTextInputDialog(context);
-                                  } else if ((typeOfCalendarEvent == EventTypes.playOn) && (value[index].toString().startsWith('play'))) {
-                                    String initialText = value[index].toString();
+                                  } else if ((typeOfCalendarEvent ==
+                                          EventTypes.playOn) &&
+                                      (value[index]
+                                          .toString()
+                                          .startsWith('play'))) {
+                                    String initialText =
+                                        value[index].toString();
                                     if (initialText.length >= 5) {
-                                      _playTextFieldController.text = value[index].toString().substring(5);
+                                      _playTextFieldController.text =
+                                          value[index].toString().substring(5);
                                     }
 
                                     // print('selectedTimeOfDay: $selectedTimeOfDay');
                                     _playTextInputDialog(context);
-                                  } else if ((typeOfCalendarEvent == EventTypes.playOn) && (value[index].toString().startsWith('FILE'))) {
+                                  } else if ((typeOfCalendarEvent ==
+                                          EventTypes.playOn) &&
+                                      (value[index]
+                                          .toString()
+                                          .startsWith('FILE'))) {
                                     downloadCsvFile(value[index]);
 
                                     // _specialTextFieldController.text = url;
@@ -798,16 +970,24 @@ class CalendarPageState extends State<CalendarPage> {
     try {
       if (typeOfCalendarEvent == EventTypes.standard) {
         return StreamBuilder<DocumentSnapshot>(
-            stream: firestore.collection('Ladder').doc(activeLadderId).collection('Players').doc(clickedOnPlayerDoc!.id).snapshots(),
-            builder: (BuildContext context, AsyncSnapshot<DocumentSnapshot<Object?>> playerSnapshots) {
+            stream: firestore
+                .collection('Ladder')
+                .doc(activeLadderId)
+                .collection('Players')
+                .doc(clickedOnPlayerDoc!.id)
+                .snapshots(),
+            builder: (BuildContext context,
+                AsyncSnapshot<DocumentSnapshot<Object?>> playerSnapshots) {
               if (playerSnapshots.error != null) {
-                String error = 'Snapshot error: ${playerSnapshots.error.toString()} on getting player ${clickedOnPlayerDoc!.id} ';
+                String error =
+                    'Snapshot error: ${playerSnapshots.error.toString()} on getting player ${clickedOnPlayerDoc!.id} ';
                 if (kDebugMode) {
                   print(error);
                 }
                 return Text(error);
               }
-              if (!playerSnapshots.hasData || (playerSnapshots.connectionState != ConnectionState.active)) {
+              if (!playerSnapshots.hasData ||
+                  (playerSnapshots.connectionState != ConnectionState.active)) {
                 return const CircularProgressIndicator();
               }
               if (playerSnapshots.data == null) {
@@ -840,7 +1020,8 @@ class CalendarPageState extends State<CalendarPage> {
                   kEvents[k]![0] = v[0];
                 } else {
                   if (kDebugMode) {
-                    print('Invalid away date specified for ${_playerDoc!.id} $k ${v[0]} ');
+                    print(
+                        'Invalid away date specified for ${_playerDoc!.id} $k ${v[0]} ');
                     _awayEvents.removeEvent(k);
                   }
                 }
@@ -848,7 +1029,8 @@ class CalendarPageState extends State<CalendarPage> {
 
               // print('_scoresList.length: ${_scoresList.length}');
               for (int i = 0; i < _scoresList.length; i++) {
-                QueryDocumentSnapshot<Map<String, dynamic>> doc = _scoresList[i];
+                QueryDocumentSnapshot<Map<String, dynamic>> doc =
+                    _scoresList[i];
                 // print('found score doc[$i]: ${doc.id}');
                 DateTime fileDate = DateFormat('yyyy.MM.dd').parse(doc.id);
                 kEvents[fileDate] = kEvents[fileDate] ?? [];
@@ -857,7 +1039,8 @@ class CalendarPageState extends State<CalendarPage> {
                 kEvents[fileDate]!.add(newEvent);
               }
 
-              _selectedEvents.value = List.from(_getEventsForDay(_selectedDay!));
+              _selectedEvents.value =
+                  List.from(_getEventsForDay(_selectedDay!));
 
               return calendarScaffold();
             });
@@ -901,7 +1084,9 @@ class CalendarPageState extends State<CalendarPage> {
       }
       return Text('Unsupported Event Type $typeOfCalendarEvent');
     } catch (e, stackTrace) {
-      return Text('calendar EXCEPTION: $e\n$stackTrace', );//style: TextStyle(color: Colors.red));
+      return Text(
+        'calendar EXCEPTION: $e\n$stackTrace',
+      ); //style: TextStyle(color: Colors.red));
     }
   }
 }

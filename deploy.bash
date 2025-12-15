@@ -16,7 +16,7 @@ if [ "$1" = "debug" ]; then
 else
  echo deploying in normal mode V$next_version
 
- flutter build web --no-wasm-dry-run
+ flutter build web --pwa-strategy=none --release
 fi
 
 echo adding custom-pages
