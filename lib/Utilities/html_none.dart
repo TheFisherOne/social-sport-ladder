@@ -13,3 +13,6 @@ return Text('You must update the app, the version is too old $softwareVersion<$r
 Future<void> downloadCsvFile(Event event) async {
 
 }
+void changeLoadingMessage(String message){
+
+}

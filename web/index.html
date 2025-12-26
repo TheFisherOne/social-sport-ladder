@@ -1,22 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
+
+  <meta name="theme-color" content="#0175C2">           <!-- or your brand color -->
+  <meta name="background-color" content="#ffffff">      <!-- loading background color -->
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="description" content="Good for Tennis and Pickleball and other sports. Usually in doubles format.">
 
@@ -24,16 +14,27 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="social_sport_ladder">
+  <meta name="apple-mobile-web-app-capable" content="yes">
   <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-icon-180x180.png">
   <link rel="icon" type="image/png" sizes="192x192" href="icons/Icon-maskable-192.png">
 
   <link rel="icon" type="image/png" href="step-ladder.png"/>
 
-  <title>social_sport_ladder</title>
+  <title>Social Sport Ladder</title>
   <link rel="manifest" href="manifest.json">
 
 </head>
 <body>
+<div id="loading">Loading Social Sport Ladder...</div>
+<script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then(reg => console.log('Service Worker registered successfully', reg))
+          .catch(err => console.error('Service Worker registration failed:', err));
+      });
+    }
+</script>
 
 <script src="flutter_bootstrap.js" async></script>
 </body>

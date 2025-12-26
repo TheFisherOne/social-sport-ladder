@@ -372,6 +372,7 @@ class _HelperFunctionDialog extends StatelessWidget {
                               'Rank': listOfPlayers![pl]
                                   .afterWinLose,
                               'ScoresConfirmed': false,
+                              'CantMakeIt': false,
                               'WeeksRegistered':
                               FieldValue.increment(1),
                             };

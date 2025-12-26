@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 // if you want to enable images in android studio you must edit cors.json to include the write port number for localhost:12345
 // then run gsutil cores set cors.json gs://social-sport-ladder.appspot.com
 // which is in batch file cors.refresh
-bool enableImages = true;
+bool enableImages = false;
 const String fireStoreCollectionName = "social-sport-ladder";
 const int softwareVersion = 118;
 

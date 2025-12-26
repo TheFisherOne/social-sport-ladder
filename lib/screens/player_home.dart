@@ -98,7 +98,7 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
   int _clickedOnRank = -1;
   int _checkInProgress = -1;
   // final List<String> _playerCheckinsList = List.empty(growable: true); // saved for later
-  final LocationService _loc = LocationService();
+  late LocationService? _loc;
   final ScrollController _scrollController = ScrollController();
   final GlobalKey _targetKey = GlobalKey();
 
@@ -106,8 +106,9 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
 
   @override
   void initState() {
-    _loc.init();
-    _loc.addListener(refresh);
+    _loc = LocationService();
+    _loc!.init();
+    _loc!.addListener(refresh);
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     waitingForFreezeCheckins = false;
@@ -116,8 +117,11 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
   @override
   void dispose() {
     playerHomeInstance = null;
-    _loc.removeListener(refresh);
-    _loc.dispose();
+    _loc?.stopTimer();
+    _loc?.removeListener(refresh);
+    _loc?.dispose();
+    _loc=null;
+
     WidgetsBinding.instance.removeObserver(this);
     _scrollController.dispose();
     super.dispose();
@@ -212,14 +216,16 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
       if ((!player.get('Present')) && (player.id == activeUser.id)) {
         Position? where;
         int secAgo = 9999;
-        (where, secAgo) = _loc.getLast();
+        if (_loc!=null) {
+          (where, secAgo) = _loc!.getLast();
+        }
         if ((where == null) || (secAgo > 60)) {
           return (Icons.location_off, 'Your location has not been determined');
         }
-        if (!_loc.isLastLocationOk()) {
+        if ( !_loc!.isLastLocationOk()) {
           return (
             Icons.location_off,
-            'You are too far away ${_loc.getLastDistanceAway().toInt()} m'
+            'You are too far away ${_loc!.getLastDistanceAway().toInt()} m'
           );
         }
       }
@@ -281,7 +287,7 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
     if (player.id == activeUser.id) {
       if (player.get('Present')) {
         // print('unfrozen stopTimer');
-        _loc.stopTimer();
+        _loc?.stopTimer();
       }
     }
     IconData checkBoxIcon;
@@ -302,13 +308,13 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if ((player.id == activeUser.id) &&
+                if ((player.id == activeUser.id) && (_loc!=null) &&
                     ((checkBoxIcon == Icons.check_box) ||
                         (checkBoxIcon == Icons.check_box_outline_blank)))
                   Text(
-                      'you are ${_loc.getLastDistanceAway().toStringAsFixed(1)}m away'),
+                      'you are ${_loc!.getLastDistanceAway().toStringAsFixed(1)}m away'),
                 Container(
-                  height: 50,
+                  height: appFontSize*1.4*2,
                   width: 50,
                   color: (player.id == activeUser.id)
                       ? Colors.green.shade100
@@ -349,7 +355,7 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
                           ? const Icon(Icons.refresh,
                               color: Colors.black, size: 60)
                           : Icon(checkBoxIcon,
-                              size: 60,
+                              size: appFontSize * 1.4*2,
                               color: ((checkBoxIcon == Icons.check_box) ||
                                       (checkBoxIcon ==
                                           Icons.check_box_outline_blank))
@@ -421,7 +427,7 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
                 SizedBox(key: _targetKey, height: 10),
                 (activeUser.helper || (loggedInUser == player.id))
                     ? Container(
-                        height: max(60, appFontSize * 2.7),
+                        height: max(appFontSize*1.4*2, appFontSize * 2.7),
                         // width: 50,
                         color: (player.id == activeUser.id)
                             ? Colors.green.shade100
@@ -440,8 +446,8 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
                               },
                               child: Row(
                                 children: [
-                                  const Icon(Icons.edit_calendar,
-                                      size: 60, color: Colors.green),
+                                  Icon(Icons.edit_calendar,
+                                      size: appFontSize * 1.4*2, color: Colors.green),
                                   Text(
                                     'Calendar:\nfor Away',
                                     style: nameStyle,
@@ -552,14 +558,15 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
     // print('buildPlayerLine: $row ${player.id} crt:${plAssignment!.snapshot.id} away: ${plAssignment!.markedAway}');
 
     Icon icon;
+    double iconSize = appFontSize*1.4;
     if (row == _checkInProgress) {
-      icon = Icon(Icons.refresh, color: Colors.green);
+      icon = Icon(Icons.refresh, color: Colors.green,size: iconSize);
     } else if (player.get('Present')) {
-      icon = Icon(Icons.check_box, color: Colors.black);
+      icon = Icon(Icons.check_box, color: Colors.black,size: iconSize);
     } else if (plAssignment!.markedAway) {
-      icon = const Icon(Icons.horizontal_rule, color: Colors.black);
+      icon = Icon(Icons.horizontal_rule, color: Colors.black,size: iconSize);
     } else {
-      icon = Icon(Icons.check_box_outline_blank, color: Colors.black);
+      icon = Icon(Icons.check_box_outline_blank, color: Colors.black,size: iconSize);
     }
     int weeksRegistered = -1;
     try {
@@ -599,9 +606,9 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
                 // user just clicked on a new row
                 setState(() {
                   if (isUserRow && !player.get('Present')) {
-                    _loc.startTimer();
+                    _loc?.startTimer();
                   } else if (!isUserRow ){
-                    _loc.stopTimer();
+                    _loc?.stopTimer();
                   }
                   _clickedOnRank = row;
                 });
@@ -609,7 +616,7 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
                 setState(() {
                   _clickedOnRank = -1;
                   clickedOnPlayerDoc = null;
-                  _loc.stopTimer();
+                  _loc?.stopTimer();
                 });
               }
             });
@@ -620,14 +627,15 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
               Icon(
                 Icons.fiber_new,
                 color: Colors.green,
+                  size: iconSize
               ),
             if ((weeksAwayWithoutNotice >= 3) || (weeksAway >= 7))
               Icon(
                 Icons.warning,
-                color: Colors.yellow,
+                color: Colors.yellow,size: iconSize
               ),
             if (cantMakeIt)
-              Icon(Icons.close, color: Colors.red),
+              Icon(Icons.close, color: Colors.red,size: iconSize),
 
             Expanded(
               child: Text(
@@ -822,7 +830,7 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
                     CourtAssignmentsRgStandard(_players!);
 
                 if (_clickedOnRank <= 0) {
-                  _loc.stopTimer();
+                  _loc?.stopTimer();
                 }
                 return Scaffold(
                   backgroundColor: Color.lerp(
@@ -952,7 +960,7 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
                                     1, //for last divider line
                                 itemBuilder: (BuildContext context, int row) {
                                   if (row == _players!.length) {
-                                    return const Text("END OF PLAYER LIST");
+                                    return Text("END OF PLAYER LIST: $locationStatusString");
                                   }
                                   return buildPlayerLine(row, listOfPlayers);
                                 },

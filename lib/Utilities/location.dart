@@ -6,6 +6,7 @@ import 'package:geolocator/geolocator.dart';
 
 import '../screens/ladder_config_page.dart';
 
+String locationStatusString = 'Location Not Initialized';
 class LocationService extends ChangeNotifier {
   Position? _lastLocation;
   DateTime? _lastUpdateTime;
@@ -35,9 +36,9 @@ class LocationService extends ChangeNotifier {
 
       if (_lastLocation != null) {
         _lastUpdateTime = DateTime.now();
-        if (kDebugMode) {
-          print('Got Location update at $_lastUpdateTime');
-        }
+        // if (kDebugMode) {
+        //   print('Got Location update at $_lastUpdateTime');
+        // }
         bool newLocationOk = isLocationOk(_lastLocation!);
         if (newLocationOk != _lastLocationOk) {
           _lastLocationOk = newLocationOk;
@@ -120,6 +121,7 @@ Future<void> startTimer() async {
       // Location services are not enabled don't continue
       // accessing the position and request users of the
       // App to enable the location services.
+      locationStatusString  = 'Location services are disabled.';
       if (kDebugMode) {
         print('Location services are disabled.');
       }
@@ -135,6 +137,7 @@ Future<void> startTimer() async {
         // Android's shouldShowRequestPermissionRationale
         // returned true. According to Android guidelines
         // your App should show an explanatory UI now.
+        locationStatusString  = 'Location permissions are denied';
         if (kDebugMode) {
           print('Location permissions are denied');
         }
@@ -143,6 +146,7 @@ Future<void> startTimer() async {
     }
 
     if (permission == LocationPermission.deniedForever) {
+      locationStatusString  = 'Location permissions are permanently denied, we cannot request permissions.';
       // Permissions are denied forever, handle appropriately.
       if (kDebugMode) {
         print('Location permissions are permanently denied, we cannot request permissions.');
@@ -152,6 +156,7 @@ Future<void> startTimer() async {
 
     // When we reach here, permissions are granted and we can
     // continue accessing the position of the device.
+    locationStatusString  = 'Location permissions are granted.';
     if (kDebugMode) {
       print('Location permissions are granted.');
     }

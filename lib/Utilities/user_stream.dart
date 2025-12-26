@@ -16,7 +16,7 @@ class UserStream extends StatefulWidget {
 
 class _UserStreamState extends State<UserStream> {
   
-  double _lastFontSize=-1;
+  double _lastFontSize=appFontSize;
   @override
   Widget build(BuildContext context) {
     if (loggedInUser.isEmpty) {
@@ -26,7 +26,7 @@ class _UserStreamState extends State<UserStream> {
     return StreamBuilder<DocumentSnapshot>(
         stream: firestore.collection('Users').doc(loggedInUser).snapshots(),
         builder: (BuildContext context, AsyncSnapshot<DocumentSnapshot<Object?>> snapshot) {
-          // print('users snapshot');
+
           if (snapshot.error != null) {
             String error = 'Snapshot error: ${snapshot.error.toString()} on getting global user $loggedInUser';
             if (kDebugMode) {
@@ -56,7 +56,7 @@ class _UserStreamState extends State<UserStream> {
             }
             return const CircularProgressIndicator();
           }
-          //print('rebuilding of UserStream');
+          print('rebuilding of UserStream');
           loggedInUserDoc = snapshot.data;
 
           double usersFontSize = 30;
@@ -66,13 +66,12 @@ class _UserStreamState extends State<UserStream> {
           } catch (_) {}
           
           if (_lastFontSize != usersFontSize){
-            double previousFontSize = usersFontSize;
+            if (kDebugMode) {
+              print('1: setting base font from $_lastFontSize to $usersFontSize');
+            }
             _lastFontSize = usersFontSize;
             WidgetsBinding.instance.addPostFrameCallback((_) {
                 setBaseFont(usersFontSize);
-                if (kDebugMode) {
-                  print('setting base font from $previousFontSize to $usersFontSize');
-                }
             });
           }
 
@@ -80,7 +79,16 @@ class _UserStreamState extends State<UserStream> {
           if (kDebugMode) {
             print('LadderSelectionPage called from user_stream.dart');
           }
-          return LadderSelectionPage();
+          NavigatorState nav = Navigator.of(context);
+          Future.microtask(() {
+            if (mounted) {
+              nav.pushReplacement(
+                MaterialPageRoute(builder: (_) => const LadderSelectionPage()),
+              );
+            }
+          });
+          return const Text('launching LadderSelectionPage');
+          // return LadderSelectionPage();
         });
   }
 

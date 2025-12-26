@@ -747,6 +747,8 @@ class _ConfigPageState extends State<ConfigPage> {
                                 String newValueStr = entry.trim().replaceAll(RegExp(r' \s+'), ' ');
                                 if (newValueStr.isEmpty) return null;
                                 List<String> ladderList = newValueStr.split('|');
+                                // super needs to be an admin or a player in every ladder or it wont show up
+                                // print('LaddersThatCanView: $availableLadders');
                                 for (int i = 0; i < ladderList.length; i++) {
                                   if (!availableLadders!.contains(ladderList[i])) {
                                     return 'entry ${i + 1} is not a valid ladder id "${ladderList[i]}"';

@@ -124,3 +124,17 @@ Future<void> downloadCsvFile(Event event) async {
     ..setAttribute('download', event.toString())
     ..click();
 }
+void changeLoadingMessage(String message){
+  // print('CHANGE to $message');
+  try {
+    final loadingDiv = web.document.getElementById('loading');
+    if (loadingDiv != null) {
+        loadingDiv.textContent = message;
+    }
+  } catch (e) {
+    // Silent fail if something goes wrong (e.g., element not found)
+    if (kDebugMode) {
+      print('Could set web loading screen to $message : $e');
+    }
+  }
+}

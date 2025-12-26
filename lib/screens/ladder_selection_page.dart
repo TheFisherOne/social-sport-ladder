@@ -73,13 +73,14 @@ class LadderSelectionPage extends StatefulWidget {
   @override
   State<LadderSelectionPage> createState() => _LadderSelectionPageState();
 }
+String? _tipOfTheDayTitle;
+String? _tipOfTheDayBody;
+int? _workingTipOfTheDayNumber;
 
 class _LadderSelectionPageState extends State<LadderSelectionPage> {
   String _userLadders = '';
   
-  String? _tipOfTheDayTitle;
-  String? _tipOfTheDayBody;
-  int? _workingTipOfTheDayNumber;
+
   int _tipOfTheDayOffset = 0;
 
   // final _calendarService = CalendarService();
@@ -101,6 +102,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
   Future<void> _fetchTipOfTheDay(int? tipOfTheDayNumber) async {
     if ((tipOfTheDayNumber == null) || (tipOfTheDayNumber < 0)) {
       if (mounted) {
+        print('Fetching tip of the day $tipOfTheDayNumber FAILED');
         setState(() {
           _tipOfTheDayTitle = 'Tip for the day'; // Default title
           _tipOfTheDayBody = 'Did you know feature not configured.';
@@ -118,6 +120,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
 
       if (collectionSize <= 0) {
         if (mounted) {
+          print('Fetching tip of the day $tipOfTheDayNumber FAILED2');
           setState(() {
             _tipOfTheDayTitle = 'Tip for the day';
             _tipOfTheDayBody = 'No "Did you know" messages available.';
@@ -138,6 +141,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
       if (tipOfTheDayDoc.exists) {
         if (mounted) {
           setState(() {
+            print('Fetching tip of the day $tipOfTheDayNumber Worked!');
             // Assuming the fields are 'title' and 'body'
             _tipOfTheDayTitle = tipOfTheDayDoc.id;
             _tipOfTheDayBody = tipOfTheDayDoc.get('Description') as String? ??
@@ -148,6 +152,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
         // This case should ideally not be reached if collectionSize > 0
         // and targetIndex is within bounds, but good for robustness.
         if (mounted) {
+          print('Fetching tip of the day $tipOfTheDayNumber FAILED3');
           setState(() {
             _tipOfTheDayTitle = 'Tip for the day';
             _tipOfTheDayBody =
@@ -286,7 +291,9 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
     }
 
     try {
-      // print('ladder_selection_page.build _events: ${_events.length}');
+      if (kDebugMode) {
+        print('ladder_selection_page main build');
+      }
 
       if (loggedInUser.isEmpty) {
         return const Text('LadderPage: but loggedInUser empty');
@@ -378,6 +385,9 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
             return const CircularProgressIndicator();
           }
           final allDocs = snapshot.data!.docs;
+          if (kDebugMode) {
+            print('Ladder Selection Page stream builder build');
+          }
 
           List<QueryDocumentSnapshot<Object?>> filteredDocs = [];
           int? requiredSoftwareVersion;
@@ -449,6 +459,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
           if ((_tipOfTheDayBody == null) ||
               ((tipOfTheDayNumber + _tipOfTheDayOffset) !=
                   _workingTipOfTheDayNumber)) {
+            print('working tip of the day $tipOfTheDayNumber + $_tipOfTheDayOffset =? $_workingTipOfTheDayNumber');
             // Or a more specific condition
             // Using a WidgetsBinding.instance.addPostFrameCallback ensures that
             // setState is called after the build phase, preventing common errors.

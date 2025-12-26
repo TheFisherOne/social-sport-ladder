@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:social_sport_ladder/Utilities/html_only.dart';
 import 'package:social_sport_ladder/screens/login_page.dart';
 import 'Utilities/helper_icon.dart';
 import 'Utilities/user_stream.dart';
@@ -69,6 +70,7 @@ void main() async {
   }
 
 
+  changeLoadingMessage('Initializing App as Google Firebase');
 
   try {
     await Firebase.initializeApp(options: FirebaseOptions(
@@ -86,6 +88,7 @@ void main() async {
     }
     return;
   }
+  changeLoadingMessage('Finished initializing');
   runApp(
       const MyApp()
   );
@@ -112,8 +115,13 @@ class MyApp extends StatelessWidget {
       }
     }
     // print('MyApp build: with email: $loggedInUser');
-
+    if (loggedInUser.isEmpty) {
+      changeLoadingMessage('Loading login page');
+    } else {
+      changeLoadingMessage('Loading user stream');
+    }
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'Social Sport Ladder',
       // theme: Provider.of<ThemeProvider>(context).themeData,
       home: loggedInUser.isEmpty?LoginPage( ):const UserStream(),

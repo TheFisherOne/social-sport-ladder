@@ -43,6 +43,7 @@ class ScoreTennisRg extends StatefulWidget {
 class _ScoreTennisRgState extends State<ScoreTennisRg>
     with WidgetsBindingObserver{
   String _beingEditedById = '';
+  bool _clearUsEditing = false;
   late String _beingEditedByName;
   late String _gameScoresStr;
   late List<List<int?>> _gameScores;
@@ -106,27 +107,33 @@ class _ScoreTennisRgState extends State<ScoreTennisRg>
     // we need to latch _beingEditedById to the current user if it has just been set
     // but the next update still shows it as empty
     String docBeingEditedById = widget.scoreDoc.get('BeingEditedBy');
-    // print('updateFromDoc start2 docBeingEditedById: $docBeingEditedById');
+    // print('updateFromDoc start2 docBeingEditedById: $docBeingEditedById internal:$_beingEditedById clear:$_clearUsEditing');
     if (docBeingEditedById.isNotEmpty) {
       // if it is someone else then we need to abort editing
-      if ((_beingEditedById.isEmpty && (docBeingEditedById == activeUser.id))) {
+      if ((_clearUsEditing && (docBeingEditedById == activeUser.id))) {
         if (kDebugMode) {
           print('Just cancelled and waiting for doc to update');
         }
-      } else if (_beingEditedById != docBeingEditedById) {
+      } else if ((_beingEditedById != docBeingEditedById) && (docBeingEditedById != activeUser.id)) {
+
         if (kDebugMode) {
           print(
               'new user editing changes from "$_beingEditedById" to "$docBeingEditedById"');
         }
+        _clearUsEditing = false;
         _beingEditedById = docBeingEditedById;
         // print('updateFromDoc4 _startTimer');
         _startTimer();
         // print('updateFromDoc5 cancelWorkingScores');
         cancelWorkingScores();
         // print('updateFromDoc6 after cancel');
+      } else {
+        _beingEditedById = docBeingEditedById;
+        _clearUsEditing = false;
       }
     } else {
       _beingEditedById = '';
+      _clearUsEditing = false;
     }
     // print('updateFromDoc3 _beingEditedById: $_beingEditedById');
     _beingEditedByName = playerIdToName(_beingEditedById);
@@ -728,6 +735,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg>
   void updateBeingEditedBy(String newId) {
     if (newId.isEmpty) {
       _beingEditedById = '';
+      _clearUsEditing = true;
       cancelWorkingScores();
       firestore
           .collection('Ladder')
@@ -740,7 +748,9 @@ class _ScoreTennisRgState extends State<ScoreTennisRg>
       return;
     }
     if (_beingEditedById.isEmpty) {
-      _beingEditedById = newId;
+      // we should wait for the database to be updated as we might not get it
+      // _beingEditedById = newId;
+
       // Get the document reference and make sure it is empty before updating it
       DocumentReference scoreDocRef = firestore
           .collection('Ladder')
@@ -769,10 +779,10 @@ class _ScoreTennisRgState extends State<ScoreTennisRg>
         if (currentBeingEditedBy.isEmpty) {
           // 'BeingEditedBy' is empty, so we can claim it
           transaction.update(scoreDocRef, {
-            'BeingEditedBy': activeUser.id,
+            'BeingEditedBy': newId,
           });
           if (kDebugMode) {
-            print('scoreBox new user editing: ${activeUser.id}');
+            print('scoreBox new user editing: $newId');
           }
         }
       });
@@ -1112,6 +1122,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg>
     for (int i = 0; i < _playerList.length; i++) {
       _workingGameScores[i][game] = newScores[i];
     }
+
     updateBeingEditedBy(activeUser.id);
     setState(() {});
   }
@@ -1143,7 +1154,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg>
       //for last divider line
       itemBuilder: (BuildContext context, int row) {
         if (row == _playerList.length) {
-          if ((!widget.allowEdit) ||
+          if ((!widget.allowEdit) || (_beingEditedById != activeUser.id) ||
               (getSportDescriptor(1).contains('singles'))) {
             return SizedBox(
               height: 1,
