@@ -102,7 +102,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
   Future<void> _fetchTipOfTheDay(int? tipOfTheDayNumber) async {
     if ((tipOfTheDayNumber == null) || (tipOfTheDayNumber < 0)) {
       if (mounted) {
-        print('Fetching tip of the day $tipOfTheDayNumber FAILED');
+        // print('Fetching tip of the day $tipOfTheDayNumber FAILED');
         setState(() {
           _tipOfTheDayTitle = 'Tip for the day'; // Default title
           _tipOfTheDayBody = 'Did you know feature not configured.';
@@ -120,7 +120,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
 
       if (collectionSize <= 0) {
         if (mounted) {
-          print('Fetching tip of the day $tipOfTheDayNumber FAILED2');
+          // print('Fetching tip of the day $tipOfTheDayNumber FAILED2');
           setState(() {
             _tipOfTheDayTitle = 'Tip for the day';
             _tipOfTheDayBody = 'No "Did you know" messages available.';
@@ -141,7 +141,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
       if (tipOfTheDayDoc.exists) {
         if (mounted) {
           setState(() {
-            print('Fetching tip of the day $tipOfTheDayNumber Worked!');
+            // print('Fetching tip of the day $tipOfTheDayNumber Worked!');
             // Assuming the fields are 'title' and 'body'
             _tipOfTheDayTitle = tipOfTheDayDoc.id;
             _tipOfTheDayBody = tipOfTheDayDoc.get('Description') as String? ??
@@ -152,7 +152,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
         // This case should ideally not be reached if collectionSize > 0
         // and targetIndex is within bounds, but good for robustness.
         if (mounted) {
-          print('Fetching tip of the day $tipOfTheDayNumber FAILED3');
+          // print('Fetching tip of the day $tipOfTheDayNumber FAILED3');
           setState(() {
             _tipOfTheDayTitle = 'Tip for the day';
             _tipOfTheDayBody =
@@ -246,7 +246,11 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
   //   }
   // }
 
-  void refresh() => setState(() {});
+  void refresh() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
   int _buildCount = 0;
 
   @override
@@ -452,6 +456,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
             print('SYSTEM CONFIG RequiredSoftwareVersion: $requiredSoftwareVersion ');
           }
           if (requiredSoftwareVersion! > softwareVersion) {
+            changeLoadingMessage('');
             return reloadHtml(context, requiredSoftwareVersion as double);
           }
 
@@ -459,7 +464,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
           if ((_tipOfTheDayBody == null) ||
               ((tipOfTheDayNumber + _tipOfTheDayOffset) !=
                   _workingTipOfTheDayNumber)) {
-            print('working tip of the day $tipOfTheDayNumber + $_tipOfTheDayOffset =? $_workingTipOfTheDayNumber');
+            // print('working tip of the day $tipOfTheDayNumber + $_tipOfTheDayOffset =? $_workingTipOfTheDayNumber');
             // Or a more specific condition
             // Using a WidgetsBinding.instance.addPostFrameCallback ensures that
             // setState is called after the build phase, preventing common errors.

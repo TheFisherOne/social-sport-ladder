@@ -56,7 +56,7 @@ class _UserStreamState extends State<UserStream> {
             }
             return const CircularProgressIndicator();
           }
-          print('rebuilding of UserStream');
+          // print('rebuilding of UserStream');
           loggedInUserDoc = snapshot.data;
 
           double usersFontSize = 30;
@@ -87,7 +87,7 @@ class _UserStreamState extends State<UserStream> {
               );
             }
           });
-          return const Text('launching LadderSelectionPage');
+          return Text('launching LadderSelectionPage', style: nameStyle);
           // return LadderSelectionPage();
         });
   }

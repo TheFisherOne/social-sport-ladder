@@ -1,4 +1,5 @@
-// import 'dart:html' as html;
+import 'dart:js_interop';
+
 import 'package:web/web.dart' as web;
 
 import 'package:firebase_storage/firebase_storage.dart';
@@ -8,6 +9,54 @@ import 'package:flutter/material.dart';
 import '../constants/constants.dart';
 import '../screens/calendar_page.dart';
 
+Future<void> unregisterAllServiceWorkers({bool reloadAfter = true}) async {
+  final navigator = web.window.navigator;
+
+  final swContainer = navigator.serviceWorker;
+
+  try {
+    // Get all registrations (returns JSPromise → .toDart)
+    final jsRegistrations = swContainer.getRegistrations();
+    final registrations = await jsRegistrations.toDart;
+
+    if (registrations.length == 0 ) {
+      if (kDebugMode) {
+        print('No service worker registrations to unregister.');
+      }
+      return;
+    }
+
+    if (kDebugMode) {
+      print('Found ${registrations.length} registration(s). Unregistering...');
+    }
+
+    // Unregister each one
+    for (final reg in registrations.toDart) {
+      final jsPromise = reg.unregister();
+      final success = (await jsPromise.toDart).toDart;
+
+      if (kDebugMode) {
+        print(
+        '  → Unregister scope "${reg.scope}": '
+            '${success ? "SUCCESS" : "already gone / failed"}',
+      );
+      }
+    }
+
+    // Most common use-case: force clean reload without SW interference
+    if (reloadAfter) {
+      if (kDebugMode) {
+        print('Reloading page to apply changes...');
+      }
+      web.window.location.reload();
+    }
+
+  } catch (e) {
+    if (kDebugMode) {
+      print('Error during unregister process: $e');
+    }
+  }
+}
 Widget reloadWithNewVersion(BuildContext context, double reqSoftwareVersion) {
   if (kIsWeb) {
     // final timestamp = DateTime
@@ -76,9 +125,11 @@ Widget reloadWithNewVersion(BuildContext context, double reqSoftwareVersion) {
                 // // Get the base URL without any old query parameters.
                 // final currentUrl = web.window.location.href.split('?')[0];
                 // final newURL = '$currentUrl?v=$timestamp';
-                // Use assign() to force a full page reload from the server.
+                // // Use assign() to force a full page reload from the server.
                 // web.window.location.assign(newURL);
-                web.window.location.reload();
+
+                // web.window.location.reload();
+                unregisterAllServiceWorkers();
               }
             },
           ),

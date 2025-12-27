@@ -4,7 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:social_sport_ladder/Utilities/html_only.dart';
+import '../Utilities/html_none.dart'
+if (dart.library.html) '../Utilities/html_only.dart';
 import 'package:social_sport_ladder/screens/login_page.dart';
 import 'Utilities/helper_icon.dart';
 import 'Utilities/user_stream.dart';

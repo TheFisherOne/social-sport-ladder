@@ -712,6 +712,7 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
               .get('RequiredSoftwareVersion') as num)
               .toDouble();
           if (reqSoftwareVersion > softwareVersion) {
+            changeLoadingMessage('');
             return reloadHtml(context, reqSoftwareVersion);
           }
 
