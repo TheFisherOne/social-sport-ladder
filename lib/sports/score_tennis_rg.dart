@@ -37,10 +37,10 @@ class ScoreTennisRg extends StatefulWidget {
   });
 
   @override
-  State<ScoreTennisRg> createState() => _ScoreTennisRgState();
+  State<ScoreTennisRg> createState() => ScoreTennisRgState();
 }
-
-class _ScoreTennisRgState extends State<ScoreTennisRg>
+@visibleForTesting
+class ScoreTennisRgState extends State<ScoreTennisRg>
     with WidgetsBindingObserver{
   String _beingEditedById = '';
   bool _clearUsEditing = false;
@@ -107,19 +107,21 @@ class _ScoreTennisRgState extends State<ScoreTennisRg>
     // we need to latch _beingEditedById to the current user if it has just been set
     // but the next update still shows it as empty
     String docBeingEditedById = widget.scoreDoc.get('BeingEditedBy');
+    // print("readBeingEditedBy= $docBeingEditedById from ${widget.scoreDoc.id}");
     // print('updateFromDoc start2 docBeingEditedById: $docBeingEditedById internal:$_beingEditedById clear:$_clearUsEditing');
     if (docBeingEditedById.isNotEmpty) {
+
       // if it is someone else then we need to abort editing
       if ((_clearUsEditing && (docBeingEditedById == activeUser.id))) {
         if (kDebugMode) {
-          print('Just cancelled and waiting for doc to update');
+          // print('Just cancelled and waiting for doc to update');
         }
       } else if ((_beingEditedById != docBeingEditedById) && (docBeingEditedById != activeUser.id)) {
 
-        if (kDebugMode) {
-          print(
-              'new user editing changes from "$_beingEditedById" to "$docBeingEditedById"');
-        }
+        // if (kDebugMode) {
+        //   print(
+        //       'new user editing changes from "$_beingEditedById" to "$docBeingEditedById"');
+        // }
         _clearUsEditing = false;
         _beingEditedById = docBeingEditedById;
         // print('updateFromDoc4 _startTimer');
@@ -354,12 +356,16 @@ class _ScoreTennisRgState extends State<ScoreTennisRg>
                   }
                 }
                 bool otherScoresTheSame = true;
-                for (int j = 0; j < scores.length; j++) {
-                  if (scores[j] != numGames) {
-                    if (otherScore < 0) {
-                      otherScore = scores[j]!;
-                    } else if (scores[j] != otherScore) {
-                      otherScoresTheSame = false;
+                if (countOfFullScore != 2) {
+                  allOK = false;
+                } else {
+                  for (int j = 0; j < scores.length; j++) {
+                    if ((scores[j] != numGames) && (scores[j] != null)) {
+                      if (otherScore < 0) {
+                        otherScore = scores[j]!;
+                      } else if (scores[j] != otherScore) {
+                        otherScoresTheSame = false;
+                      }
                     }
                   }
                 }
@@ -745,6 +751,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg>
           .update({
         'BeingEditedBy': '',
       });
+      // print('scoreBox new user editing: "" docId=$_scoreDocStr');
       return;
     }
     if (_beingEditedById.isEmpty) {
@@ -782,7 +789,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg>
             'BeingEditedBy': newId,
           });
           if (kDebugMode) {
-            print('scoreBox new user editing: $newId');
+            print('scoreBox new user editing: $newId docId=${scoreDocRef.id}');
           }
         }
       });
@@ -833,7 +840,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg>
 
 
   Widget scoreBox(int? initialValue, int playerNum, int gameNum,
-      {Color? backgroundColor}) {
+      {Color? backgroundColor, Key? key}) {
     bool scoreEdited = false;
     int? workingValue = initialValue;
     // print('workingGameScores: $workingGameScores');
@@ -890,6 +897,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg>
             border: Border.all(color: Colors.black, width: 2), // Border styling
           ),
           child: InkWell(
+            key: key,
             borderRadius: BorderRadius.circular(10),
             onTap: (allowedToEdit &&
                     ((_beingEditedById.isEmpty) ||
@@ -1004,7 +1012,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg>
         for (int i = 0; i < result.length; i++) {
           if (result[i] < 0) result[i] = score2;
         }
-      } else {
+      } else if (getSportDescriptor(0) == 'tennisRG') {
         if (score1 > 8) return null;
         int score2 = 8 - score1;
         result[lastPlayerWithScore] = score1;
@@ -1012,6 +1020,27 @@ class _ScoreTennisRgState extends State<ScoreTennisRg>
         for (int i = 0; i < result.length; i++) {
           if (result[i] < 0) result[i] = score2;
         }
+      }else if (getSportDescriptor(0) == 'generic') {
+        //print('doing autofill4 with generic');
+        if (getScoringMethod() != 'total'){
+          if (score1 >= getGamesFor4()) return null;
+          int score2 = getGamesFor4();
+          result[lastPlayerWithScore] = score1;
+          result[partner] = score1;
+          for (int i = 0; i < result.length; i++) {
+            if (result[i] < 0) result[i] = score2;
+          }
+        } else {
+          if (score1 > getGamesFor4()) return null;
+          int score2 = getGamesFor4() - score1;
+          result[lastPlayerWithScore] = score1;
+          result[partner] = score1;
+          for (int i = 0; i < result.length; i++) {
+            if (result[i] < 0) result[i] = score2;
+          }
+        }
+      } else {
+        return null;
       }
       return result;
     } else if ((scoresFilledIn == 2) && twoScoresTheSame) {
@@ -1036,7 +1065,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg>
         }
       } else if (getSportDescriptor(1).contains('singles')) {
         return null; // can not autofill for singles
-      } else {
+      } else if (getSportDescriptor(0) == 'tennisRG') {
         if (score1 > 8) {
           return null; // this is just an error that should not occur
         }
@@ -1046,6 +1075,18 @@ class _ScoreTennisRgState extends State<ScoreTennisRg>
         for (int i = 0; i < result.length; i++) {
           if (result[i] < 0) result[i] = score2;
         }
+      } else if (getSportDescriptor(0) == 'generic') {
+        if (score1 > getGamesFor4()) {
+          return null; // this is just an error that should not occur
+        }
+        int score2 = getGamesFor4() - score1;
+        result[lastPlayerWithScore] = score1;
+        result[playerWithSameScore] = score1;
+        for (int i = 0; i < result.length; i++) {
+          if (result[i] < 0) result[i] = score2;
+        }
+      } else {
+        return null;
       }
       return result;
     }
@@ -1095,7 +1136,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg>
           if (result[i] < 0) result[i] = score2;
         }
         result[4 - game] = null;
-      } else {
+      } else if (getSportDescriptor(0) == 'tennisRG') {
         if (score1 > 6) return null;
         int score2 = 6 - score1;
         result[lastPlayerWithScore] = score1;
@@ -1104,6 +1145,29 @@ class _ScoreTennisRgState extends State<ScoreTennisRg>
           if (result[i] < 0) result[i] = score2;
         }
         result[4 - game] = null; // the diagonal blank scores
+      } else if (getSportDescriptor(0) == 'generic') {
+        if (getScoringMethod() != 'total'){
+          if (score1 >= getGamesFor5()) return null;
+          int score2 = getGamesFor5();
+          result[lastPlayerWithScore] = score1;
+          result[partner] = score1;
+          for (int i = 0; i < result.length; i++) {
+            if (result[i] < 0) result[i] = score2;
+          }
+          result[4 - game] = null;
+        } else {
+          if (score1 > getGamesFor5()) return null;
+          int score2 = getGamesFor5() - score1;
+          result[lastPlayerWithScore] = score1;
+          result[partner] = score1;
+          for (int i = 0; i < result.length; i++) {
+            if (result[i] < 0) result[i] = score2;
+          }
+          result[4 - game] = null; // the diagonal blank scores
+        }
+      } else {
+        print('ERROR: autoFill5 for ${getSportDescriptor(0)}');
+        return null;
       }
       return result;
     }
@@ -1145,6 +1209,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg>
   }
 
   Widget show4Players() {
+    // print('in show4Players num Players ${_playerList.length} ${widget.allowEdit} edited by:$_beingEditedById == activeUser:${activeUser.id}');
     return ListView.builder(
       scrollDirection: Axis.vertical,
       shrinkWrap: true,
@@ -1154,12 +1219,14 @@ class _ScoreTennisRgState extends State<ScoreTennisRg>
       //for last divider line
       itemBuilder: (BuildContext context, int row) {
         if (row == _playerList.length) {
-          if ((!widget.allowEdit) || (_beingEditedById != activeUser.id) ||
+          // print('in extra row ${!widget.allowEdit} ${_beingEditedById != activeUser.id} ${getSportDescriptor(1).contains('singles')}');
+          if ((!widget.allowEdit) || (_beingEditedById != activeUser.id)  ||
               (getSportDescriptor(1).contains('singles'))) {
             return SizedBox(
               height: 1,
             );
           }
+          //print("writing autofill4 line");
           return Row(
             children: [
               Expanded(
@@ -1178,6 +1245,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg>
               Expanded(
                 flex: 1,
                 child: IconButton(
+                    key: const Key('autofill-0'),
                     onPressed: (autoFill4(0) == null)
                         ? null
                         : () {
@@ -1190,6 +1258,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg>
               Expanded(
                 flex: 1,
                 child: IconButton(
+                    key: const Key('autofill-1'),
                     onPressed: (autoFill4(1) == null)
                         ? null
                         : () {
@@ -1202,6 +1271,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg>
               Expanded(
                 flex: 1,
                 child: IconButton(
+                    key: const Key('autofill-2'),
                     onPressed: (autoFill4(2) == null)
                         ? null
                         : () {
@@ -1251,7 +1321,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg>
                       null,
                       null,
                       Colors.green.shade200
-                    ][row])),
+                    ][row], key: Key('scoreBox-$row-0'))),
             Expanded(
                 flex: 1,
                 child: scoreBox(getScore(row, 1), row, 1,
@@ -1260,7 +1330,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg>
                       null,
                       Colors.green.shade200,
                       null
-                    ][row])),
+                    ][row], key: Key('scoreBox-$row-1'))),
             Expanded(
                 flex: 1,
                 child: scoreBox(getScore(row, 2), row, 2,
@@ -1269,7 +1339,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg>
                       Colors.green.shade200,
                       null,
                       null
-                    ][row])),
+                    ][row], key: Key('scoreBox-$row-2'))),
             Expanded(
                 flex: 1,
                 child: Padding(
@@ -1703,7 +1773,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg>
       }
     }
     // print('rankChangeStr: $startingRanks => $endingRanks = $ranksChangeStr');
-
+    // print("score build:$_beingEditedById  == ${activeUser.id} && ${widget.allowEdit}");
     return PopScope(
       onPopInvokedWithResult: (bool result, dynamic _) {
         // cancelWorkingScores();
@@ -1750,7 +1820,9 @@ class _ScoreTennisRgState extends State<ScoreTennisRg>
                       Align(
                         alignment: Alignment.centerLeft,
                         child: InkWell(
+                          key: const Key('save-button'),
                           onTap: () async {
+
                             String gameScoresStr = saveWorkingScores();
                             String thisUser = activeUser.id;
                             String whereInScores = '';
@@ -1884,6 +1956,7 @@ class _ScoreTennisRgState extends State<ScoreTennisRg>
                       Align(
                         alignment: Alignment.centerRight,
                         child: IconButton(
+                            key: const Key('cancel-button'),
                             onPressed: () {
                               updateBeingEditedBy('');
                               setState(() {

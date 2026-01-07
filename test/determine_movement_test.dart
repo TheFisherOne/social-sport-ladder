@@ -1,12 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/intl.dart';
+import 'package:social_sport_ladder/Utilities/helper_icon.dart';
 import 'package:social_sport_ladder/constants/constants.dart';
 import 'package:social_sport_ladder/main.dart';
 import 'package:social_sport_ladder/screens/ladder_config_page.dart';
 import 'package:social_sport_ladder/screens/ladder_selection_page.dart';
 import 'package:social_sport_ladder/screens/score_base.dart';
-// import 'package:mockito/mockito.dart';
+
 import 'package:social_sport_ladder/sports/sport_tennis_rg.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 
@@ -125,7 +127,7 @@ void main() {
     sportTennisRGDetermineMovement(querySnapshot.docs, '');
     expect(PlayerList.errorString, 'PriorityOfCourts not configured', reason: 'detect empty PriorityOfCourts');
   });
-  test('sportTennisRGDetermineMovement errorStrings empty DaysofPlay', () async {
+  test('sportTennisRGDetermineMovement errorStrings empty DaysOfPlay', () async {
     testFirestore = FakeFirebaseFirestore();
     firestore = testFirestore;
     await initActiveLadderDoc(testFirestore, overrides: {
@@ -391,7 +393,7 @@ void main() {
     expect(result![0].courtNumber, 0, reason: 'assignedCourt-1 for first player');
     expect(result[4].courtNumber, 1, reason: 'assignedCourt-1 for 5th player');
     expect(result[8].courtNumber, 2, reason: 'assignedCourt-1 for 9th player');
-    expect(result[12].courtNumber, -1, reason: 'assignedCourt for awayplayer');
+    expect(result[12].courtNumber, -1, reason: 'assignedCourt for awayPlayer');
 
     expect(result[12].newRank, 13, reason: 'newRank should not change 13 as is bottom player');
   });
@@ -435,7 +437,7 @@ void main() {
     expect(result[4].courtNumber, 1, reason: 'assignedCourt-1 for 5th player');
     expect(result[8].courtNumber, 1, reason: 'assignedCourt-1 for 9th player');
     expect(result[9].courtNumber, 2, reason: 'assignedCourt-1 for 9th player');
-    expect(result[6].courtNumber, -1, reason: 'assignedCourt for awayplayer');
+    expect(result[6].courtNumber, -1, reason: 'assignedCourt for awayPlayer');
 
     expect(result[ 0].afterWinLose, 1, reason: 'newRank should be same');
     expect(result[ 1].afterWinLose, 2, reason: 'newRank should be same');
@@ -907,17 +909,316 @@ void main() {
     // }
     // Player 1 (Original Rank 1, Present)
     expect(result![0].newRank, 1, reason: 'Player  1 new rank');
-    expect(result[1].newRank,  4, reason: 'Player  2 new rank down 2 due to away');
+    expect(result[1].newRank,  4, reason: 'Player  2 new rank down 1 due to away');
     expect(result[2].newRank,  3, reason: 'Player  3 new rank down 1 marked away bumped back up');
     expect(result[3].newRank,  2, reason: 'Player  4 new rank bumped up due to player away');
     expect(result[4].newRank,  5, reason: 'Player  5 new rank');
     expect(result[5].newRank,  7, reason: 'Player  6 new rank bumped up due to player away');
     expect(result[6].newRank,  6, reason: 'Player  7 new rank exchange places with winner from court below');
-    expect(result[7].newRank,  9, reason: 'Player  8 new rank down 2 due to away');
+    expect(result[7].newRank,  9, reason: 'Player  8 new rank down 1 due to away');
     expect(result[8].newRank,  8, reason: 'Player  9 new rank exchange places with loser from court above');
     expect(result[9].newRank,  10, reason: 'Player 10 new rank cant change because at bottom');
     expect(result[10].newRank,11, reason: 'Player 11 new rank cant change because at bottom');
     expect(result[11].newRank,12, reason: 'Player 12 new rank cant change because at bottom');
+
+  });
+
+  test('sportTennisRGDetermineMovement generic|MoveDownIfAwayWithoutNotice- Multiple Away Players Interspersed 2 courts #2', () async {
+    String dateToday = DateFormat('yyyy.MM.dd').format(DateTime.now());
+    testFirestore = FakeFirebaseFirestore();
+    firestore = testFirestore;
+    await initActiveLadderDoc(testFirestore, overrides: {
+      'DaysOfPlay': '${dateToday}_18:00', // Only two courts available
+      'SportDescriptor': 'generic|MoveDownIfAwayWithoutNotice=1',
+    }); // Default PriorityOfCourts
+    final DocumentReference ladderRef = testFirestore.collection('Ladder').doc('Ladder 500');
+
+    final CollectionReference<Map<String, dynamic>> collection = ladderRef.collection('Players');
+
+    for (int i = 1; i <= 12; i++) {
+      Map<String, dynamic> player = createPlayer(i);
+      if (i == 2 || i == 3 || i==8 || i == 12) {
+        if (i==3 || i==8) {
+          player['DaysAway'] = dateToday;
+        }
+        player['Present'] = false; // Mark specific players as away
+      }
+      if (i==4){
+        player['TotalScore'] = 4;
+      }
+      collection.doc('test${i.toString().padLeft(2, '0')}@gmail.com').set(player);
+    }
+
+    QuerySnapshot querySnapshot = await ladderRef.collection('Players').get();
+    await prepareForScoreEntry(activeLadderDoc!, querySnapshot.docs);
+    querySnapshot = await ladderRef.collection('Players').get();
+    final result = sportTennisRGDetermineMovement(querySnapshot.docs, '');
+
+    // -------- ASSERTIONS --------
+    expect(PlayerList.errorString, '', reason: 'No error expected');
+    expect(PlayerList.numPresent, 8, reason: '8 players present');
+    // 7 players present: 1 court of 4, 1 court of 3. If 3 doesn't form, then 1 court of 4.
+    // Assuming a court of 3 is not formed by default:
+    expect(PlayerList.numCourtsOf4, 2, reason: 'One court of 4 should be formed');
+    expect(PlayerList.numCourtsOf5, 0, reason: 'One court of 5 should be formed');
+    expect(PlayerList.numCourts, 2, reason: 'two courts in total');
+
+    // for (int i = 0; i < 12; i++) {
+    //   print('$i ${result![i].present} ${result[i].courtNumber} ${result[i].newRank} '
+    //       '${result[i].totalScore}' );
+    //       //'${result[i].markedAway} ${result[i].daysAway}');
+    // }
+    // Player 1 (Original Rank 1, Present)
+    expect(result![0].newRank, 1, reason: 'Player  1 new rank');
+    expect(result[1].newRank,  3, reason: 'Player  2 new rank down 1 due to away');
+    expect(result[2].newRank,  4, reason: 'Player  3 new rank down 1 ');
+    expect(result[3].newRank,  2, reason: 'Player  4 new rank bumped up due to player away');
+    expect(result[4].newRank,  5, reason: 'Player  5 new rank');
+    expect(result[5].newRank,  7, reason: 'Player  6 new rank bumped up due to player away');
+    expect(result[6].newRank,  6, reason: 'Player  7 new rank exchange places with winner from court below');
+    expect(result[7].newRank,  9, reason: 'Player  8 new rank down 1 due to away');
+    expect(result[8].newRank,  8, reason: 'Player  9 new rank exchange places with loser from court above');
+    expect(result[9].newRank,  10, reason: 'Player 10 new rank cant change because at bottom');
+    expect(result[10].newRank,11, reason: 'Player 11 new rank cant change because at bottom');
+    expect(result[11].newRank,12, reason: 'Player 12 new rank cant change because at bottom');
+
+  });
+
+  testWidgets('sportTennisRGDetermineMovement scores 4a', (WidgetTester tester) async {
+    activeUser.id='test01@gmail.com';
+    activeUser.helperEnabled = true;
+
+    String dateToday = DateFormat('yyyy.MM.dd').format(DateTime.now());
+    testFirestore = FakeFirebaseFirestore();
+    firestore = testFirestore;
+    await initActiveLadderDoc(testFirestore, overrides: {
+      'DaysOfPlay': '${dateToday}_18:00', // Only two courts available
+      'SportDescriptor': 'generic|MoveDownIfAwayWithoutNotice=1',
+    }); // Default PriorityOfCourts
+    final DocumentReference userRef = testFirestore.doc('Users/test01@gmail.com');
+    userRef.set({'DisplayName':'test1'});
+    loggedInUserDoc = await userRef.get();
+    final DocumentReference ladderRef = testFirestore.collection('Ladder').doc('Ladder 500');
+
+    final CollectionReference<Map<String, dynamic>> collection = ladderRef.collection('Players');
+
+    for (int i = 1; i <= 4; i++) {
+      Map<String, dynamic> player = createPlayer(i);
+      collection.doc('test${i.toString().padLeft(2, '0')}@gmail.com').set(player);
+    }
+
+    QuerySnapshot querySnapshot = await ladderRef.collection('Players').get();
+    await prepareForScoreEntry(activeLadderDoc!, querySnapshot.docs);
+    querySnapshot = await ladderRef.collection('Players').get();
+
+    // final CollectionReference<Map<String, dynamic>> collection2 = ladderRef.collection('Scores');
+    // Map<String, dynamic> score = {'StartingRank': '1|2|3|4',
+    // 'StartingRanks': '1|2|3|4',
+    // 'EndingRanks': '',
+    //   'BeingEditedBy' : '',
+    //   'ScoresEnteredBy':'',
+    //   'Players': "test01@gmail.com|test02@gmail.com|test03@gmail.com|test04@gmail.com",
+    //   'GameScores': ",,|,,|,,|,,",
+    // };
+    // collection2.doc('${dateToday}_1_C#1').set(score);
+    // QuerySnapshot querySnapshot2 = await ladderRef.collection('Scores').get();
+    // await prepareForScoreEntry(activeLadderDoc!, querySnapshot.docs);
+    querySnapshot = await ladderRef.collection('Players').get();
+
+    final result = ScoreBase(
+      ladderName: 'Ladder 500',
+      round: 1,
+      court: 1,
+      fullPlayerList: querySnapshot.docs,
+      // activeLadderDoc:  activeLadderDoc!,
+      // scoreDoc: querySnapshot2.docs[0],
+      allowEdit:  true,
+        );
+
+    // -------- ASSERTIONS --------
+
+    // Wrap the widget in a MaterialApp to provide necessary context like Directionality.
+    await tester.pumpWidget(MaterialApp(home: result));
+
+    // Let the widget build and settle any animations or futures.
+    await tester.pumpAndSettle();
+  // 1. Find the specific scoreBox widget using its key.
+    var scoreBoxToTap = find.byKey(const Key('scoreBox-1-0'));
+
+    // Expect to find a widget that displays the text 'Player 1'.
+    expect(find.text('Player 1'), findsOneWidget, reason: "The widget should display the name 'Player 1'");
+    expect(find.text('Player 2'), findsOneWidget, reason: "The widget should display the name 'Player 2'");
+    expect(find.text('Player 3'), findsOneWidget, reason: "The widget should display the name 'Player 3'");
+    expect(find.text('Player 4'), findsOneWidget, reason: "The widget should display the name 'Player 4'");
+
+
+
+// 2. Verify that the widget exists before interacting with it.
+    expect(scoreBoxToTap, findsOneWidget, reason: "The scoreBox with key 'scoreBox-1-0' should be found.");
+    expect(find.text('Confirm Scores'), findsNothing, reason: "The 'Confirm Scores' button should not be visible initially.");
+
+    var cancelToTap = find.byKey(const Key('cancel-button'));
+    expect(cancelToTap, findsNothing, reason: "if nothing entered you do not need a cancel button");
+    var saveToTap = find.byKey(const Key('save-button'));
+    expect(saveToTap, findsNothing, reason: "nothing to save, so button should not appear");
+
+// 3. Before the tap, verify its text is empty.
+// We find a Text widget that is a descendant of our scoreBox.
+    var textBeforeTap = find.descendant(of: scoreBoxToTap, matching: find.byType(Text));
+    expect((tester.firstWidget(textBeforeTap) as Text).data, '', reason: "Score box should initially be empty.");
+
+// 4. Simulate a tap gesture on the found widget.
+
+    await tester.tap(scoreBoxToTap);
+
+    await tester.pumpAndSettle();
+
+    // print(testFirestore.dump());
+
+    cancelToTap = find.byKey(const Key('cancel-button'));
+    expect(cancelToTap, findsOneWidget, reason: "1once a score is entered you should be able to cancel");
+    saveToTap = find.byKey(const Key('save-button'));
+    expect(saveToTap, findsOneWidget, reason: "1once a score is entered you should be able to save");
+
+// 6. After the tap, verify that the same scoreBox now contains the text '1'.
+//     final textAfterTap2 = find.descendant(of: scoreBoxToTap, matching: find.byType(Text));
+    var textAfterTap = find.descendant(of: scoreBoxToTap, matching: find.text('1'));
+    expect(textAfterTap, findsOneWidget, reason: "After tapping, the scoreBox should display '1'.");
+
+    await tester.tap(scoreBoxToTap);
+    await tester.tap(scoreBoxToTap);
+    await tester.tap(scoreBoxToTap);
+    await tester.tap(scoreBoxToTap);
+    await tester.tap(scoreBoxToTap);
+    await tester.tap(scoreBoxToTap);
+    await tester.tap(scoreBoxToTap);
+    await tester.pumpAndSettle();
+    textAfterTap = find.descendant(of: scoreBoxToTap, matching: find.text('8'));
+    expect(textAfterTap, findsOneWidget, reason: "After tapping 8 times, the scoreBox should display '8'.");
+    cancelToTap = find.byKey(const Key('cancel-button'));
+    expect(cancelToTap, findsOneWidget, reason: "2once a score is entered you should be able to cancel");
+    saveToTap = find.byKey(const Key('save-button'));
+    expect(saveToTap, findsOneWidget, reason: "2once a score is entered you should be able to save");
+
+    await tester.tap(scoreBoxToTap);
+    await tester.pumpAndSettle();
+    textAfterTap = find.descendant(of: scoreBoxToTap, matching: find.text('0'));
+    expect(textAfterTap, findsOneWidget, reason: "After tapping 9 times, the scoreBox should wrap back to 0.");
+    cancelToTap = find.byKey(const Key('cancel-button'));
+    expect(cancelToTap, findsOneWidget, reason: "3once a score is entered you should be able to cancel");
+    saveToTap = find.byKey(const Key('save-button'));
+    expect(saveToTap, findsOneWidget, reason: "3once a score is entered you should be able to save");
+
+    await tester.tap(cancelToTap);
+    await tester.pumpAndSettle();
+    cancelToTap = find.byKey(const Key('cancel-button'));
+    expect(cancelToTap, findsNothing, reason: "after cancel you do not need a cancel button");
+    saveToTap = find.byKey(const Key('save-button'));
+    expect(saveToTap, findsNothing, reason: "after cancel nothing to save, so button should not appear");
+    textBeforeTap = find.descendant(of: scoreBoxToTap, matching: find.byType(Text));
+    expect((tester.firstWidget(textBeforeTap) as Text).data, '', reason: "after cancel Score box should initially be empty.");
+
+ });
+
+
+  testWidgets('sportTennisRGDetermineMovement scores 4b', (WidgetTester tester) async {
+    activeUser.id='test01@gmail.com';
+    activeUser.helperEnabled = true;
+
+    String dateToday = DateFormat('yyyy.MM.dd').format(DateTime.now());
+    testFirestore = FakeFirebaseFirestore();
+    firestore = testFirestore;
+    await initActiveLadderDoc(testFirestore, overrides: {
+      'DaysOfPlay': '${dateToday}_18:00', // Only two courts available
+      'SportDescriptor': 'generic|MoveDownIfAwayWithoutNotice=1|score4=9',
+    }); // Default PriorityOfCourts
+    final DocumentReference userRef = testFirestore.doc('Users/test01@gmail.com');
+    userRef.set({'DisplayName':'test1'});
+    loggedInUserDoc = await userRef.get();
+    final DocumentReference ladderRef = testFirestore.collection('Ladder').doc('Ladder 500');
+
+    final CollectionReference<Map<String, dynamic>> collection = ladderRef.collection('Players');
+
+    for (int i = 1; i <= 4; i++) {
+      Map<String, dynamic> player = createPlayer(i);
+      collection.doc('test${i.toString().padLeft(2, '0')}@gmail.com').set(player);
+    }
+
+    QuerySnapshot querySnapshot = await ladderRef.collection('Players').get();
+    await prepareForScoreEntry(activeLadderDoc!, querySnapshot.docs);
+    querySnapshot = await ladderRef.collection('Players').get();
+
+    querySnapshot = await ladderRef.collection('Players').get();
+
+    final result = ScoreBase(
+      ladderName: 'Ladder 500',
+      round: 1,
+      court: 1,
+      fullPlayerList: querySnapshot.docs,
+      // activeLadderDoc:  activeLadderDoc!,
+      // scoreDoc: querySnapshot2.docs[0],
+      allowEdit:  true,
+    );
+
+    // -------- ASSERTIONS --------
+
+    // Wrap the widget in a MaterialApp to provide necessary context like Directionality.
+    await tester.pumpWidget(MaterialApp(home: result));
+
+    // Let the widget build and settle any animations or futures.
+    await tester.pumpAndSettle();
+    // 1. Find the specific scoreBox widget using its key.
+    var scoreBoxToTap = find.byKey(const Key('scoreBox-1-0'));
+
+    // Expect to find a widget that displays the text 'Player 1'.
+    expect(find.text('Player 1'), findsOneWidget, reason: "The widget should display the name 'Player 1'");
+    expect(find.text('Player 2'), findsOneWidget, reason: "The widget should display the name 'Player 2'");
+    expect(find.text('Player 3'), findsOneWidget, reason: "The widget should display the name 'Player 3'");
+    expect(find.text('Player 4'), findsOneWidget, reason: "The widget should display the name 'Player 4'");
+
+
+
+// 2. Verify that the widget exists before interacting with it.
+    expect(scoreBoxToTap, findsOneWidget, reason: "The scoreBox with key 'scoreBox-1-0' should be found.");
+    expect(find.text('Confirm Scores'), findsNothing, reason: "The 'Confirm Scores' button should not be visible initially.");
+
+// 3. Before the tap, verify its text is empty.
+// We find a Text widget that is a descendant of our scoreBox.
+    final textBeforeTap = find.descendant(of: scoreBoxToTap, matching: find.byType(Text));
+    expect((tester.firstWidget(textBeforeTap) as Text).data, '', reason: "Score box should initially be empty.");
+
+// 4. Simulate a tap gesture on the found widget.
+
+    await tester.tap(scoreBoxToTap);
+
+
+// 5. Rebuild the widget tree to reflect the state change from the tap.
+    await tester.pumpAndSettle();
+
+
+
+// 6. After the tap, verify that the same scoreBox now contains the text '1'.
+//     final textAfterTap2 = find.descendant(of: scoreBoxToTap, matching: find.byType(Text));
+    var textAfterTap = find.descendant(of: scoreBoxToTap, matching: find.text('1'));
+    expect(textAfterTap, findsOneWidget, reason: "After tapping, the scoreBox should display '1'.");
+
+    await tester.tap(scoreBoxToTap);
+    await tester.tap(scoreBoxToTap);
+    await tester.tap(scoreBoxToTap);
+    await tester.tap(scoreBoxToTap);
+    await tester.tap(scoreBoxToTap);
+    await tester.tap(scoreBoxToTap);
+    await tester.tap(scoreBoxToTap);
+    await tester.tap(scoreBoxToTap);
+    await tester.pumpAndSettle();
+    textAfterTap = find.descendant(of: scoreBoxToTap, matching: find.text('9'));
+    expect(textAfterTap, findsOneWidget, reason: "After tapping 8 times, the scoreBox should display '9'.");
+
+    await tester.tap(scoreBoxToTap);
+    await tester.pumpAndSettle();
+    textAfterTap = find.descendant(of: scoreBoxToTap, matching: find.text('0'));
+    expect(textAfterTap, findsOneWidget, reason: "After tapping 9 times, the scoreBox should wrap back to 0.");
+
 
   });
 }

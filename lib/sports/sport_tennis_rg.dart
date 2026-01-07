@@ -276,8 +276,12 @@ List<PlayerList>? sportTennisRGDetermineMovement(List<QueryDocumentSnapshot>? pl
   // (unless they were on the waiting list and not allowed to play)
   List<PlayerList> afterDownTwo;
 
-  if(getSportDescriptor(0)=='pickleballRG'){
+  if((getSportDescriptor(0)=='pickleballRG') || (getSportDescriptorInt('MoveDownIfAwayWithoutNotice') == 1)){
     afterDownTwo = afterDownOne;
+    List<PlayerList> startingList2 = afterDownOne.toList();
+    for (int i = 0; i < players.length; i++) {
+      startingList2[i].afterDownTwo = startingList2[i].afterDownOne;
+    }
   } else {
     List<PlayerList> startingList2 = afterDownOne.toList();
     notPresentList = List.empty(growable: true);
@@ -311,10 +315,6 @@ List<PlayerList>? sportTennisRGDetermineMovement(List<QueryDocumentSnapshot>? pl
       }
       afterDownTwo.last.currentRank = i + 1;
       afterDownTwo.last.afterDownTwo = i + 1;
-      // if (i<12){
-      //   var sl=afterDownTwo[i];
-      //   print('afterDownTwo: $i ${sl.snapshot.get('Name')} ${sl.startingRank} ${sl.afterDownOne} ${sl.afterDownTwo}');
-      // }
     }
 
 
@@ -806,7 +806,7 @@ Future<void> sportTennisRGPrepareForScoreEntry(List<QueryDocumentSnapshot>? play
     });
   }).then((_) {
     if (kDebugMode) {
-      print("Score entry preparation transaction completed successfully.");
+      //print("Score entry preparation transaction completed successfully.");
     }
   }).catchError((error) {
     if (kDebugMode) {
