@@ -563,7 +563,7 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
       icon = Icon(Icons.refresh, color: Colors.green,size: iconSize);
     } else if (player.get('Present')) {
       icon = Icon(Icons.check_box, color: Colors.black,size: iconSize);
-    } else if (plAssignment!.markedAway) {
+    } else if ((plAssignment!.markedAway) ||(player.get('WaitListRank')>activeLadderDoc!.get('NumberFromWaitList'))){
       icon = Icon(Icons.horizontal_rule, color: Colors.black,size: iconSize);
     } else {
       icon = Icon(Icons.check_box_outline_blank, color: Colors.black,size: iconSize);
@@ -810,17 +810,20 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
                   minToStart = nextPlayDate.difference(timeNow).inMinutes;
                 }
 
-                if (numberOfPlayersPresent >= 4) {
-                  if (activeUser.admin) mayFreeze = true;
-                  if (minToStart < 10) {
-                    if (activeUser.helper) {
-                      //TODO: can not unfreeze if scores are entered
-                      mayFreeze = true;
-                    } else if (((minToStart < 5.0) &&
-                            (numberOfHelpersPresent == 0)) ||
-                        (minToStart <= 0.0)) {
-                      // print('mayFreeze: special override, no helpers present, less than 5 minutes to go $nextPlayDate');
-                      mayFreeze = true;
+                //print('sportsDescriptor:programOnly:${getSportDescriptorString('programOnly')}!');
+                if (getSportDescriptorString('programOnly').isEmpty) {
+                  if (numberOfPlayersPresent >= 4) {
+                    if (activeUser.admin) mayFreeze = true;
+                    if (minToStart < 10) {
+                      if (activeUser.helper) {
+                        //TODO: can not unfreeze if scores are entered
+                        mayFreeze = true;
+                      } else if (((minToStart < 5.0) &&
+                          (numberOfHelpersPresent == 0)) ||
+                          (minToStart <= 0.0)) {
+                        // print('mayFreeze: special override, no helpers present, less than 5 minutes to go $nextPlayDate');
+                        mayFreeze = true;
+                      }
                     }
                   }
                 }

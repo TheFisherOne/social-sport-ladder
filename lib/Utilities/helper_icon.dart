@@ -63,21 +63,47 @@ String buildCsv(List<PlayerList>? listOfPlayers,
       matchScores.add('');
     }
     String matchScoreStr = matchScores.join(',');
-    result +=
-        '${pl.startingRank},${pl.newRank},${pl.present ? 'true' : ''},${pl.unassigned ? 'true' : ''},${pl.markedAway ? 'true' : ''},${pl.snapshot.get('Name')},'
-        '${pl.totalScore},${pl.startingOrder},${pl.courtNumber >= 0 ? pl.courtNumber + 1 : ''},${pl.courtNumber >= 0 ? courtAssignments.shuffledCourtNames[pl.courtNumber] : ''},'
-        '${pl.startingRank - pl.afterDownTwo},${pl.startingRank - pl.afterWinLose},'
-        '${pl.present ? DateFormat('yyyy.MM.dd_HH:mm:ss').format(pl.snapshot.get('TimePresent').toDate()) : ''},$matchScoreStr,'
-        '${pl.snapshot.get('WeeksAwayWithoutNotice')},${pl.snapshot.get('WeeksAway')},${activeLadderDoc!.get('WeeksPlayed')}\n';
+
+    if (getSportDescriptorString('programOnly').isNotEmpty){
+      result += '${pl.startingRank},${pl.newRank},${pl.present ? 'true' : ''},${pl
+          .unassigned ? 'true' : ''},${pl.markedAway ? 'true' : ''},${pl
+          .snapshot.get('Name')},'
+          ',,,,'
+          '${pl.startingRank - pl.afterDownTwo},${pl.startingRank -
+          pl.afterWinLose},'
+          '${pl.present ? DateFormat('yyyy.MM.dd_HH:mm:ss').format(
+          pl.snapshot.get('TimePresent').toDate()) : ''},$matchScoreStr,'
+          '${pl.snapshot.get('WeeksAwayWithoutNotice')},${pl.snapshot.get(
+          'WeeksAway')},${activeLadderDoc!.get('WeeksPlayed')}\n';
+    } else {
+      result +=
+      '${pl.startingRank},${pl.newRank},${pl.present ? 'true' : ''},${pl
+          .unassigned ? 'true' : ''},${pl.markedAway ? 'true' : ''},${pl
+          .snapshot.get('Name')},'
+          '${pl.totalScore},${pl.startingOrder},${pl.courtNumber >= 0 ? pl
+          .courtNumber + 1 : ''},${pl.courtNumber >= 0 ? courtAssignments
+          .shuffledCourtNames[pl.courtNumber] : ''},'
+          '${pl.startingRank - pl.afterDownTwo},${pl.startingRank -
+          pl.afterWinLose},'
+          '${pl.present ? DateFormat('yyyy.MM.dd_HH:mm:ss').format(
+          pl.snapshot.get('TimePresent').toDate()) : ''},$matchScoreStr,'
+          '${pl.snapshot.get('WeeksAwayWithoutNotice')},${pl.snapshot.get(
+          'WeeksAway')},${activeLadderDoc!.get('WeeksPlayed')}\n';
+    }
   }
   return result;
 }
 
 bool adminFunctionInProgress = false;
 void saveHistoryFile(String result) async {
+  String dateStr = activeLadderDoc!.get('FrozenDate');
+  if (getSportDescriptorString('programOnly').isNotEmpty){
+    dateStr = DateFormat('yyyy.MM.dd_1').format(DateTime.now());
+  }
   String filename = '${activeLadderDoc!.get('DisplayName')}/History/'
-          '${activeLadderDoc!.get('DisplayName')}_${activeLadderDoc!.get('FrozenDate')}.csv'
+          '${activeLadderDoc!.get('DisplayName')}_$dateStr.csv'
       .replaceAll(' ', '_');
+  // print('saving to file $filename');
   try {
     // print('writing to file $filename');
     await firebase_storage.FirebaseStorage.instance
@@ -89,21 +115,21 @@ void saveHistoryFile(String result) async {
       print('Error on write to storage $e');
     }
   }
-  // save the data twice as we want to eventually move to not using the DisplayName
-  filename = '${activeLadderDoc!.id}/History/'
-          '${activeLadderDoc!.get('FrozenDate')}.csv'
-      .replaceAll(' ', '%');
-  try {
-    // print('writing to file $filename');
-    await firebase_storage.FirebaseStorage.instance
-        .ref(filename)
-        .putString(result, format: firebase_storage.PutStringFormat.raw);
-    // print('done writing to file 1');
-  } catch (e) {
-    if (kDebugMode) {
-      print('Error on write to storage $e');
-    }
-  }
+  // // save the data twice as we want to eventually move to not using the DisplayName
+  // filename = '${activeLadderDoc!.id}/History/'
+  //         '${activeLadderDoc!.get('FrozenDate')}.csv'
+  //     .replaceAll(' ', '%');
+  // try {
+  //   // print('writing to file $filename');
+  //   await firebase_storage.FirebaseStorage.instance
+  //       .ref(filename)
+  //       .putString(result, format: firebase_storage.PutStringFormat.raw);
+  //   // print('done writing to file 1');
+  // } catch (e) {
+  //   if (kDebugMode) {
+  //     print('Error on write to storage $e');
+  //   }
+  // }
 }
 
 Widget helperIcon(
@@ -185,6 +211,19 @@ class _HelperFunctionDialog extends StatelessWidget {
     bool courtAssignmentsOkForFinalize = true;
 
     int numPlayersWithScores = 0;
+    int numPlayersPresent = 0;
+    for (var pl = 0; pl < listOfPlayers!.length; pl++) {
+      if (listOfPlayers![pl].present) {
+        numPlayersPresent++;
+      }
+    }
+
+    if (numPlayersPresent < 4) {
+      courtAssignmentsOkForFinalize = false;
+      return courtAssignmentsOkForFinalize;
+    }
+
+    if (getSportDescriptorString('programOnly').isNotEmpty) return courtAssignmentsOkForFinalize;
 
     if (activeLadderDoc!.get('FreezeCheckIns') != true) {
       courtAssignmentsOkForFinalize = false;
@@ -276,7 +315,8 @@ class _HelperFunctionDialog extends StatelessWidget {
           TextButton.icon(
               icon: Icon(Icons.done_all),
               onPressed: (courtAssignmentsOkForFinalize &&
-                  !adminFunctionInProgress)
+                  !adminFunctionInProgress) ||
+                  (courtAssignmentsOkForFinalize && getSportDescriptorString('programOnly').isNotEmpty)
                   ? () async {
                 adminFunctionInProgress = true;
                 final navigator =
@@ -358,7 +398,6 @@ class _HelperFunctionDialog extends StatelessWidget {
                           for (var pl = 0;
                           pl < listOfPlayers!.length;
                           pl++) {
-                            // print('in pl loop $pl');
                             DocumentReference playerRef =
                             firestore
                                 .collection('Ladder')
@@ -376,8 +415,8 @@ class _HelperFunctionDialog extends StatelessWidget {
                               'WeeksRegistered':
                               FieldValue.increment(1),
                             };
-                            if ((getSportDescriptor(0) =='pickleballRG')
-                                || (getSportDescriptorInt('RoundsPerDay') <= 1)){
+                            if ((getSportDescriptor(0) !='pickleballRG') &&
+                                (getSportDescriptorInt('RoundsPerDay') <= 1)){
                               playerData['Present'] = false;
                             }
                             if (currentRound == 1) {

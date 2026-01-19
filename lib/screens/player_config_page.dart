@@ -808,7 +808,7 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
                 ),
                 if (playerDoc.get('WaitListRank') == 0)
                   makeDoubleConfirmationButton(
-                      buttonText: 'WISHLIST',
+                      buttonText: 'WAITLIST',
                       buttonColor: Colors.green,
                       dialogTitle: 'Move User ${playerDoc.id} to end of Wait List ',
                       dialogQuestion: 'Are you sure you want to move "${playerDoc.get('Name')}" to wait list?',
@@ -1090,8 +1090,8 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
                                     if (levenshteinDistance(email, newValue) <
                                         3) {
                                       errorString = email;
-                                      print(
-                                          'new email "$newValue" is too similar to existing email "$email"');
+                                      // print(
+                                      //     'new email "$newValue" is too similar to existing email "$email"');
                                       break;
                                     }
                                   }
@@ -1101,7 +1101,7 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
                                 }
 
                               } else {
-                                print('no existing emails');
+                                // print('no existing emails');
                               }
                               return null;
                             },

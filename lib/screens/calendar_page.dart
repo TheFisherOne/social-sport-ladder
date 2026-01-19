@@ -553,8 +553,8 @@ class CalendarPageState extends State<CalendarPage> {
       _focusedDay = DateTime(focusedDay.year, focusedDay.month, focusedDay.day);
     });
     if (typeOfCalendarEvent == EventTypes.playOn) {
-      if (_selectedDay!.compareTo(DateTime.now().subtract(Duration(days: 1))) <
-          0) {
+      // print('_onDaySelected: $selectedDay < ${DateTime.now()}');
+      if (_selectedDay!.compareTo(DateTime.now()) < 0) {
         return;
       }
       if (!mapContainsDateKey(

@@ -788,9 +788,9 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
           transaction.update(scoreDocRef, {
             'BeingEditedBy': newId,
           });
-          if (kDebugMode) {
-            print('scoreBox new user editing: $newId docId=${scoreDocRef.id}');
-          }
+          // if (kDebugMode) {
+          //   print('scoreBox new user editing: $newId docId=${scoreDocRef.id}');
+          // }
         }
       });
     }
@@ -1076,14 +1076,24 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
           if (result[i] < 0) result[i] = score2;
         }
       } else if (getSportDescriptor(0) == 'generic') {
-        if (score1 > getGamesFor4()) {
-          return null; // this is just an error that should not occur
-        }
-        int score2 = getGamesFor4() - score1;
-        result[lastPlayerWithScore] = score1;
-        result[playerWithSameScore] = score1;
-        for (int i = 0; i < result.length; i++) {
-          if (result[i] < 0) result[i] = score2;
+        if (getScoringMethod() != 'total'){
+          if (score1 >= getGamesFor4()) return null; // can not autofill with 2 max scores
+          int score2 = getGamesFor4();
+          result[lastPlayerWithScore] = score1;
+          result[playerWithSameScore] = score1;
+          for (int i = 0; i < result.length; i++) {
+            if (result[i] < 0) result[i] = score2;
+          }
+        } else {
+          if (score1 > getGamesFor4()) {
+            return null; // this is just an error that should not occur
+          }
+          int score2 = getGamesFor4() - score1;
+          result[lastPlayerWithScore] = score1;
+          result[playerWithSameScore] = score1;
+          for (int i = 0; i < result.length; i++) {
+            if (result[i] < 0) result[i] = score2;
+          }
         }
       } else {
         return null;
@@ -1166,7 +1176,7 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
           result[4 - game] = null; // the diagonal blank scores
         }
       } else {
-        print('ERROR: autoFill5 for ${getSportDescriptor(0)}');
+        // print('ERROR: autoFill5 for ${getSportDescriptor(0)}');
         return null;
       }
       return result;
