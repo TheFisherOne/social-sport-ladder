@@ -964,7 +964,7 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
                                     1, //for last divider line
                                 itemBuilder: (BuildContext context, int row) {
                                   if (row == _players!.length) {
-                                    return Text("END OF PLAYER LIST: $locationStatusString");
+                                    return Text("END OF PLAYER LIST: $locationStatusString/$lastLocationStatus");
                                   }
                                   return buildPlayerLine(row, listOfPlayers);
                                 },

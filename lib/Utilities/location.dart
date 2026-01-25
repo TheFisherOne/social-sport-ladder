@@ -7,6 +7,7 @@ import 'package:geolocator/geolocator.dart';
 import '../screens/ladder_config_page.dart';
 
 String locationStatusString = 'Location Not Initialized';
+String lastLocationStatus='';
 class LocationService extends ChangeNotifier {
   Position? _lastLocation;
   DateTime? _lastUpdateTime;
@@ -22,41 +23,66 @@ class LocationService extends ChangeNotifier {
   double getLastDistanceAway() {
     return _lastDistanceAway;
   }
+  
+
 
   Future<void> updateLocation() async {
+    Position? position;
+    lastLocationStatus = '';
     try {
       // On web, it's good to be explicit about accuracy.
       final locationSettings = LocationSettings(
-        accuracy: kIsWeb ? LocationAccuracy.high : LocationAccuracy.medium,
+        accuracy: LocationAccuracy.medium,
         distanceFilter: 25,
+        timeLimit: const Duration(seconds: 8),
       );
 
-      _lastLocation = await Geolocator.getCurrentPosition(
+      position = await Geolocator.getCurrentPosition(
           locationSettings: locationSettings);
-
-      if (_lastLocation != null) {
-        _lastUpdateTime = DateTime.now();
-        // if (kDebugMode) {
-        //   print('Got Location update at $_lastUpdateTime');
-        // }
-        bool newLocationOk = isLocationOk(_lastLocation!);
-        if (newLocationOk != _lastLocationOk) {
-          _lastLocationOk = newLocationOk;
-          notifyListeners();
-        }
-
-        if ((_lastDistanceRefresh - _lastDistanceAway).abs() > 25.0) {
-          _lastDistanceRefresh = _lastDistanceAway;
-          notifyListeners();
-        }
-      }
     } catch (e) {
-      if (kDebugMode) {
-        print('Error updating location: $e');
+      if (e is TimeoutException) {
+        lastLocationStatus = 'getCurrentPosition timed out, trying getLastKnownPosition';
+        if (kDebugMode) {
+          print('getCurrentPosition timed out, trying getLastKnownPosition');
+        }
+        try {
+          position = await Geolocator.getLastKnownPosition();
+        } catch (e2) {
+          lastLocationStatus = 'Error getting last known position: $e2';
+          if (kDebugMode) {
+            print('Error getting last known position: $e2');
+          }
+        }
+      } else {
+        if (kDebugMode) {
+          print('Error updating location: $e');
+        }
+        if (e is PermissionDeniedException) {
+          // Stop trying if permission is denied, to avoid spamming requests.
+          stopTimer();
+        }
       }
-      if (e is PermissionDeniedException) {
-        // Stop trying if permission is denied, to avoid spamming requests.
-        stopTimer();
+    }
+
+    if (position != null) {
+      lastLocationStatus = '';
+      _lastLocation = position;
+      _lastUpdateTime = position.timestamp;
+
+      bool newLocationOk = isLocationOk(_lastLocation!);
+      if (newLocationOk != _lastLocationOk) {
+        _lastLocationOk = newLocationOk;
+        notifyListeners();
+      }
+
+      if ((_lastDistanceRefresh - _lastDistanceAway).abs() > 25.0) {
+        _lastDistanceRefresh = _lastDistanceAway;
+        notifyListeners();
+      }
+    } else {
+      lastLocationStatus = 'Error getting location';
+      if (kDebugMode) {
+        print('Error getting location');
       }
     }
   }
