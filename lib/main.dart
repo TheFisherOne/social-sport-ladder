@@ -89,7 +89,7 @@ void main() async {
     }
     return;
   }
-  changeLoadingMessage('Finished initializing');
+  changeLoadingMessage('Finished Firebase initialize, starting app');
   runApp(
       const MyApp()
   );

@@ -335,18 +335,15 @@ class _HelperFunctionDialog extends StatelessWidget {
 
                     await firestore.runTransaction(
                             (transaction) async {
-                          // print('starting transaction updating daysOfPlay');
-                          DocumentSnapshot
-                          activeLadderRef =
-                          await firestore
-                              .collection('Ladder')
-                              .doc(activeLadderId)
-                              .get();
+                          final activeLadderDocRef = firestore.collection('Ladder').doc(activeLadderId);
+                          DocumentSnapshot activeLadderRef = await transaction.get(activeLadderDocRef);
                           // print('done get $activeLadderId');
+                          // this little line is to abort if 2 people trigger this at the same time
+                          if ((activeLadderRef.get('FreezeCheckIns') as bool? ?? true) != true) {
+                            return;
+                          }
                           List<String> daysOfPlay =
-                          activeLadderRef
-                              .get('DaysOfPlay')
-                              .split('|');
+                          (activeLadderRef.get('DaysOfPlay') as String? ?? '').split('|');
                           // print('daysOfPlay: $daysOfPlay');
                           List<String> newDaysOfPlay =
                           List.empty(growable: true);
@@ -381,18 +378,14 @@ class _HelperFunctionDialog extends StatelessWidget {
                             newDaysOfPlay.add(thisDay);
                           }
                           // print('newDaysOfPlay: $newDaysOfPlay updating RandomCourtOf5');
-                          int currentSeed =
-                          await activeLadderRef
-                              .get('RandomCourtOf5');
+                          int currentSeed = activeLadderRef.get('RandomCourtOf5') as int? ?? 0;
                           int newSeed =
                           Random().nextInt(1000);
                           if (currentSeed < 1000) {
                             newSeed += 1000;
                           }
                           // updating CurrentRound
-                          int currentRound =
-                          await activeLadderRef
-                              .get('CurrentRound');
+                          int currentRound = activeLadderRef.get('CurrentRound') as int? ?? 1;
 
                           // the Scores documents get initialized when the ladder is refrozen
                           for (var pl = 0;
@@ -643,7 +636,7 @@ class _HelperFunctionDialog extends StatelessWidget {
                       });
                       transactionAudit(
                           transaction: transaction,
-                          user: loggedInUser,
+                          user: activeUser.id,
                           documentName: activeLadderId,
                           action:
                           'ZeroScores and unfreeze',

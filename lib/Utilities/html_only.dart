@@ -9,6 +9,15 @@ import 'package:flutter/material.dart';
 import '../constants/constants.dart';
 import '../screens/calendar_page.dart';
 
+
+@JS('forceUpgrade')
+external void forceUpgrade();
+
+// This function tells the JavaScript in index.html that the Flutter app is running.
+@JS('flutterAppReady')
+external void flutterAppReady();
+
+
 Future<void> unregisterAllServiceWorkers({bool reloadAfter = true}) async {
   final navigator = web.window.navigator;
 
@@ -119,18 +128,7 @@ Widget reloadWithNewVersion(BuildContext context, double reqSoftwareVersion) {
                   borderRadius: BorderRadius.circular(8)),
             ),
             onPressed: () {
-              // The reload is now safely triggered by direct user action.
-              if (kIsWeb) {
-                // final timestamp = DateTime.now().millisecondsSinceEpoch;
-                // // Get the base URL without any old query parameters.
-                // final currentUrl = web.window.location.href.split('?')[0];
-                // final newURL = '$currentUrl?v=$timestamp';
-                // // Use assign() to force a full page reload from the server.
-                // web.window.location.assign(newURL);
-
-                // web.window.location.reload();
-                unregisterAllServiceWorkers();
-              }
+              forceUpgrade();
             },
           ),
         ],
@@ -144,19 +142,7 @@ Widget reloadWithNewVersion(BuildContext context, double reqSoftwareVersion) {
 }
 
 Widget reloadHtml(BuildContext context, double reqSoftwareVersion) {
-  // if (web.window.navigator.serviceWorker != null) {
-  //   web.window.navigator.serviceWorker!.getRegistrations().then((registrations) {
-  //     for (var reg in registrations) {
-  //       print('unregister worker ${reg.toString()}');
-  //       reg.unregister();
-  //     }
-  //     print('Service worker cleared');
-  //     reloadWithNewVersion(reqSoftwareVersion);
-  //   });
-  // } else
-  {
-    return reloadWithNewVersion(context, reqSoftwareVersion);
-  }
+  return reloadWithNewVersion(context, reqSoftwareVersion);
 }
 
 Future<void> downloadCsvFile(Event event) async {

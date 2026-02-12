@@ -622,7 +622,10 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
             });
           },
           child: Row(mainAxisAlignment: MainAxisAlignment.start, children: [
-            icon,
+            if (_clickedOnRank == row)
+              SizedBox(width: iconSize)
+            else
+              icon,
             if (weeksRegistered <= 0)
               Icon(
                 Icons.fiber_new,

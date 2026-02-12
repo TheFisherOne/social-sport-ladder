@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:social_sport_ladder/constants/constants.dart';
 
@@ -15,4 +16,9 @@ Future<void> downloadCsvFile(Event event) async {
 }
 void changeLoadingMessage(String message){
 
+}
+void flutterAppReady() {
+    if (kDebugMode) {
+      print('Attempt to call flutterAppReady');
+    }
 }

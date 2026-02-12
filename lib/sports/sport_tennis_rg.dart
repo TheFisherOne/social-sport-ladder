@@ -917,61 +917,6 @@ Future<void> sportTennisRGPrepareForScoreEntry(
   });
 }
 
-// Future<void> sportTennisRGPrepareForScoreEntry(List<QueryDocumentSnapshot>? players) async {
-//   // this should be called once by the person switching the mode of the ladder
-//   CourtAssignmentsRgStandard courtAssignments = CourtAssignmentsRgStandard(players!);
-//   String currentDate = DateFormat('yyyy.MM.dd').format(getDateTimeNow());
-//   int currentRound = activeLadderDoc!.get('CurrentRound');
-//   int numCourts = courtAssignments.numberOnCourt.length;
-//   String dateStr = '${currentDate}_${currentRound.toString()}';
-//
-//
-//   // have to update all players even ones not assigned to a court
-//   for (QueryDocumentSnapshot player in players){
-//     await firestore.collection('Ladder').doc(activeLadderId).collection('Players').doc(player.id).update({
-//       'TotalScore':0,
-//       'MatchScores': '',
-//       'StartingOrder': 0,
-//     });
-//   }
-//
-//   for (int court = 0; court < numCourts; court++) {
-//     String docStr = '${dateStr}_C#${(court + 1).toString()}';
-//     List crt = courtAssignments.playersOnEachCourt[court];
-//     String players = '';
-//     String ranks = '';
-//     String gameScores = '';
-//     for (int j = 0; j < crt.length; j++) {
-//       if (j != 0) {
-//         players += '|';
-//         ranks += '|';
-//         gameScores += '|';
-//       }
-//       players += crt[j]!.id;
-//       ranks += crt[j]!.get('Rank').toString();
-//       gameScores += (courtAssignments.playersOnEachCourt[court].length == 4) ? ',,' : ',,,,';
-//       await firestore.collection('Ladder').doc(activeLadderId).collection('Players').doc(crt[j]!.id).update({
-//         'StartingOrder': j+1,
-//       });
-//     }
-//
-//     await firestore.collection('Ladder').doc(activeLadderId).collection('Scores').doc(docStr).set({
-//       'BeingEditedBy': '',
-//       'EditedSince': getDateTimeNow(),
-//       'GameScores': gameScores,
-//       'Players': players,
-//       'StartingRanks': ranks,
-//       'EndingRanks': '',
-//       'ScoresEnteredBy': '',
-//     });
-//   }
-//   writeAudit(user: activeUser.id, documentName: 'LadderConfig', action: 'Set FreezeCheckIns', newValue: true.toString(), oldValue: false.toString());
-//
-//   await firestore.collection('Ladder').doc(activeLadderId).update({
-//     'FreezeCheckIns': true,
-//     'FrozenDate': dateStr,
-//   });
-// }
 
 List<Color> courtColors = [
   Colors.yellow,

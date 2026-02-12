@@ -7,6 +7,8 @@ import '../Utilities/helper_icon.dart';
 import '../Utilities/user_stream.dart';
 import '../constants/firebase_setup2.dart';
 import '../main.dart';
+import '../Utilities/html_none.dart'
+if (dart.library.html) '../Utilities/html_only.dart';
 
 String clientId = '';
 
@@ -29,6 +31,7 @@ class LoginPage extends StatelessWidget {
               GoogleProvider(clientId: xorString(encodedGoogleClientId, keyString)),
             ],
             headerBuilder: (context, constraints, shrinkOffset) {
+              flutterAppReady();
               return Padding(
                 padding: const EdgeInsets.all(20),
                 child: AspectRatio(

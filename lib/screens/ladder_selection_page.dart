@@ -327,6 +327,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
       }
 
       if (_userLadders.isEmpty || !userOk) {
+        flutterAppReady();
         return Scaffold(
           backgroundColor: Colors.brown[50],
           appBar: AppBar(
@@ -392,7 +393,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
           if (kDebugMode) {
             print('Ladder Selection Page stream builder build');
           }
-
+          flutterAppReady();
           List<QueryDocumentSnapshot<Object?>> filteredDocs = [];
           int? requiredSoftwareVersion;
           int? tipOfTheDayNumber = (DateTime.now().millisecondsSinceEpoch /

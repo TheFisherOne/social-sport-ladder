@@ -15,32 +15,39 @@ class UserStream extends StatefulWidget {
 }
 
 class _UserStreamState extends State<UserStream> {
-  
-  double _lastFontSize=appFontSize;
+  Future<DocumentSnapshot>? _userDocumentFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    if (loggedInUser.isNotEmpty) {
+      _userDocumentFuture = firestore.collection('Users').doc(loggedInUser).get();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (loggedInUser.isEmpty) {
       return const Text('UserStream: but loggedInUser empty');
     }
 
-    return StreamBuilder<DocumentSnapshot>(
-        stream: firestore.collection('Users').doc(loggedInUser).snapshots(),
+    return FutureBuilder<DocumentSnapshot>(
+        future: _userDocumentFuture,
         builder: (BuildContext context, AsyncSnapshot<DocumentSnapshot<Object?>> snapshot) {
 
-          if (snapshot.error != null) {
+          if (snapshot.hasError) {
             String error = 'Snapshot error: ${snapshot.error.toString()} on getting global user $loggedInUser';
             if (kDebugMode) {
               print(error);
             }
             return Text(error);
           }
-          // print('in StreamBuilder ladder 0');
-          if (!snapshot.hasData || (snapshot.connectionState != ConnectionState.active)) {
-            // print('ladder_selection_page getting user $loggedInUser but hasData is false');
-            return const CircularProgressIndicator();
+
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const Center(child: CircularProgressIndicator());
           }
-          if (!snapshot.hasData || (snapshot.data == null) || !snapshot.data!.exists) {
-            // print('ladder_selection_page getting user $loggedInUser but hasData is false');
+
+          if (!snapshot.hasData || !snapshot.data!.exists) {
             Future<void> runLater() async {
               await FirebaseAuth.instance.signOut();
               loggedInUser = '';
@@ -50,48 +57,22 @@ class _UserStreamState extends State<UserStream> {
             });
             return Text('User $loggedInUser is not registered by the ladder admin', style: nameBigRedStyle);
           }
-          if (snapshot.data == null) {
-            if (kDebugMode) {
-              print('ladder_selection_page getting user $loggedInUser but data is null');
-            }
-            return const CircularProgressIndicator();
-          }
-          // print('rebuilding of UserStream');
+
           loggedInUserDoc = snapshot.data;
 
           double usersFontSize = 30;
           try {
             usersFontSize = loggedInUserDoc!.get('FontSize');
-            // print('read FontSize: $usersFontSize');
           } catch (_) {}
-          
-          if (_lastFontSize != usersFontSize){
-            if (kDebugMode) {
-              print('1: setting base font from $_lastFontSize to $usersFontSize');
-            }
-            _lastFontSize = usersFontSize;
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-                setBaseFont(usersFontSize);
-            });
-          }
 
+          // This is now safe to call here because FutureBuilder only runs once.
+          setBaseFont(usersFontSize);
 
           if (kDebugMode) {
-            print('LadderSelectionPage called from user_stream.dart');
+            print('LadderSelectionPage being built from user_stream.dart');
           }
-          NavigatorState nav = Navigator.of(context);
-          Future.microtask(() {
-            if (mounted) {
-              nav.pushReplacement(
-                MaterialPageRoute(builder: (_) => const LadderSelectionPage()),
-              );
-            }
-          });
-          return Text('launching LadderSelectionPage', style: nameStyle);
-          // return LadderSelectionPage();
+
+          return const LadderSelectionPage();
         });
   }
-
-
-
 }

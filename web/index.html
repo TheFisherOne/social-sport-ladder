@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -23,20 +24,115 @@
   <title>Social Sport Ladder</title>
   <link rel="manifest" href="manifest.json">
 
+  <style>
+    .recovery-ui {
+      display: none; /* Hidden by default */
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.7);
+      color: white;
+      z-index: 10000; /* Ensure it's on top of Flutter */
+      font-family: sans-serif;
+      font-size: 1.2em;
+
+      /* Flexbox for centering will be added by JS when shown */
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+    }
+    .recovery-ui-content button {
+        padding: 12px 24px;
+        font-size: 1em;
+        margin: 10px;
+        cursor: pointer;
+    }
+  </style>
+
 </head>
 <body>
+
+  <!-- Recovery UI -->
+  <div id="recovery-ui" class="recovery-ui">
+      <div class="recovery-ui-content">
+          <p>The application seems to be taking a while to load.</p>
+          <button id="reload-button">Force Reload</button>
+          <button id="wait-button">Wait</button>
+      </div>
+  </div>
+
 <div id="loading">Loading Social Sport Ladder...</div>
+
 <script>
+    // This function can be called from your application when you detect a new version is available.
+    function forceUpgrade() {
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for(let registration of registrations) {
+                    registration.unregister();
+                }
+            });
+        }
+        window.location.reload(true);
+    }
+
+    // --- Dead Man's Switch Logic ---
+    let recoveryTimer;
+
+    function startRecoveryTimer(timeout) {
+        console.log(`Starting recovery timer for ${timeout / 1000} seconds.`);
+        recoveryTimer = setTimeout(() => {
+            console.log('Recovery timer expired. Showing recovery UI.');
+            const recoveryUI = document.getElementById('recovery-ui');
+            if (recoveryUI) {
+                recoveryUI.style.display = 'flex'; // Make it visible AND apply flex for centering
+            }
+        }, timeout);
+    }
+
+    // This function is called by Flutter when the app has successfully loaded.
+    function flutterAppReady() {
+        console.log('Flutter app is ready. Clearing recovery timer.');
+        clearTimeout(recoveryTimer);
+        // Also hide the UI in case it was already shown
+        const recoveryUI = document.getElementById('recovery-ui');
+        if (recoveryUI) {
+            recoveryUI.style.display = 'none';
+        }
+    }
+
+    // --- Event Listeners ---
+    document.getElementById('reload-button').addEventListener('click', () => {
+        console.log('Force Reload button clicked.');
+        forceUpgrade();
+    });
+
+    document.getElementById('wait-button').addEventListener('click', () => {
+        console.log('Wait button clicked.');
+        const recoveryUI = document.getElementById('recovery-ui');
+        if (recoveryUI) {
+            recoveryUI.style.display = 'none';
+        }
+        // Start another, longer timer
+        startRecoveryTimer(30000); // 30 seconds
+    });
+
+    // --- Service Worker and Initial Timer ---
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js')
+        navigator.serviceWorker.register('/sw.js?v=2')
           .then(reg => console.log('Service Worker registered successfully', reg))
           .catch(err => console.error('Service Worker registration failed:', err));
       });
     }
 
+    // Start the first timer when the page loads.
+    startRecoveryTimer(30000); // 30 seconds
+
 </script>
 
-<script src="flutter_bootstrap.js?v=129" async></script>
+<script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
