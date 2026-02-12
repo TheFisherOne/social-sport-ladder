@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart' hide EmailAuthProvider;
 import 'package:firebase_ui_auth/firebase_ui_auth.dart';
 import 'package:firebase_ui_oauth_google/firebase_ui_oauth_google.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../Utilities/helper_icon.dart';
 import '../Utilities/user_stream.dart';
@@ -23,6 +24,7 @@ class LoginPage extends StatelessWidget {
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
+          WidgetsBinding.instance.addPostFrameCallback((_) => flutterAppReady());
           return SignInScreen(
             showAuthActionSwitch: false,
             providers: [
@@ -31,7 +33,6 @@ class LoginPage extends StatelessWidget {
               GoogleProvider(clientId: xorString(encodedGoogleClientId, keyString)),
             ],
             headerBuilder: (context, constraints, shrinkOffset) {
-              flutterAppReady();
               return Padding(
                 padding: const EdgeInsets.all(20),
                 child: AspectRatio(
@@ -47,12 +48,23 @@ class LoginPage extends StatelessWidget {
               );
             },
             footerBuilder: (context, action) {
-              return const Padding(
-                padding: EdgeInsets.only(top: 16),
-                child: Text(
-                  'By signing in, you agree to our terms and conditions.',
-                  style: TextStyle(color: Colors.grey),
-                ),
+              return Column(
+                children: [
+                  TextButton(
+                    onPressed: () {
+                      launchUrl(Uri.parse(
+                          'https://social-sport-ladder.web.app/info/index.html'));
+                    },
+                    child: const Text('About Social-Sport-Ladder'),
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.only(top: 16),
+                    child: Text(
+                      'By signing in, you agree to our terms and conditions.',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  ),
+                ],
               );
             },
             sideBuilder: (context, shrinkOffset) {
