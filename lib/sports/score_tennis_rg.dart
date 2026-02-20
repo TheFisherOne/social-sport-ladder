@@ -67,7 +67,11 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
   bool _isOverrideEditorEnabled = false;
   Timer? _timer;
 
-  void refresh() => setState(() {});
+  void refresh() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
 
   void _startTimer() {
     _timer?.cancel();
@@ -76,10 +80,12 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
     // print('timer started');
     _timer = Timer(Duration(seconds: 30), () {
       // print('in Timer for _isOverrideEditorEnabled $this');
-      setState(() {
-        // print('timer goes off');
-        _isOverrideEditorEnabled = true;
-      });
+      if (mounted) {
+        setState(() {
+          // print('timer goes off');
+          _isOverrideEditorEnabled = true;
+        });
+      }
     });
   }
 
@@ -145,6 +151,7 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
 
     _allScoresEntered = true;
     _gameScoresStr = widget.scoreDoc.get('GameScores');
+    // print('_gameScoresStr: $_gameScoresStr');
     List<String> gameScoresList = _gameScoresStr.split('|');
     _gameScores = List.empty(growable: true);
     for (int pl = 0; pl < _playerList.length; pl++) {
@@ -692,9 +699,11 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
     await firestore.collection('Users').doc(email).get();
     if (userDoc.exists && userDoc.data()!.containsKey('DisplayName')) {
       // If it exists, add the email and DisplayName to the local map
-      setState(() {
-        globalEmails[email] = userDoc.data()!['DisplayName'];
-      });
+      if (mounted) {
+        setState(() {
+          globalEmails[email] = userDoc.data()!['DisplayName'];
+        });
+      }
     }
   }
 
@@ -819,7 +828,9 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
           print("App is resumed (in the foreground or tab is visible).");
         }
         // It's often useful to refresh state when the user comes back.
-        setState(() {});
+        if (mounted) {
+          setState(() {});
+        }
         break;
 
     // These states mean the app is no longer active and visible.
@@ -943,11 +954,11 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
                     _workingGameScores[playerNum][gameNum] = workingValue;
 
                     updateBeingEditedBy(activeUser.id);
-
-                    setState(() {
-                      _neverEdited = false;
-                    });
-
+                    if (mounted) {
+                      setState(() {
+                        _neverEdited = false;
+                      });
+                    }
                     // print('workingGameScores2: $_workingGameScores');
                   }
                 : null,
@@ -1198,7 +1209,9 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
     }
 
     updateBeingEditedBy(activeUser.id);
-    setState(() {});
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   void setScoresForGame5(int game) {
@@ -1215,7 +1228,9 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
     }
 
     updateBeingEditedBy(activeUser.id);
-    setState(() {});
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   Widget show4Players() {
@@ -1942,8 +1957,9 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
                               _scoreEntryErrorString = '$whereInScores// ${e.toString()}';
                               // return; // skip the clearing
                             }
-
-                            setState(() {});
+                            if (mounted) {
+                              setState(() {});
+                            }
                           },
                           child: Row(children: [
                             Icon(
@@ -1969,9 +1985,11 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
                             key: const Key('cancel-button'),
                             onPressed: () {
                               updateBeingEditedBy('');
-                              setState(() {
-                                // cancelWorkingScores();
-                              });
+                              if (mounted) {
+                                setState(() {
+                                  // cancelWorkingScores();
+                                });
+                              }
                             },
                             icon: Icon(Icons.cancel, size: 50)),
                       ),
@@ -2069,7 +2087,9 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
                           'ScoresConfirmed': true,
                         });
                       }
+                      if (mounted){
                       setState(() {});
+                      }
                     },
                     child: Text('Confirm Scores', style: nameStyle),
                   )

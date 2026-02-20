@@ -212,6 +212,7 @@ class _ScoreBaseState extends State<ScoreBase> with WidgetsBindingObserver {
   String _dateStr = '';
   String _scoreDocStr = '';
   late DocumentSnapshot<Object?> _scoreDoc;
+  bool? _scoresConfirmed;
   @override
   void initState() {
     super.initState();
@@ -238,9 +239,11 @@ class _ScoreBaseState extends State<ScoreBase> with WidgetsBindingObserver {
         }
         // Example: Update state or trigger a data refresh
         // This setState will cause _ScoreBaseState's build method to run again.
-        setState(() {
+        if (mounted) {
+          setState(() {
 
-        });
+          });
+        }
         break;
       case AppLifecycleState.inactive:
       // Handle inactive state
@@ -319,6 +322,22 @@ class _ScoreBaseState extends State<ScoreBase> with WidgetsBindingObserver {
                 // print('config_page: StreamBuilder: rebuild required $_rebuildRequired');
                 // print('StreamBuilder config page: activeLadderId: $activeLadderId id: ${snapshot.data!.id}');
                 _scoreDoc = snapshot.data!;
+                bool areScoresConfirmedNow = (_scoreDoc.get('ScoresEnteredBy') as String ).endsWith(' CONFIRMED');
+                // print('score_base1: areScoresConfirmedNow: $areScoresConfirmedNow, _scoresConfirmed: $_scoresConfirmed');
+                if (_scoresConfirmed == null){
+                  _scoresConfirmed = areScoresConfirmedNow;
+                } else if (_scoresConfirmed != areScoresConfirmedNow){
+                  // if the confirmed status changes that boot everyone out of the scoring screen
+                  // they need to go in again to make sure the data is refreshed properly
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted) {
+                      Navigator.of(context).pop();
+                    }
+                  });
+                  // print('score_base3: scheduling a pop');
+                  return Text('About to exit');
+                }
+                // print('score_base2: areScoresConfirmedNow: $areScoresConfirmedNow, _scoresConfirmed: $_scoresConfirmed');
 
                 if ((getSportDescriptor(0)=='tennisRG')||(getSportDescriptor(0)=='pickleballRG')
                     ||(getSportDescriptor(0)=='badmintonRG')||(getSportDescriptor(0)=='generic')) {

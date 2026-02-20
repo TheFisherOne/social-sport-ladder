@@ -102,7 +102,11 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
   final ScrollController _scrollController = ScrollController();
   final GlobalKey _targetKey = GlobalKey();
 
-  void refresh() => setState(() {});
+  void refresh() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
 
   @override
   void initState() {
@@ -726,6 +730,8 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
             waitingForFreezeCheckins = false;
             // developer.log('${DateTime.now()} player_home StreamBuilder FROZEN');
             return SportTennisRG();
+          } else {
+            allScoresConfirmed = false;
           }
 
           return StreamBuilder<QuerySnapshot>(

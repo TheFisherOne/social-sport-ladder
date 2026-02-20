@@ -210,6 +210,9 @@ class _HelperFunctionDialog extends StatelessWidget {
   bool okForFinalize() {
     bool courtAssignmentsOkForFinalize = true;
 
+    if (listOfPlayers == null){
+      return false;
+    }
     int numPlayersWithScores = 0;
     int numPlayersPresent = 0;
     for (var pl = 0; pl < listOfPlayers!.length; pl++) {
@@ -311,7 +314,7 @@ class _HelperFunctionDialog extends StatelessWidget {
                 Navigator.pop(context);
               },
               label: const Text('Enable SUPER functions')),
-        if (activeUser.admin && !adminFunctionInProgress)
+        if ((activeUser.admin || (activeUser.helper && allScoresConfirmed)) && !adminFunctionInProgress)
           TextButton.icon(
               icon: Icon(Icons.done_all),
               onPressed: (courtAssignmentsOkForFinalize &&

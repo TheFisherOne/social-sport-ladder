@@ -257,7 +257,11 @@ class _ConfigPageState extends State<ConfigPage> {
     ladderConfigInstance = this;
   }
 
-  void refresh() => setState(() {});
+  void refresh() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
   final TextEditingController _ladderNameController = TextEditingController();
   final TextEditingController _messageController = TextEditingController();
   final TextEditingController _vacationController = TextEditingController();

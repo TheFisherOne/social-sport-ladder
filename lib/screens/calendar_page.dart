@@ -376,9 +376,11 @@ class CalendarPageState extends State<CalendarPage> {
     super.dispose();
   }
 
-  void refresh() => setState(() {
-        // print('doing calendar page refresh');
-      });
+  void refresh() {
+   if (mounted) {
+     setState(() {});
+   }
+  }
   var addedPlayEvents = {};
   var removedPlayEvents = {};
 
@@ -767,6 +769,7 @@ class CalendarPageState extends State<CalendarPage> {
                       String clickText = '';
                       DateTime? nextPlayDate;
                       (nextPlayDate, _) = getNextPlayDateTime(activeLadderDoc!);
+                      bool cantMakeIt = false;
                       // print('ListView.builder calendar page: nextPlayDate: $nextPlayDate _selectedDay: $_selectedDay');
                       if ((typeOfCalendarEvent == EventTypes.standard) &&
                           (value[index].toString().startsWith('play') ||
@@ -783,7 +786,7 @@ class CalendarPageState extends State<CalendarPage> {
                               '\nClick to ${value[index].toString().startsWith('play') ? 'Mark as away' : 'change back to playing'}';
                         } else if (!isVacationTimeOk(activeLadderDoc!)) {
                           final data = _playerDoc!.data() as Map<String, dynamic>?;
-                          bool cantMakeIt =  data != null && data.containsKey('CantMakeIt') && _playerDoc!.get('CantMakeIt');
+                          cantMakeIt =  data != null && data.containsKey('CantMakeIt') && _playerDoc!.get('CantMakeIt');
 
                           if (cantMakeIt){
                             clickText =
@@ -808,7 +811,7 @@ class CalendarPageState extends State<CalendarPage> {
                           borderRadius: BorderRadius.circular(12.0),
                         ),
                         child: ListTile(
-                          leading: (value[index].toString().startsWith('play'))
+                          leading: (value[index].toString().startsWith('play') && !cantMakeIt)
                               ? const Icon(
                                   Icons.circle,
                                   color: Colors.green,
@@ -818,9 +821,9 @@ class CalendarPageState extends State<CalendarPage> {
                                       Icons.square,
                                       color: Colors.red,
                                     )
-                                  : const Icon(
+                                  : Icon(
                                       Icons.square,
-                                      color: Colors.blue,
+                                      color: cantMakeIt? Colors.red:Colors.blue,
                                     ),
                           onTap: (((typeOfCalendarEvent ==
                                           EventTypes.standard) &&

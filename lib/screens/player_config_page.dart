@@ -223,7 +223,11 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
     //RoundedTextField.startFresh(this);
   }
 
-  void refresh() => setState(() {});
+  void refresh() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
 
   Future<void> loadExistingEmails() async {
     // does not call if it is not null

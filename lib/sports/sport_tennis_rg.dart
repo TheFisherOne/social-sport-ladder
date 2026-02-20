@@ -14,6 +14,7 @@ import '../screens/ladder_selection_page.dart';
 import '../screens/score_base.dart';
 
 dynamic sportTennisRgInstance;
+bool allScoresConfirmed = false;
 
 class PlayerList {
   static String errorString = '';
@@ -1062,7 +1063,11 @@ class _SportTennisRGState extends State<SportTennisRG> {
     super.dispose();
   }
 
-  void refresh() => setState(() {});
+  void refresh() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
   @override
   Widget build(BuildContext context) {
     sportTennisRgInstance = this;
@@ -1074,7 +1079,7 @@ class _SportTennisRGState extends State<SportTennisRG> {
     activeLadderBackgroundColor = stringToColor(colorString) ?? Colors.pink;
     _dateStr = activeLadderDoc!.get('FrozenDate');
 
-    //print('SportTennisRGPage build');
+    print('SportTennisRGPage build');
     return StreamBuilder<QuerySnapshot>(
         stream: firestore
             .collection('Ladder')
@@ -1142,6 +1147,19 @@ class _SportTennisRGState extends State<SportTennisRG> {
               body: Text(courtAssignments.errorString, style: nameBigStyle),
             );
           }
+          var plys = courtAssignments.playersOnEachCourt;
+          allScoresConfirmed = true;
+          for (int i = 0; i < plys.length; i++) {
+            var crt = plys[i];
+            for (int j = 0; j < crt.length; j++) {
+              if (!crt[j].get('ScoresConfirmed')) {
+                allScoresConfirmed = false;
+                break;
+              };
+            }
+          }
+          // print('All Scores Confirmed: $allScoresConfirmed');
+
           return Scaffold(
             backgroundColor: Colors.brown[50],
             appBar: thisAppBar,
@@ -1175,6 +1193,7 @@ class _SportTennisRGState extends State<SportTennisRG> {
                           style: nameStyle,
                         ));
                   }
+
 
                   return courtTile(courtAssignments, playerNum, courtColor,
                       _players, _movement!, context);

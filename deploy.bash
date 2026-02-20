@@ -29,8 +29,14 @@ fi
 echo adding custom-pages
 cp -r custom-pages/info build/web/
 
-echo Deploying web to firebase
-firebase deploy
+
+if [ "$1" = "debug" ]; then
+  echo DEPLOYING DEBUG VERSION ONLY V$next_version
+  firebase hosting:channel:deploy "debug-v$next_version" --expires 1d
+else
+  echo Deploying web to firebase
+  firebase deploy
+fi
 
 echo "Restoring sw.js for debugging: copying sw.debug.js to sw.js"
 cp web/sw.debug.js web/sw.js
