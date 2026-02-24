@@ -1152,10 +1152,18 @@ class _SportTennisRGState extends State<SportTennisRG> {
           for (int i = 0; i < plys.length; i++) {
             var crt = plys[i];
             for (int j = 0; j < crt.length; j++) {
-              if (!crt[j].get('ScoresConfirmed')) {
+              bool confirmed = false;
+              try {
+                confirmed = crt[j].get('ScoresConfirmed');
+              } catch (_) {
+                if (kDebugMode) {
+                  print('ScoresConfirmed not set in ${crt[j].id}');
+                }
+              }
+              if (!confirmed) {
                 allScoresConfirmed = false;
                 break;
-              };
+              }
             }
           }
           // print('All Scores Confirmed: $allScoresConfirmed');

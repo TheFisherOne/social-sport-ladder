@@ -370,6 +370,7 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
           'WeeksAway':0,
           'WeeksAwayWithoutNotice':0,
           'MatchScores':'',
+          'ScoresConfirmed': false,
         });
 
         // print('addPlayer: audit');

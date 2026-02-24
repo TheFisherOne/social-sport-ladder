@@ -1,14 +1,24 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <title>Introduction</title>
+  <style>
+    html, body { margin: 0; height: 100%; }
+  </style>
+  <script>
+    window.onload = function() {
+      if (window.history.length <= 1) {
+        document.getElementById('backBtn').style.display = 'none';
+      }
+    };
+  </script>
 </head>
 <body>
 
-  <button onclick="history.back()">Go Back</button>
+  <button id="backBtn" onclick="history.back()">Go Back</button>
   <br>
 
-  <iframe src="SocialSportLadder.html" width="100%" height="500px" style="border:none;"></iframe>
+  <iframe src="SocialSportLadder.html" width="100%" height="100%" style="border:none;"></iframe>
 
 </body>
 </html>
