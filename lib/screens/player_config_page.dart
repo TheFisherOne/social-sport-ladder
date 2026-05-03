@@ -1102,7 +1102,7 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
                                   }
                                 }
                                 if (errorString.isNotEmpty) {
-                                  return 'Not Saved: Similar to $errorString';
+                                  return 'Similar to $errorString\nNot Saved: ';
                                 }
 
                               } else {

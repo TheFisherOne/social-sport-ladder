@@ -136,16 +136,20 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
     super.didChangeAppLifecycleState(state);
     switch (state) {
       case AppLifecycleState.resumed:
-        // if (kDebugMode) {
-        //   print("App is resumed (in the foreground).");
-        // }
-        setState(() {});
+        if (kDebugMode) {
+          print("Player_home: App is resumed (in the foreground).");
+        }
+        // this was removed as it forced a scroll to the top of the window
+        // which was annoying.
+        // I think this was added to force a database refresh which really should not be necessary
+        //TODO: remove this LifecycleState as it now does nothing
+        // setState(() {});
         // Example: Refresh data, restart animations
         break;
       case AppLifecycleState.inactive:
-        // if (kDebugMode) {
-        //   print("App is inactive (e.g., an incoming call, or multitasking view).");
-        // }
+        if (kDebugMode) {
+          print("Player_home:App is inactive (e.g., an incoming call, or multitasking view).");
+        }
         // Example: Pause animations, save state lightly
         break;
       case AppLifecycleState.paused:
@@ -428,7 +432,7 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
                           )),
                         ),
                 ),
-                SizedBox(key: _targetKey, height: 10),
+                SizedBox(height: 10),
                 (activeUser.helper || (loggedInUser == player.id))
                     ? Container(
                         height: max(appFontSize*1.4*2, appFontSize * 2.7),
@@ -472,6 +476,7 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
                     'Total weeks: ${activeLadderDoc!.get('WeeksPlayed')}',
                     style: errorNameStyle,
                   ),
+                SizedBox(key: _targetKey, height: 1),
               ],
             ),
             const SizedBox(width: 10),
@@ -525,7 +530,7 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
             final bool isBottomVisible =
                 (widgetOffsetInScroll.dy + widgetHeight) <= scrollViewHeight;
 
-            // print('buildPlayerLine: isTopVisible: $isTopVisible isBottomVisible: $isBottomVisible');
+            print('buildPlayerLine: isTopVisible: $isTopVisible isBottomVisible: $isBottomVisible');
             if (!isTopVisible || !isBottomVisible) {
               Scrollable.ensureVisible(
                 context,
@@ -534,7 +539,7 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
                 curve: Curves.easeInOut,
                 // Optional: animation curve
                 alignment:
-                    0.5, // Optional: 0.0 for top, 0.5 for center, 1.0 for bottom
+                    1.0, // Optional: 0.0 for top, 0.5 for center, 1.0 for bottom
               );
             }
           }

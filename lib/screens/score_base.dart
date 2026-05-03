@@ -207,58 +207,13 @@ class ScoreBase extends StatefulWidget {
 }
 
 
-class _ScoreBaseState extends State<ScoreBase> with WidgetsBindingObserver {
+class _ScoreBaseState extends State<ScoreBase> {
   DocumentSnapshot<Object?>? _activeLadderDoc;
   String _dateStr = '';
   String _scoreDocStr = '';
   late DocumentSnapshot<Object?> _scoreDoc;
   bool? _scoresConfirmed;
-  @override
-  void initState() {
-    super.initState();
-    // Register the observer
-    WidgetsBinding.instance.addObserver(this);
-  }
 
-  @override
-  void dispose() {
-    // Unregister the observer
-    WidgetsBinding.instance.removeObserver(this);
-    super.dispose();
-  }
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) { // <--- ADD THIS METHOD
-    super.didChangeAppLifecycleState(state);
-    if (kDebugMode) {
-      print("ScoreBase: AppLifecycleState changed to: $state");
-    }
-    switch (state) {
-      case AppLifecycleState.resumed:
-        if (kDebugMode) {
-          print("ScoreBase: App is resumed. Triggering setState.");
-        }
-        // Example: Update state or trigger a data refresh
-        // This setState will cause _ScoreBaseState's build method to run again.
-        if (mounted) {
-          setState(() {
-
-          });
-        }
-        break;
-      case AppLifecycleState.inactive:
-      // Handle inactive state
-        break;
-      case AppLifecycleState.paused:
-      // Handle paused state
-        break;
-      case AppLifecycleState.detached:
-      // Handle detached state
-        break;
-      case AppLifecycleState.hidden:
-      // Handle hidden state
-        break;
-    }
-  }
   @override
   Widget build(BuildContext context) {
     try{
