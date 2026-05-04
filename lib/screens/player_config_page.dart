@@ -445,16 +445,15 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
       DocumentReference docRef = firestore.collection('Ladder').doc(activeLadderId).collection('Players').doc(doc.id);
       playerRef.add(docRef);
     }
-    DocumentReference ladderRef = firestore.collection('Ladder').doc(activeLadderId);
+
     DocumentReference globalUserRef = firestore.collection('Users').doc(playerId);
 
     try {
       firestore.runTransaction((transaction) async {
-        var ladderDoc = await ladderRef.get();
+
         var globalUserDoc = await globalUserRef.get();
 
-        List<String> oldAdmins = ladderDoc.get('Admins').split(',');
-        List<String> ladders = globalUserDoc.get('Ladders').split(',');
+
         String lastRanks = '';
         try {
           lastRanks = globalUserDoc.get('LastRanks');
@@ -480,23 +479,30 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
         // print('deletePlayer deleting from Ladder $activeLadderId the Players $playerId');
         transaction.delete(firestore.collection('Ladder').doc(activeLadderId).collection('Players').doc(playerId));
 
-        if (!oldAdmins.contains(playerId)) {
-          // we deleted the player, and it is not an admin on this ladder so we can remove it
-          String newLadders = "";
-          for (var lad in ladders) {
-            if (lad != activeLadderId) {
-              if (newLadders.isEmpty) {
-                newLadders = lad;
-              } else {
-                newLadders = '$newLadders,$lad';
-              }
-            }
-          }
-          // print('delete user, removing $activeLadderId from $ladders now "$newLadders"');
-          transaction.update(firestore.collection('Users').doc(playerId), {
-            'Ladders': newLadders,
-          });
-        }
+        // DocumentReference ladderRef = firestore.collection('Ladder').doc(activeLadderId);
+        // var ladderDoc = await ladderRef.get();
+        // List<String> oldAdmins = ladderDoc.get('Admins').split(',');
+        // List<String> ladders = globalUserDoc.get('Ladders').split(',');
+        // there is no real harm in leaving them with access to a ladder that they were in.
+        // it is fairly complicated to figure out if they should be removed or not
+        // but the super admin can always rebuild the list on a regular basis
+        // if (!oldAdmins.contains(playerId)) {
+        //   // we deleted the player, and it is not an admin on this ladder so we can remove it
+        //   String newLadders = "";
+        //   for (var lad in ladders) {
+        //     if (lad != activeLadderId) {
+        //       if (newLadders.isEmpty) {
+        //         newLadders = lad;
+        //       } else {
+        //         newLadders = '$newLadders,$lad';
+        //       }
+        //     }
+        //   }
+        //   // print('delete user, removing $activeLadderId from $ladders now "$newLadders"');
+        //   transaction.update(firestore.collection('Users').doc(playerId), {
+        //     'Ladders': newLadders,
+        //   });
+        // }
         // print('deletePlayer: $newRank');
         transaction.update(firestore.collection('Users').doc(playerId), {
           'LastRanks': '$lastRanks${lastRanks.isEmpty ? "" : "|"}$activeLadderId:$newRank',
