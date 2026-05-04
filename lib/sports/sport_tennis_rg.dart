@@ -846,6 +846,7 @@ Future<void> sportTennisRGPrepareForScoreEntry(
         'TotalScore': 0,
         'MatchScores': '',
         'StartingOrder': 0,
+        'AssignedCourt': 0,
       });
     }
 
@@ -878,6 +879,7 @@ Future<void> sportTennisRGPrepareForScoreEntry(
             ladderRef.collection('Players').doc(playerOnCourt.id);
         transaction.update(playerRef, {
           'StartingOrder': j + 1,
+          'AssignedCourt': court + 1,
         });
       }
 
@@ -1178,9 +1180,9 @@ class _SportTennisRGState extends State<SportTennisRG> {
                 padding: const EdgeInsets.all(8),
                 itemCount: courtAssignments.playersOnEachCourt.length + 1,
                 itemBuilder: (BuildContext context, int row) {
-                  int playerNum = row - 1;
+                  int courtNum = row - 1;
                   Color courtColor = courtColors[0];
-                  courtColor = courtColors[playerNum % courtColors.length];
+                  courtColor = courtColors[courtNum % courtColors.length];
 
                   if (row == 0) {
                     return InkWell(
@@ -1203,7 +1205,7 @@ class _SportTennisRGState extends State<SportTennisRG> {
                   }
 
 
-                  return courtTile(courtAssignments, playerNum, courtColor,
+                  return courtTile(courtAssignments, courtNum, courtColor,
                       _players, _movement!, context);
                 }),
           );

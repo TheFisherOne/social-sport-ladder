@@ -502,6 +502,19 @@ class _HelperFunctionDialog extends StatelessWidget {
         const SizedBox(
           height: 8,
         ),
+        TextButton.icon(
+              icon: Icon( Icons.check_box_outline_blank),
+              onPressed: () {
+                showScoresWhenFrozen = !showScoresWhenFrozen;
+                if (playerHomeInstance != null) {
+                  playerHomeInstance.refresh();
+                }
+                Navigator.pop(context);
+              },
+              label: Text(showScoresWhenFrozen?'Show player List when frozen':'Show Scores When Frozen')),
+        const SizedBox(
+          height: 8,
+        ),
         if (activeUser.helper && !adminFunctionInProgress)
           TextButton.icon(
               icon: Icon(Icons.done),

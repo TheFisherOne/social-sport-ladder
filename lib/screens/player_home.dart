@@ -29,6 +29,8 @@ dynamic playerHomeInstance;
 QueryDocumentSnapshot? clickedOnPlayerDoc;
 QueryDocumentSnapshot<Object?>? loggedInPlayerDoc;
 bool headerSummarySelected = false;
+bool showScoresWhenFrozen = true;
+int activeUserCourt = -1;
 
 Widget headerSummary(
     List<QueryDocumentSnapshot>? players, List<PlayerList> assign) {
@@ -334,7 +336,8 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
                                   activeUser.helper) &&
                               ((checkBoxIcon == Icons.check_box) ||
                                   (checkBoxIcon ==
-                                      Icons.check_box_outline_blank)))
+                                      Icons.check_box_outline_blank))) &&
+                          (activeLadderDoc!.get("FreezeCheckIns")!=true)
                           ? () async {
                               bool newPresent = false;
                               if (checkBoxIcon ==
@@ -530,7 +533,7 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
             final bool isBottomVisible =
                 (widgetOffsetInScroll.dy + widgetHeight) <= scrollViewHeight;
 
-            print('buildPlayerLine: isTopVisible: $isTopVisible isBottomVisible: $isBottomVisible');
+            // print('buildPlayerLine: isTopVisible: $isTopVisible isBottomVisible: $isBottomVisible');
             if (!isTopVisible || !isBottomVisible) {
               Scrollable.ensureVisible(
                 context,
@@ -577,6 +580,21 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
     } else {
       icon = Icon(Icons.check_box_outline_blank, color: Colors.black,size: iconSize);
     }
+
+    bool isFrozen = false;
+    try {
+      isFrozen = activeLadderDoc!.get('FreezeCheckIns') as bool? ?? false;
+    } catch (e) {
+      isFrozen = false;
+    }
+
+    int assignedCourt = 0;
+    try {
+      assignedCourt = player.get('AssignedCourt') as int? ?? 0;
+    } catch (e) {
+      assignedCourt = 0;
+    }
+
     int weeksRegistered = -1;
     try {
       weeksRegistered = player.get('WeeksRegistered');
@@ -631,7 +649,23 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
             });
           },
           child: Row(mainAxisAlignment: MainAxisAlignment.start, children: [
-            if (_clickedOnRank == row)
+            if (isFrozen && (assignedCourt>0))
+              SizedBox(
+                width: iconSize,
+                child: Center(
+                  child: Text(
+                    'C$assignedCourt',
+                    style: TextStyle(
+                      fontSize: iconSize * 0.7,
+                      fontWeight: FontWeight.bold,
+                      // technically the color should be red if the logged in player is on this court
+                      // if you want it to match the other display method
+                      backgroundColor: (assignedCourt == activeUserCourt)?Colors.red:courtColors[assignedCourt-1 % courtColors.length],
+                    ),
+                  ),
+                ),
+              )
+            else if ((_clickedOnRank == row) || (assignedCourt==0))
               SizedBox(width: iconSize)
             else
               icon,
@@ -734,11 +768,16 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
           if (activeLadderDoc!.get('FreezeCheckIns')) {
             waitingForFreezeCheckins = false;
             // developer.log('${DateTime.now()} player_home StreamBuilder FROZEN');
-            return SportTennisRG();
+            if (showScoresWhenFrozen) {
+              return SportTennisRG();
+            }
           } else {
             allScoresConfirmed = false;
           }
-
+          activeUserCourt = -1;
+          if (!activeLadderDoc!.get("FreezeCheckIns")){
+            showScoresWhenFrozen = true;
+          }
           return StreamBuilder<QuerySnapshot>(
               stream: firestore
                   .collection('Ladder')
@@ -846,6 +885,12 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
                     determineMovement(activeLadderDoc!, _players);
                 CourtAssignmentsRgStandard courtAssignments =
                     CourtAssignmentsRgStandard(_players!);
+
+                for (QueryDocumentSnapshot pl in _players!){
+                  if (pl.id == activeUser.id) {
+                    activeUserCourt = pl.get('AssignedCourt') as int? ?? 0;
+                  }
+                }
 
                 if (_clickedOnRank <= 0) {
                   _loc?.stopTimer();
