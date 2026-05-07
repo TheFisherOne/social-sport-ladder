@@ -503,7 +503,7 @@ class _HelperFunctionDialog extends StatelessWidget {
           height: 8,
         ),
         TextButton.icon(
-              icon: Icon( Icons.check_box_outline_blank),
+              icon: Icon( Icons.list),
               onPressed: () {
                 showScoresWhenFrozen = !showScoresWhenFrozen;
                 if (playerHomeInstance != null) {

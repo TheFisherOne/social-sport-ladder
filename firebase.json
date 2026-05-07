@@ -21,7 +21,7 @@
         "headers": [
           {
             "key": "Cache-Control",
-            "value": "max-age=108000, must-revalidate"
+            "value": "no-cache"
           }
         ]
       },
@@ -30,7 +30,7 @@
         "headers": [
           {
             "key": "Cache-Control",
-            "value": "max-age=108000, must-revalidate"
+            "value": "no-cache"
           }
         ]
       },

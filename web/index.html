@@ -66,15 +66,33 @@
 
 <script>
     // This function can be called from your application when you detect a new version is available.
-    function forceUpgrade() {
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(function(registrations) {
-                for(let registration of registrations) {
-                    registration.unregister();
-                }
-            });
+    async function forceUpgrade() {
+        const reloadUrl = new URL(window.location.href);
+        reloadUrl.searchParams.set('upgrade', Date.now().toString());
+
+        // Fallback: never get stuck waiting for SW/cache APIs.
+        const forceNavigateTimer = setTimeout(() => {
+            window.location.replace(reloadUrl.toString());
+        }, 2500);
+
+        try {
+            if ('serviceWorker' in navigator) {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                await Promise.allSettled(
+                    registrations.map((registration) => registration.unregister())
+                );
+            }
+
+            if ('caches' in window) {
+                const cacheKeys = await caches.keys();
+                await Promise.allSettled(cacheKeys.map((key) => caches.delete(key)));
+            }
+        } catch (err) {
+            console.error('forceUpgrade cleanup failed:', err);
+        } finally {
+            clearTimeout(forceNavigateTimer);
+            window.location.replace(reloadUrl.toString());
         }
-        window.location.reload(true);
     }
 
     // --- Dead Man's Switch Logic ---
@@ -118,15 +136,7 @@
         startRecoveryTimer(30000); // 30 seconds
     });
 
-    // --- Service Worker and Initial Timer ---
-    const isLocalHost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
-    if ('serviceWorker' in navigator && !isLocalHost) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js?v=135')
-          .then(reg => console.log('Service Worker registered successfully', reg))
-          .catch(err => console.error('Service Worker registration failed:', err));
-      });
-    }
+    // Service worker registration is intentionally disabled to avoid stale client updates.
 
     // Start the first timer when the page loads.
     startRecoveryTimer(30000); // 30 seconds

@@ -482,9 +482,10 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
             backgroundColor: Colors.brown[50],
             appBar: AppBar(
               title: Text(
-                'V$softwareVersion\n$loggedInUser', style: smallStyle,
-                // softWrap: true,
-                //     overflow: TextOverflow.visible,
+                'V$softwareVersion\n$loggedInUser',
+                style: smallStyle,
+                // maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
               toolbarHeight: appFontSize * 2.5,
               backgroundColor: Colors.brown[400],

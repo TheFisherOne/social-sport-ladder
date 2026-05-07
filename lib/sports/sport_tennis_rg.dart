@@ -1124,10 +1124,11 @@ class _SportTennisRGState extends State<SportTennisRG> {
             elevation: 0.0,
             automaticallyImplyLeading: true,
             actions: [
-              (activeUser.mayGetHelperIcon)
-                  ? helperIcon(
+              // (activeUser.mayGetHelperIcon)?
+              helperIcon(
                       context, activeLadderId, _movement, courtAssignments)
-                  : SizedBox(width: 1),
+                  // : SizedBox(width: 1),
+              ,
               SizedBox(width: 20),
             ],
           );

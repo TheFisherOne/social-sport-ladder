@@ -665,7 +665,7 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
                   ),
                 ),
               )
-            else if ((_clickedOnRank == row) || (assignedCourt==0))
+            else if ((_clickedOnRank == row) || ((assignedCourt==0) && isFrozen))
               SizedBox(width: iconSize)
             else
               icon,
@@ -888,7 +888,12 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
 
                 for (QueryDocumentSnapshot pl in _players!){
                   if (pl.id == activeUser.id) {
+                    activeUserCourt = 0;
+                    try{
                     activeUserCourt = pl.get('AssignedCourt') as int? ?? 0;
+                    } catch (e){
+                      activeUserCourt = 0;
+                    }
                   }
                 }
 
@@ -981,10 +986,11 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
                           ),
                         ),
                       const SizedBox(width: 10),
-                      (activeUser.mayGetHelperIcon)
-                          ? helperIcon(context, activeLadderId, listOfPlayers,
+                      // (activeUser.mayGetHelperIcon) ?
+                      helperIcon(context, activeLadderId, listOfPlayers,
                               courtAssignments)
-                          : SizedBox(width: 1),
+                          // : SizedBox(width: 1),
+                      ,
                       SizedBox(width: 20),
                     ],
                   ),
