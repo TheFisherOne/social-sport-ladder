@@ -697,7 +697,7 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
             ),
           ]),
         ),
-        // if ((_clickedOnRank == row) && ((player.id == loggedInUser) || activeLadderDoc!.get('Admins').split(",').contains(loggedInUser) || player.get('Helper') || loggedInUserIsSuper))
+        // if ((_clickedOnRank == row) && ((player.id == loggedInUser) || activeLadderDoc!.get('Admins').split(",").contains(loggedInUser) || player.get('Helper') || loggedInUserIsSuper))
         (_clickedOnRank == row)
             ? unfrozenSubLine(player)
             : SizedBox(
@@ -972,11 +972,54 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
                               developer.log(
                                   '${DateTime.now()} FreezeCheckIns pressed',
                                   name: 'stage1');
-                              await prepareForScoreEntry(
-                                  activeLadderDoc!, _players);
-                              developer.log(
-                                  '${DateTime.now()} FreezeCheckIns pressed',
-                                  name: 'after prepareForScoreEntry');
+                              try {
+                                await prepareForScoreEntry(
+                                    activeLadderDoc!, _players);
+                                developer.log(
+                                    '${DateTime.now()} FreezeCheckIns pressed',
+                                    name: 'after prepareForScoreEntry');
+                              } catch (e) {
+                                final String errorText =
+                                    e.toString().replaceFirst('Exception: ', '');
+
+                                developer.log(
+                                    'Error during prepareForScoreEntry: $errorText',
+                                    name: 'error');
+
+                                // Record known freeze-preparation failures in Audit for phone-only debugging.
+                                if (errorText.startsWith('Court Assignment Error:')) {
+                                  writeAudit(
+                                    user: activeUser.id,
+                                    documentName: 'LadderConfig',
+                                    action: 'Set FreezeCheckIns Failed',
+                                    newValue: errorText,
+                                    oldValue: (activeLadderDoc?.get('FreezeCheckIns') ?? false)
+                                        .toString(),
+                                  );
+                                }
+
+                                if (context.mounted) {
+                                  showDialog(
+                                    context: context,
+                                    builder: (BuildContext ctx) => AlertDialog(
+                                      title: const Text('Unable to Freeze Check-Ins'),
+                                      content: Text(errorText),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(ctx),
+                                          child: const Text('OK'),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }
+                              } finally {
+                                if (mounted) {
+                                  setState(() {
+                                    waitingForFreezeCheckins = false;
+                                  });
+                                }
+                              }
                               // showFrozenLadderPage(context, activeLadderDoc!, true);
                             },
                             enableFeedback: true,

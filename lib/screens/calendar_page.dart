@@ -164,9 +164,10 @@ class EventsList {
       }
     });
     final DateFormat formatter = DateFormat('yyyy.MM.dd');
-    // Get today's date as a string in the same format (yyyy.MM.dd)
-    String todayFormatted = formatter.format(DateTime.now());
-    DateTime startOfToday = formatter.parse(todayFormatted);
+    // Use ladder timezone for date pruning so "today" matches ladder rules.
+    final TZDateTime ladderNow = getDateTimeNow();
+    final DateTime startOfToday =
+        DateTime(ladderNow.year, ladderNow.month, ladderNow.day);
 
     // Remove all dates before today (keep today and future)
     working.removeWhere((entry) {
@@ -326,8 +327,8 @@ class CalendarPageState extends State<CalendarPage> {
     // if someone brings up this page and leaves it up then
     // it is dangerous to save their work. In particular
     // the next day of play might be in the past.
-    int minutesAgo = _initTime.difference(DateTime.now()).inMinutes;
-    if (minutesAgo < 60) {
+    final int sessionAgeMinutes = DateTime.now().difference(_initTime).inMinutes;
+    if ((sessionAgeMinutes >= 0) && (sessionAgeMinutes < 15)) {
       Map<Object, Object?> m1 = _playOnEvents.getDBUpdateMap();
       // print('_playOnEvents: $m1');
 
@@ -555,8 +556,11 @@ class CalendarPageState extends State<CalendarPage> {
       _focusedDay = DateTime(focusedDay.year, focusedDay.month, focusedDay.day);
     });
     if (typeOfCalendarEvent == EventTypes.playOn) {
-      // print('_onDaySelected: $selectedDay < ${DateTime.now()}');
-      if (_selectedDay!.compareTo(DateTime.now()) < 0) {
+      // Compare date-only values in ladder timezone so "today" is allowed.
+      final TZDateTime ladderNow = getDateTimeNow();
+      final DateTime ladderToday =
+          DateTime(ladderNow.year, ladderNow.month, ladderNow.day);
+      if (_selectedDay!.isBefore(ladderToday)) {
         return;
       }
       if (!mapContainsDateKey(

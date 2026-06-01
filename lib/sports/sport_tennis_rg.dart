@@ -16,6 +16,16 @@ import '../screens/score_base.dart';
 dynamic sportTennisRgInstance;
 bool allScoresConfirmed = false;
 
+List<String> rotateCourtNames(List<String> courtNames, int shiftLeft) {
+  if (courtNames.isEmpty) return courtNames;
+  final int normalizedShift = shiftLeft % courtNames.length;
+  if (normalizedShift == 0) return courtNames.toList();
+  return [
+    ...courtNames.sublist(normalizedShift),
+    ...courtNames.sublist(0, normalizedShift),
+  ];
+}
+
 class PlayerList {
   static String errorString = '';
   static String nextPlayString = '';
@@ -535,7 +545,7 @@ class CourtAssignmentsRgStandard {
       courtsOfFive = 1;
       courtsOfFour = 0;
       numberOnCourt = List.filled(2, 5);
-      numberOnCourt[activeLadderDoc!.get('RandomCourtOf5') % 2] = 6;
+      numberOnCourt[(activeLadderDoc!.get('RandomCourtOf5') % 1000) % 2] = 6;
       if (numberOnCourt[0] == 5) {
         assignedCourtNumber = [1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2];
       } else {
@@ -558,7 +568,7 @@ class CourtAssignmentsRgStandard {
       courtsOfFive = 2;
       courtsOfFour = 0;
       numberOnCourt = List.filled(3, 5);
-      numberOnCourt[activeLadderDoc!.get('RandomCourtOf5') % 3] = 6;
+      numberOnCourt[(activeLadderDoc!.get('RandomCourtOf5') % 1000) % 3] = 6;
       if (numberOnCourt[0] == 6) {
         assignedCourtNumber = [
           1,
@@ -715,39 +725,59 @@ class CourtAssignmentsRgStandard {
     // now shuffle the courtNames around to each court that is playing
     shuffledCourtNames = usedCourtNames.toList();
     if (getSportDescriptor(0) == 'generic') {
-      int courtCount = getSportDescriptorInt('alternate');
-      if (courtCount > 0) {
-        List<String> newNames = List.empty(growable: true);
-        for (int i = 0; i < courtCount; i++) {
-          if ((i + courtCount) < usedCourtNames.length) {
-            newNames.add(usedCourtNames[i + courtCount]);
+      if (getSportDescriptorString('randomShuffle') == 'true') {
+        // Random weekly shuffle with optional priority court names for courts-of-5.
+        // Descriptor: generic|randomShuffle=true|priorityCourtsOf5=8,1,10
+        // Priority names that are not present in usedCourtNames are silently skipped.
+        List<int> numbers =
+            List.generate(usedCourtNames.length, (index) => index);
+        numbers.shuffle(Random(activeLadderDoc!.get('RandomCourtOf5') % 1000));
+        List<String> priorityCourtsOf5 = [];
+        final String priorityStr =
+            getSportDescriptorString('priorityCourtsOf5');
+        if (priorityStr.isNotEmpty) {
+          priorityCourtsOf5 = priorityStr.split(',');
+        }
+        List<String> remainingNames = usedCourtNames.toList();
+        List<String> newNames = List.filled(usedCourtNames.length, '');
+        // First pass: assign priority names to courts-of-5.
+        // If a priority name is not in the available court list, skip it.
+        for (int i = 0; i < totalCourts; i++) {
+          int courtNum = numbers[i];
+          if (numberOnCourt[courtNum] == 5) {
+            while (priorityCourtsOf5.isNotEmpty) {
+              final String candidate = priorityCourtsOf5.removeAt(0);
+              if (remainingNames.remove(candidate)) {
+                newNames[courtNum] = candidate;
+                break; // assigned — move on to next court
+              }
+              // candidate not available in this ladder's courts; try next
+            }
           }
         }
-        for (int i = 0; i < (usedCourtNames.length - courtCount); i++) {
-          newNames.add(usedCourtNames[i]);
+        // Second pass: fill remaining courts with remaining names
+        for (int i = 0; i < totalCourts; i++) {
+          int courtNum = numbers[i];
+          if (newNames[courtNum].isNotEmpty) continue;
+          newNames[courtNum] = remainingNames.removeAt(0);
         }
         shuffledCourtNames = newNames;
+      } else if (activeLadderDoc!.get('RandomCourtOf5') > 1000) {
+        int courtCount = getSportDescriptorInt('alternate');
+        if (courtCount > 0) {
+          shuffledCourtNames = rotateCourtNames(usedCourtNames, courtCount);
+        }
       }
     } else if (getSportDescriptor(1) == 'rg_mens') {
       if (activeLadderDoc!.get('RandomCourtOf5') > 1000) {
-        int numToMove = usedCourtNames.length - 3;
-        if (numToMove > 0) {
-          List<String> newNames = List.empty(growable: true);
-          for (int i = 0; i < numToMove; i++) {
-            newNames.add(usedCourtNames[i + 3]);
-          }
-          for (int i = 0; i < (usedCourtNames.length - numToMove); i++) {
-            newNames.add(usedCourtNames[i]);
-          }
-          shuffledCourtNames = newNames;
-        }
+        shuffledCourtNames = rotateCourtNames(usedCourtNames, 3);
       }
     } else if (getSportDescriptor(1) == 'rg_womens') {
       // print('before: $shuffledCourtNames');
       // var saveList = shuffledCourtNames.toList();
       List<int> numbers =
           List.generate(shuffledCourtNames.length, (index) => index);
-      numbers.shuffle(Random(activeLadderDoc!.get('RandomCourtOf5')));
+      numbers.shuffle(Random(activeLadderDoc!.get('RandomCourtOf5') % 1000 ));
       // print('random $numbers');
       List<String> newNames = List.filled(shuffledCourtNames.length, '');
       List<String> priorityCourtsOf5 = ['8', '1', '10'];
@@ -795,6 +825,13 @@ Future<void> sportTennisRGPrepareForScoreEntry(
 
   CourtAssignmentsRgStandard courtAssignments =
       CourtAssignmentsRgStandard(players);
+  // courtAssignments.errorString = 'TEST Exception for testing error handling';
+
+  // Check for court assignment errors BEFORE starting transaction
+  if (courtAssignments.errorString.isNotEmpty) {
+    throw Exception("Court Assignment Error: ${courtAssignments.errorString}");
+  }
+
   String currentDate = DateFormat('yyyy.MM.dd').format(getDateTimeNow());
 
   await firestore.runTransaction((transaction) async {
@@ -904,21 +941,18 @@ Future<void> sportTennisRGPrepareForScoreEntry(
       oldValue: oldFreezeCheckInsValue,
     );
 
-    transaction.update(ladderRef, {
-      'FreezeCheckIns': true,
-      'FrozenDate': dateStr,
-    });
-  }).then((_) {
-    if (kDebugMode) {
-      //print("Score entry preparation transaction completed successfully.");
-    }
-  }).catchError((error) {
-    if (kDebugMode) {
-      print("Failed to prepare scores for entry: $error");
-    }
-    // Handle the error appropriately, e.g., show a message to the user
-  });
-}
+     transaction.update(ladderRef, {
+       'FreezeCheckIns': true,
+       'FrozenDate': dateStr,
+     });
+   }).catchError((error) {
+     if (kDebugMode) {
+       print("Failed to prepare scores for entry: $error");
+     }
+     // Re-throw the error so it propagates to the caller and can be displayed to the user
+     throw error;
+   });
+ }
 
 
 List<Color> courtColors = [

@@ -140,7 +140,7 @@ String getSportDescriptor(int index){
 }
 bool sportDescriptorIncludes(String descriptor){
   List<String> tmpList = activeLadderDoc!.get('SportDescriptor').split('|');
-  if (tmpList.length <= 2) return false;
+  if (tmpList.length < 2) return false;
   tmpList.removeAt(0);
   tmpList.removeAt(0);// remove the sport, and the 2nd parameter which is clarifier for sport to just leave the options
   if (tmpList.contains(descriptor)) return true;
