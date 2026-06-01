@@ -829,7 +829,8 @@ Future<void> sportTennisRGPrepareForScoreEntry(
 
   // Check for court assignment errors BEFORE starting transaction
   if (courtAssignments.errorString.isNotEmpty) {
-    throw Exception("Court Assignment Error: ${courtAssignments.errorString}");
+    return;
+    // throw Exception("Court Assignment Error: ${courtAssignments.errorString}");
   }
 
   String currentDate = DateFormat('yyyy.MM.dd').format(getDateTimeNow());
