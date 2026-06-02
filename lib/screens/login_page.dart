@@ -23,7 +23,7 @@ class _LoginPageState extends State<LoginPage> {
   bool _appReadySent = false;
   String _errorMessage = '';
   late final GoogleSignIn _googleSignIn = GoogleSignIn(
-    clientId: kIsWeb ? googleClientId : null,
+    clientId: kIsWeb ? xorString(encodedGoogleClientId, keyString) : null,
   );
   @override
   void dispose() {

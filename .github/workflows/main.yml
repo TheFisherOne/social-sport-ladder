@@ -16,13 +16,13 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.35.x'
+          # Track the latest stable Flutter automatically.
           channel: 'stable'
 
       # Step 3: Install dependencies
       - name: Install dependencies
         run: flutter pub get
-        
+
       # setup the firebase-setup2.dart file
       - name: generate firebase_setup2.dart
         env:
