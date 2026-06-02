@@ -21,7 +21,12 @@ jobs:
 
       # Step 3: Install dependencies
       - name: Install dependencies
-        run: flutter pub get
+        run: flutter pub get --enforce-lockfile
+
+      - name: Print tool and auth package versions
+        run: |
+          flutter --version
+          flutter pub deps --style=compact | grep -- "google_sign_in " || true
 
       # setup the firebase-setup2.dart file
       - name: generate firebase_setup2.dart

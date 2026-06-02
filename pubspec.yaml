@@ -32,7 +32,7 @@ dependencies:
   firebase_core:
   firebase_auth:
   firebase_storage:
-  google_sign_in:
+  google_sign_in: ^6.3.0
   cloud_firestore:
   geolocator:
 #  sign_in_button:

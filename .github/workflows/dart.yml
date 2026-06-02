@@ -31,7 +31,12 @@ jobs:
           channel: 'stable'
 
       - name: Install dependencies
-        run: flutter pub get
+        run: flutter pub get --enforce-lockfile
+
+      - name: Print tool and auth package versions
+        run: |
+          flutter --version
+          flutter pub deps --style=compact | grep -- "google_sign_in " || true
 
       - name: generate firebase_setup2.dart
         env:
@@ -62,7 +67,7 @@ jobs:
 
       # Consider passing '--fatal-infos' for slightly stricter analysis.
       - name: Analyze project source
-        run: flutter analyze
+        run: flutter analyze --fatal-warnings --fatal-infos
 
       # Your project will need to have tests in test/ and a dependency on
       # package:test for this step to succeed. Note that Flutter projects will
