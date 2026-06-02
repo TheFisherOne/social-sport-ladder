@@ -1,14 +1,12 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../Utilities/helper_icon.dart';
 import '../Utilities/html_none.dart'
     if (dart.library.html) '../Utilities/html_only.dart';
 import '../Utilities/user_stream.dart';
-import '../constants/firebase_setup2.dart';
 import '../main.dart';
+
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
   @override
@@ -22,9 +20,6 @@ class _LoginPageState extends State<LoginPage> {
   bool _obscurePassword = true;
   bool _appReadySent = false;
   String _errorMessage = '';
-  late final GoogleSignIn _googleSignIn = GoogleSignIn(
-    clientId: kIsWeb ? xorString(encodedGoogleClientId, keyString) : null,
-  );
   @override
   void dispose() {
     _emailController.dispose();
@@ -110,16 +105,8 @@ class _LoginPageState extends State<LoginPage> {
   }
   Future<void> _signInWithGoogle() async {
     await _runAuthAction(() async {
-      final GoogleSignInAccount? account = await _googleSignIn.signIn();
-      if (account == null) {
-        return;
-      }
-      final GoogleSignInAuthentication auth = await account.authentication;
-      final OAuthCredential credential = GoogleAuthProvider.credential(
-        accessToken: auth.accessToken,
-        idToken: auth.idToken,
-      );
-      await FirebaseAuth.instance.signInWithCredential(credential);
+      final GoogleAuthProvider googleProvider = GoogleAuthProvider();
+      await FirebaseAuth.instance.signInWithPopup(googleProvider);
     });
   }
   Widget _buildLoginForm() {
