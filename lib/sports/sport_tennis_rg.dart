@@ -1116,7 +1116,7 @@ class _SportTennisRGState extends State<SportTennisRG> {
     activeLadderBackgroundColor = stringToColor(colorString) ?? Colors.pink;
     _dateStr = activeLadderDoc!.get('FrozenDate');
 
-    print('SportTennisRGPage build');
+    // print('SportTennisRGPage build');
     return StreamBuilder<QuerySnapshot>(
         stream: firestore
             .collection('Ladder')

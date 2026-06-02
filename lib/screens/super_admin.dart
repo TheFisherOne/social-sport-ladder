@@ -3,6 +3,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:social_sport_ladder/constants/constants.dart';
+import 'package:social_sport_ladder/screens/app_users.dart';
 import '../Utilities/my_text_field.dart';
 import '../main.dart';
 
@@ -318,6 +319,21 @@ class _SuperAdminState extends State<SuperAdmin> {
             body: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                TextButton(
+                  style: ButtonStyle(
+                    backgroundColor:
+                        WidgetStatePropertyAll(Colors.green.shade600),
+                    foregroundColor: const WidgetStatePropertyAll(Colors.white),
+                  ),
+                  onPressed: () {
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const AppUsersPage()));
+                  },
+                  child: Text('App Users', style: nameStyle),
+                ),
+                const SizedBox(height: 8),
                 TextButton(
                   style: ButtonStyle(
                     backgroundColor: WidgetStatePropertyAll(waitingForRebuild

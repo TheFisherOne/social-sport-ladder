@@ -288,11 +288,9 @@ class CalendarPageState extends State<CalendarPage> {
     return kEvents[day] ?? [];
   }
 
-  late DateTime _initTime;
   @override
   void initState() {
     super.initState();
-    _initTime = DateTime.now();
     _selectedDay = _focusedDay;
     addedPlayEvents = {};
 
@@ -323,58 +321,73 @@ class CalendarPageState extends State<CalendarPage> {
   @override
   void dispose() {
     _selectedEvents.dispose();
-
-    // if someone brings up this page and leaves it up then
-    // it is dangerous to save their work. In particular
-    // the next day of play might be in the past.
-    final int sessionAgeMinutes = DateTime.now().difference(_initTime).inMinutes;
-    if ((sessionAgeMinutes >= 0) && (sessionAgeMinutes < 15)) {
-      Map<Object, Object?> m1 = _playOnEvents.getDBUpdateMap();
-      // print('_playOnEvents: $m1');
-
-      Map<Object, Object?> m2 = _specialEvents.getDBUpdateMap();
-      // print('_specialLEvents: $m2');
-
-      m1.addAll(m2);
-      // print('_playOnEvents2: $m1');
-
-      Map<Object, Object?> m3 = _awayEvents.getDBUpdateMap();
-      // print('_awayEvents: $m3');
-
-      if (typeOfCalendarEvent == EventTypes.playOn) {
-        String newValue = m1['DaysOfPlay'].toString();
-        String oldValue = activeLadderDoc!.get('DaysOfPlay');
-        if (newValue != oldValue) {
-          writeAudit(
-              user: loggedInUser,
-              documentName: activeLadderId,
-              action: 'Set DaysOfPlay',
-              newValue: newValue,
-              oldValue: oldValue);
-          firestore.collection('Ladder').doc(activeLadderId).update(m1);
-        }
-      }
-      if (typeOfCalendarEvent == EventTypes.standard) {
-        String newValue = m3['DaysAway'].toString();
-        String oldValue = _playerDoc!.get('DaysAway');
-        if (newValue != oldValue) {
-          writeAudit(
-              user: loggedInUser,
-              documentName: _playerDoc!.id,
-              action: 'Set DaysAway',
-              newValue: newValue,
-              oldValue: oldValue);
-          firestore
-              .collection('Ladder')
-              .doc(activeLadderId)
-              .collection('Players')
-              .doc(_playerDoc!.id)
-              .update(m3);
-        }
-      }
-    }
     currentCalendarPage = null;
     super.dispose();
+  }
+
+  Future<void> _saveDaysAwayNow() async {
+    if ((typeOfCalendarEvent != EventTypes.standard) || (_playerDoc == null)) {
+      return;
+    }
+
+    final Map<Object, Object?> updateMap = _awayEvents.getDBUpdateMap();
+    final String newValue = updateMap['DaysAway'].toString();
+    final String oldValue = _playerDoc!.get('DaysAway');
+    if (newValue == oldValue) {
+      return;
+    }
+
+    writeAudit(
+        user: loggedInUser,
+        documentName: _playerDoc!.id,
+        action: 'Set DaysAway',
+        newValue: newValue,
+        oldValue: oldValue);
+    await firestore
+        .collection('Ladder')
+        .doc(activeLadderId)
+        .collection('Players')
+        .doc(_playerDoc!.id)
+        .update(updateMap);
+  }
+
+  Future<void> _saveDaysOfPlayNow() async {
+    if (typeOfCalendarEvent != EventTypes.playOn) {
+      return;
+    }
+
+    final Map<Object, Object?> m1 = _playOnEvents.getDBUpdateMap();
+    final Map<Object, Object?> m2 = _specialEvents.getDBUpdateMap();
+    m1.addAll(m2);
+
+    final String newDaysOfPlay = m1['DaysOfPlay'].toString();
+    final String oldDaysOfPlay = activeLadderDoc!.get('DaysOfPlay');
+    final String newDaysSpecial = m1['DaysSpecial'].toString();
+    final String oldDaysSpecial = activeLadderDoc!.get('DaysSpecial');
+
+    if ((newDaysOfPlay == oldDaysOfPlay) &&
+        (newDaysSpecial == oldDaysSpecial)) {
+      return;
+    }
+
+    if (newDaysOfPlay != oldDaysOfPlay) {
+      writeAudit(
+          user: loggedInUser,
+          documentName: activeLadderId,
+          action: 'Set DaysOfPlay',
+          newValue: newDaysOfPlay,
+          oldValue: oldDaysOfPlay);
+    }
+    if (newDaysSpecial != oldDaysSpecial) {
+      writeAudit(
+          user: loggedInUser,
+          documentName: activeLadderId,
+          action: 'Set DaysSpecial',
+          newValue: newDaysSpecial,
+          oldValue: oldDaysSpecial);
+    }
+
+    await firestore.collection('Ladder').doc(activeLadderId).update(m1);
   }
 
   void refresh() {
@@ -457,12 +470,14 @@ class CalendarPageState extends State<CalendarPage> {
             ),
             TextButton(
               child: const Text('OK'),
-              onPressed: () {
+              onPressed: () async {
                 // print(_specialTextFieldController.text);
                 setState(() {
                   _specialEvents.addEvent(
                       _selectedDay!, Event(_specialTextFieldController.text));
                 });
+                await _saveDaysOfPlayNow();
+                if (!context.mounted) return;
                 currentCalendarPage.refresh();
                 Navigator.pop(context);
               },
@@ -503,6 +518,7 @@ class CalendarPageState extends State<CalendarPage> {
                           context: context,
                           initialTime: currentSetting!,
                         );
+                        if (!context.mounted) return;
                         setState(() {
                           dateStr =
                               '${currentSetting!.hour.toString().padLeft(2, '0')}:${currentSetting!.minute.toString().padLeft(2, '0')}';
@@ -527,7 +543,7 @@ class CalendarPageState extends State<CalendarPage> {
                 ),
                 TextButton(
                   child: const Text('OK'),
-                  onPressed: () {
+                  onPressed: () async {
                     _lastPlayOnTime =
                         '${currentSetting!.hour.toString().padLeft(2, '0')}:${currentSetting!.minute.toString().padLeft(2, '0')}';
                     // print('$_lastPlayOnTime ${_playTextFieldController.text}');
@@ -537,6 +553,8 @@ class CalendarPageState extends State<CalendarPage> {
                           Event(
                               '$_lastPlayOnTime ${_playTextFieldController.text}'));
                     });
+                    await _saveDaysOfPlayNow();
+                    if (!context.mounted) return;
                     currentCalendarPage.refresh();
                     Navigator.pop(context);
                   },
@@ -567,6 +585,7 @@ class CalendarPageState extends State<CalendarPage> {
           _playOnEvents.convertToCalendarEvents(), _selectedDay!)) {
         // String eventString = 'play - this is a scheduled day of play';
         _playOnEvents.addEvent(_selectedDay!, Event(_lastPlayOnTime));
+        _saveDaysOfPlayNow();
       } else {
         // print('playOn event already exists so not creating a new one');
         var tmp = _getEventsForDay(_selectedDay!);
@@ -630,7 +649,7 @@ class CalendarPageState extends State<CalendarPage> {
           (!value[index].toString().startsWith('FILE') &&
               (!value[index].toString().startsWith('SCORE'))))
         IconButton(
-            onPressed: () {
+            onPressed: () async {
               if (value[index].toString().startsWith('play') ||
                   value[index].toString().startsWith('AWAY')) {
                 // print('delete button on playOn on $_selectedDay with text:${value[index]}');
@@ -644,6 +663,7 @@ class CalendarPageState extends State<CalendarPage> {
                   _specialEvents.removeEvent(_selectedDay!);
                 });
               }
+              await _saveDaysOfPlayNow();
             },
             icon: const Icon(Icons.delete)),
       if ((typeOfCalendarEvent == EventTypes.playOn) &&
@@ -651,10 +671,11 @@ class CalendarPageState extends State<CalendarPage> {
               (!value[index].toString().startsWith('FILE'))) &&
           (!value[index].toString().startsWith('SCORE')))
         IconButton(
-            onPressed: () {
+            onPressed: () async {
               setState(() {
                 _specialEvents.addEvent(_selectedDay!, Event('NOTE: SPECIAL'));
               });
+              await _saveDaysOfPlayNow();
             },
             icon: const Icon(Icons.star)),
     ]);
@@ -789,17 +810,23 @@ class CalendarPageState extends State<CalendarPage> {
                           clickText =
                               '\nClick to ${value[index].toString().startsWith('play') ? 'Mark as away' : 'change back to playing'}';
                         } else if (!isVacationTimeOk(activeLadderDoc!)) {
-                          final data = _playerDoc!.data() as Map<String, dynamic>?;
-                          cantMakeIt =  data != null && data.containsKey('CantMakeIt') && _playerDoc!.get('CantMakeIt');
-
-                          if (cantMakeIt){
+                          if (value[index].toString().startsWith('AWAY')) {
+                            // Already marked away — CantMakeIt is irrelevant; no further action.
                             clickText =
-                            '\nit is after ${activeLadderDoc!.get('VacationStopTime')}! too late on day of ladder to change AWAY\n'
-                                'but you can Click to CHANGE YOUR MIND and play.';
+                                '\nit is after ${activeLadderDoc!.get('VacationStopTime')}! You are already marked as away.';
                           } else {
-                            clickText =
-                            '\nit is after ${activeLadderDoc!.get('VacationStopTime')}! too late on day of ladder to change AWAY\n'
-                            'but you can Click to tell everyone you can no longer make it.';
+                            final data = _playerDoc!.data() as Map<String, dynamic>?;
+                            cantMakeIt = data != null && data.containsKey('CantMakeIt') && _playerDoc!.get('CantMakeIt');
+
+                            if (cantMakeIt) {
+                              clickText =
+                                  '\nit is after ${activeLadderDoc!.get('VacationStopTime')}! too late on day of ladder to change AWAY\n'
+                                  'but you can Click to CHANGE YOUR MIND and play.';
+                            } else {
+                              clickText =
+                                  '\nit is after ${activeLadderDoc!.get('VacationStopTime')}! too late on day of ladder to change AWAY\n'
+                                  'but you can Click to tell everyone you can no longer make it.';
+                            }
                           }
                         }
                       }
@@ -838,7 +865,7 @@ class CalendarPageState extends State<CalendarPage> {
                                           .toString()
                                           .startsWith('SCORE'))))
                               ? null
-                              : () {
+                              : () async {
                                   // print(
                                   //     'event Click: $typeOfCalendarEvent clickText: $clickText str: ${value[index].toString()}');
                                   if (typeOfCalendarEvent ==
@@ -877,12 +904,33 @@ class CalendarPageState extends State<CalendarPage> {
                                         _awayEvents.addEvent(
                                             _selectedDay!, Event(''));
                                       });
+                                      await _saveDaysAwayNow();
+                                      // If CantMakeIt was set, clear it now that the player is marked away.
+                                      final data = _playerDoc!.data() as Map<String, dynamic>?;
+                                      final bool hadCantMakeIt = data != null &&
+                                          data.containsKey('CantMakeIt') &&
+                                          _playerDoc!.get('CantMakeIt') == true;
+                                      if (hadCantMakeIt) {
+                                        writeAudit(
+                                            user: loggedInUser,
+                                            documentName: _playerDoc!.id,
+                                            action: 'Set CantMakeIt',
+                                            newValue: 'false',
+                                            oldValue: 'true');
+                                        firestore
+                                            .collection('Ladder')
+                                            .doc(activeLadderId)
+                                            .collection('Players')
+                                            .doc(_playerDoc!.id)
+                                            .update({'CantMakeIt': false});
+                                      }
                                     } else if (value[index]
                                         .toString()
                                         .startsWith('AWAY')) {
                                       setState(() {
                                         _awayEvents.removeEvent(_selectedDay!);
                                       });
+                                      await _saveDaysAwayNow();
                                     } else if (value[index]
                                         .toString()
                                         .startsWith('SCORE')) {
