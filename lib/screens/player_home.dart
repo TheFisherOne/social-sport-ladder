@@ -447,11 +447,12 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
                           padding: const EdgeInsets.all(0.0),
                           child: InkWell(
                               onTap: () {
-                                typeOfCalendarEvent = EventTypes.standard;
                                 Navigator.push(
                                     context,
                                     MaterialPageRoute(
                                         builder: (context) => CalendarPage(
+                                              typeOfCalendarEvent:
+                                                  EventTypes.standard,
                                               fullPlayerList: _players,
                                             )));
                               },

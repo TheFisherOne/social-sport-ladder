@@ -437,9 +437,13 @@ class _ConfigPageState extends State<ConfigPage> {
                           padding: const EdgeInsets.all(12.0),
                           child: IconButton(
                             onPressed: () {
-                              typeOfCalendarEvent = EventTypes.playOn;
-
-                              Navigator.push(context, MaterialPageRoute(builder: (context) => const CalendarPage()));
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) => const CalendarPage(
+                                            typeOfCalendarEvent:
+                                                EventTypes.playOn,
+                                          )));
                             },
                             icon: const Icon(Icons.edit_calendar, color: Colors.green, size: 60),
                           ),

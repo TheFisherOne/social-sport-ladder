@@ -33,6 +33,21 @@ bool mapContainsDateKey(Map<dynamic, dynamic> events, DateTime key) {
   });
 }
 
+bool shouldAutoCreatePlayDate({
+  required DateTime selectedDay,
+  required DateTime ladderToday,
+  required List<Event> selectedDayEvents,
+  required Map<dynamic, dynamic> playOnCalendarEvents,
+}) {
+  final bool hasHistoryFiles = selectedDayEvents.any(
+    (event) => event.toString().startsWith('FILE'),
+  );
+
+  return !selectedDay.isBefore(ladderToday) &&
+      !hasHistoryFiles &&
+      !mapContainsDateKey(playOnCalendarEvents, selectedDay);
+}
+
 (DateTime?, String) getNextPlayDateTime(DocumentSnapshot<Object?> ladderDoc) {
   List<String> daysOfPlayOrig = ladderDoc.get('DaysOfPlay').split('|');
   if ((daysOfPlayOrig.length == 1) && (daysOfPlayOrig[0].isEmpty)) {
@@ -87,8 +102,6 @@ bool isVacationTimeOk(DocumentSnapshot<Object?> ladderDoc) {
 }
 
 enum EventTypes { standard, playOn, special }
-
-EventTypes typeOfCalendarEvent = EventTypes.standard;
 final kToday = DateTime.now();
 final kFirstDay = DateTime(kToday.year, kToday.month - 12, kToday.day);
 final kLastDay = DateTime(kToday.year, kToday.month + 3, kToday.day);
@@ -263,9 +276,11 @@ class EventsList {
 
 class CalendarPage extends StatefulWidget {
   final List<QueryDocumentSnapshot>? fullPlayerList;
+  final EventTypes typeOfCalendarEvent;
 
   const CalendarPage({
     super.key,
+    required this.typeOfCalendarEvent,
     this.fullPlayerList,
   });
 
@@ -310,10 +325,10 @@ class CalendarPageState extends State<CalendarPage> {
     } catch (_) {}
 
     _selectedEvents = ValueNotifier(_getEventsForDay(_selectedDay!));
-    if (typeOfCalendarEvent == EventTypes.playOn) {
+    if (widget.typeOfCalendarEvent == EventTypes.playOn) {
       listAllFiles();
     }
-    if (typeOfCalendarEvent == EventTypes.standard) {
+    if (widget.typeOfCalendarEvent == EventTypes.standard) {
       listScoreDocs();
     }
   }
@@ -326,7 +341,7 @@ class CalendarPageState extends State<CalendarPage> {
   }
 
   Future<void> _saveDaysAwayNow() async {
-    if ((typeOfCalendarEvent != EventTypes.standard) || (_playerDoc == null)) {
+    if ((widget.typeOfCalendarEvent != EventTypes.standard) || (_playerDoc == null)) {
       return;
     }
 
@@ -352,7 +367,7 @@ class CalendarPageState extends State<CalendarPage> {
   }
 
   Future<void> _saveDaysOfPlayNow() async {
-    if (typeOfCalendarEvent != EventTypes.playOn) {
+    if (widget.typeOfCalendarEvent != EventTypes.playOn) {
       return;
     }
 
@@ -573,29 +588,33 @@ class CalendarPageState extends State<CalendarPage> {
           DateTime(selectedDay.year, selectedDay.month, selectedDay.day);
       _focusedDay = DateTime(focusedDay.year, focusedDay.month, focusedDay.day);
     });
-    if (typeOfCalendarEvent == EventTypes.playOn) {
+    if (widget.typeOfCalendarEvent == EventTypes.playOn) {
+      final List<Event> selectedDayEvents = _getEventsForDay(_selectedDay!);
+      final Map playOnCalendarEvents = _playOnEvents.convertToCalendarEvents();
+
       // Compare date-only values in ladder timezone so "today" is allowed.
       final TZDateTime ladderNow = getDateTimeNow();
       final DateTime ladderToday =
           DateTime(ladderNow.year, ladderNow.month, ladderNow.day);
-      if (_selectedDay!.isBefore(ladderToday)) {
-        return;
-      }
-      if (!mapContainsDateKey(
-          _playOnEvents.convertToCalendarEvents(), _selectedDay!)) {
+      if (shouldAutoCreatePlayDate(
+        selectedDay: _selectedDay!,
+        ladderToday: ladderToday,
+        selectedDayEvents: selectedDayEvents,
+        playOnCalendarEvents: playOnCalendarEvents,
+      )) {
         // String eventString = 'play - this is a scheduled day of play';
         _playOnEvents.addEvent(_selectedDay!, Event(_lastPlayOnTime));
         _saveDaysOfPlayNow();
-      } else {
+      } else if (mapContainsDateKey(playOnCalendarEvents, _selectedDay!)) {
         // print('playOn event already exists so not creating a new one');
-        var tmp = _getEventsForDay(_selectedDay!);
+        var tmp = selectedDayEvents;
         if ((tmp.isNotEmpty) && (tmp[0].toString().length >= 10)) {
           _lastPlayOnTime = tmp[0].toString().substring(5, 10);
         }
         // print('new _lastPlayOnTime is $_lastPlayOnTime len:${tmp[0].toString().length}');
       }
     }
-    _selectedEvents.value = List.from(_getEventsForDay(selectedDay));
+    _selectedEvents.value = List.from(_getEventsForDay(_selectedDay!));
   }
 
   Row _buildEvent(List<Event> value, index, String clickText) {
@@ -645,7 +664,7 @@ class CalendarPageState extends State<CalendarPage> {
         child: Text('$thisLine$clickText',
             style: includesSelectedPlayer ? nameBoldStyle : nameStyle),
       ),
-      if ((typeOfCalendarEvent == EventTypes.playOn) &&
+      if ((widget.typeOfCalendarEvent == EventTypes.playOn) &&
           (!value[index].toString().startsWith('FILE') &&
               (!value[index].toString().startsWith('SCORE'))))
         IconButton(
@@ -666,7 +685,7 @@ class CalendarPageState extends State<CalendarPage> {
               await _saveDaysOfPlayNow();
             },
             icon: const Icon(Icons.delete)),
-      if ((typeOfCalendarEvent == EventTypes.playOn) &&
+      if ((widget.typeOfCalendarEvent == EventTypes.playOn) &&
           (!value[index].toString().startsWith('misc') &&
               (!value[index].toString().startsWith('FILE'))) &&
           (!value[index].toString().startsWith('SCORE')))
@@ -796,7 +815,7 @@ class CalendarPageState extends State<CalendarPage> {
                       (nextPlayDate, _) = getNextPlayDateTime(activeLadderDoc!);
                       bool cantMakeIt = false;
                       // print('ListView.builder calendar page: nextPlayDate: $nextPlayDate _selectedDay: $_selectedDay');
-                      if ((typeOfCalendarEvent == EventTypes.standard) &&
+                      if ((widget.typeOfCalendarEvent == EventTypes.standard) &&
                           (value[index].toString().startsWith('play') ||
                               value[index].toString().startsWith('AWAY'))) {
                         if (activeUser.admin ||
@@ -856,10 +875,10 @@ class CalendarPageState extends State<CalendarPage> {
                                       Icons.square,
                                       color: cantMakeIt? Colors.red:Colors.blue,
                                     ),
-                          onTap: (((typeOfCalendarEvent ==
+                          onTap: (((widget.typeOfCalendarEvent ==
                                           EventTypes.standard) &&
                                       !clickText.contains("Click to ")) &&
-                                  !((typeOfCalendarEvent ==
+                                  !((widget.typeOfCalendarEvent ==
                                           EventTypes.standard) &&
                                       (value[index]
                                           .toString()
@@ -868,7 +887,7 @@ class CalendarPageState extends State<CalendarPage> {
                               : () async {
                                   // print(
                                   //     'event Click: $typeOfCalendarEvent clickText: $clickText str: ${value[index].toString()}');
-                                  if (typeOfCalendarEvent ==
+                                  if (widget.typeOfCalendarEvent ==
                                       EventTypes.standard) {
                                     if (clickText.contains("tell everyone you can no longer make it")){
                                       writeAudit(
@@ -968,7 +987,7 @@ class CalendarPageState extends State<CalendarPage> {
                                           MaterialPageRoute(
                                               builder: (context) => page));
                                     }
-                                  } else if ((typeOfCalendarEvent ==
+                                  } else if ((widget.typeOfCalendarEvent ==
                                           EventTypes.playOn) &&
                                       (value[index]
                                           .toString()
@@ -979,7 +998,7 @@ class CalendarPageState extends State<CalendarPage> {
                                         initialText.substring(5);
 
                                     _specialTextInputDialog(context);
-                                  } else if ((typeOfCalendarEvent ==
+                                  } else if ((widget.typeOfCalendarEvent ==
                                           EventTypes.playOn) &&
                                       (value[index]
                                           .toString()
@@ -993,7 +1012,7 @@ class CalendarPageState extends State<CalendarPage> {
 
                                     // print('selectedTimeOfDay: $selectedTimeOfDay');
                                     _playTextInputDialog(context);
-                                  } else if ((typeOfCalendarEvent ==
+                                  } else if ((widget.typeOfCalendarEvent ==
                                           EventTypes.playOn) &&
                                       (value[index]
                                           .toString()
@@ -1023,7 +1042,7 @@ class CalendarPageState extends State<CalendarPage> {
   Widget build(BuildContext context) {
     currentCalendarPage = this;
     try {
-      if (typeOfCalendarEvent == EventTypes.standard) {
+      if (widget.typeOfCalendarEvent == EventTypes.standard) {
         return StreamBuilder<DocumentSnapshot>(
             stream: firestore
                 .collection('Ladder')
@@ -1099,7 +1118,7 @@ class CalendarPageState extends State<CalendarPage> {
 
               return calendarScaffold();
             });
-      } else if (typeOfCalendarEvent == EventTypes.playOn) {
+      } else if (widget.typeOfCalendarEvent == EventTypes.playOn) {
         _playOnEvents.readFromDB(activeLadderDoc!);
         _specialEvents.readFromDB(activeLadderDoc!);
         _awayEvents.clear();
@@ -1137,7 +1156,7 @@ class CalendarPageState extends State<CalendarPage> {
         _selectedEvents.value = List.from(_getEventsForDay(_selectedDay!));
         return calendarScaffold();
       }
-      return Text('Unsupported Event Type $typeOfCalendarEvent');
+      return Text('Unsupported Event Type ${widget.typeOfCalendarEvent}');
     } catch (e, stackTrace) {
       return Text(
         'calendar EXCEPTION: $e\n$stackTrace',
