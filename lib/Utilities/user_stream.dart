@@ -25,10 +25,26 @@ class _UserStreamState extends State<UserStream> {
     }
   }
 
+  Widget _buildFallbackPage(String message) {
+    return Scaffold(
+      backgroundColor: Colors.brown[50],
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.red, fontSize: 18),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (loggedInUser.isEmpty) {
-      return const Text('UserStream: but loggedInUser empty');
+      return _buildFallbackPage('UserStream: but loggedInUser empty');
     }
 
     return FutureBuilder<DocumentSnapshot>(
@@ -40,11 +56,13 @@ class _UserStreamState extends State<UserStream> {
             if (kDebugMode) {
               print(error);
             }
-            return Text(error);
+            return _buildFallbackPage(error);
           }
 
           if (snapshot.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator());
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
           }
 
           if (!snapshot.hasData || !snapshot.data!.exists) {
@@ -55,7 +73,7 @@ class _UserStreamState extends State<UserStream> {
             Future.delayed(const Duration(seconds: 5), () {
                runLater();
             });
-            return Text('User $loggedInUser is not registered by the ladder admin', style: nameBigRedStyle);
+            return _buildFallbackPage('User $loggedInUser is not registered by the ladder admin');
           }
 
           loggedInUserDoc = snapshot.data;

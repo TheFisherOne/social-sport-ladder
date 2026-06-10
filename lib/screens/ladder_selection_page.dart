@@ -99,6 +99,36 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
     super.dispose();
   }
 
+  Widget _buildFallbackPage(String message,
+      {Widget? action, bool showSpinner = false}) {
+    return Scaffold(
+      backgroundColor: Colors.brown[50],
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (showSpinner) ...[
+                const CircularProgressIndicator(),
+                const SizedBox(height: 16),
+              ],
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.red, fontSize: 18),
+              ),
+              if (action != null) ...[
+                const SizedBox(height: 16),
+                action,
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _fetchTipOfTheDay(int? tipOfTheDayNumber) async {
     if ((tipOfTheDayNumber == null) || (tipOfTheDayNumber < 0)) {
       if (mounted) {
@@ -300,11 +330,13 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
       }
 
       if (loggedInUser.isEmpty) {
-        return const Text('LadderPage: but loggedInUser empty');
+        return _buildFallbackPage('LadderPage: but loggedInUser empty');
       }
       _buildCount++;
       //print('ladder_selection_page: doing build #$_buildCount');
-      if (_buildCount > 1000) return const Text('Build Count exceeded');
+      if (_buildCount > 1000) {
+        return _buildFallbackPage('Build Count exceeded');
+      }
 
       try {
         activeUser.canBeSuper = loggedInUserDoc!.get('SuperUser');
@@ -377,17 +409,23 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
             if (kDebugMode) {
               print(error);
             }
-            return Text(error);
+            return _buildFallbackPage(error);
           }
           // print('in StreamBuilder ladder 0');
           if (!snapshot.hasData ||
               (snapshot.connectionState != ConnectionState.active)) {
             // print('ladder_selection_page getting user $loggedInUser but hasData is false');
-            return const CircularProgressIndicator();
+            return _buildFallbackPage(
+              'Loading ladder data...',
+              showSpinner: true,
+            );
           }
           if (snapshot.data == null) {
             // print('ladder_selection_page getting user global ladder but data is null');
-            return const CircularProgressIndicator();
+            return _buildFallbackPage(
+              'Loading ladder data...',
+              showSpinner: true,
+            );
           }
           final allDocs = snapshot.data!.docs;
           if (kDebugMode) {
@@ -833,8 +871,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
         },
       );
     } catch (e, stackTrace) {
-      return Text('outer EXCEPTION: $e\n$stackTrace',
-          style: TextStyle(color: Colors.red));
+      return _buildFallbackPage('outer EXCEPTION: $e\n$stackTrace');
     }
   }
 }
