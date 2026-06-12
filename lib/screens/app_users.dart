@@ -14,6 +14,8 @@ class AppUsersPage extends StatefulWidget {
   State<AppUsersPage> createState() => _AppUsersPageState();
 }
 
+enum _SortBy { email, name }
+
 class _AppUsersPageState extends State<AppUsersPage> {
   final TextEditingController _filterController = TextEditingController();
   final TextEditingController _lastLoginMonthsController =
@@ -21,6 +23,7 @@ class _AppUsersPageState extends State<AppUsersPage> {
   String _filterText = '';
   bool _onlyNoLadders = false;
   int _lastLoginMonthsAgo = 0;
+  _SortBy _sortBy = _SortBy.email;
 
   @override
   void dispose() {
@@ -84,9 +87,12 @@ class _AppUsersPageState extends State<AppUsersPage> {
 
     final StringBuffer searchableBuffer = StringBuffer();
     searchableBuffer.write(userDoc.id);
+    searchableBuffer.write('|Email: ${userDoc.id}');
     data.forEach((key, value) {
-      searchableBuffer.write('|$key=${_valueForSearch(value)}');
+      final String searchValue = _valueForSearch(value);
+      searchableBuffer.write('|$key: $searchValue');
     });
+    searchableBuffer.write('|LastLogin: ${_displayDate(_getDateTime(data, 'LastLogin'))}');
 
     final String searchable = searchableBuffer.toString();
     if (RegExp(r'[A-Z]').hasMatch(filterText)) {
@@ -132,6 +138,15 @@ class _AppUsersPageState extends State<AppUsersPage> {
     await firestore.collection('Users').doc(email).delete();
   }
 
+  String _sortNameValue(QueryDocumentSnapshot<Object?> userDoc) {
+    final Map<String, dynamic> data = userDoc.data() as Map<String, dynamic>? ?? {};
+    final String displayName = _getString(data, 'DisplayName').trim();
+    if (displayName.isNotEmpty) {
+      return displayName.toLowerCase();
+    }
+    return userDoc.id.toLowerCase();
+  }
+
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
@@ -158,7 +173,17 @@ class _AppUsersPageState extends State<AppUsersPage> {
 
         final List<QueryDocumentSnapshot<Object?>> allUsers =
             userSnapshots.data!.docs;
-        allUsers.sort((a, b) => a.id.compareTo(b.id));
+        if (_sortBy == _SortBy.email) {
+          allUsers.sort((a, b) => a.id.toLowerCase().compareTo(b.id.toLowerCase()));
+        } else {
+          allUsers.sort((a, b) {
+            final int byName = _sortNameValue(a).compareTo(_sortNameValue(b));
+            if (byName != 0) {
+              return byName;
+            }
+            return a.id.toLowerCase().compareTo(b.id.toLowerCase());
+          });
+        }
 
         final List<QueryDocumentSnapshot<Object?>> filteredUsers =
             List.empty(growable: true);
@@ -214,6 +239,41 @@ class _AppUsersPageState extends State<AppUsersPage> {
                         },
                         style: nameStyle,
                       ),
+                    ),
+                  ],
+                ),
+                Row(
+                  children: [
+                    Text('Sort By:', style: nameStyle),
+                    const SizedBox(width: 8),
+                    TextButton(
+                      style: ButtonStyle(
+                        backgroundColor: WidgetStatePropertyAll(
+                            _sortBy == _SortBy.email ? Colors.blueGrey : Colors.brown.shade600),
+                        foregroundColor:
+                            const WidgetStatePropertyAll(Colors.white),
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _sortBy = _SortBy.email;
+                        });
+                      },
+                      child: Text('Email', style: nameStyle),
+                    ),
+                    const SizedBox(width: 8),
+                    TextButton(
+                      style: ButtonStyle(
+                        backgroundColor: WidgetStatePropertyAll(
+                            _sortBy == _SortBy.name ? Colors.blueGrey : Colors.brown.shade600),
+                        foregroundColor:
+                            const WidgetStatePropertyAll(Colors.white),
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _sortBy = _SortBy.name;
+                        });
+                      },
+                      child: Text('Name', style: nameStyle),
                     ),
                   ],
                 ),
@@ -290,9 +350,14 @@ class _AppUsersPageState extends State<AppUsersPage> {
                     final DateTime lastLogin = _getDateTime(data, 'LastLogin');
 
                     final bool canDeleteUser = ladders.trim().isEmpty;
-                    final String topLine = displayName.isEmpty
-                        ? userDoc.id
-                        : '${userDoc.id} / $displayName';
+                    final String topLine;
+                    if (displayName.isEmpty) {
+                      topLine = userDoc.id;
+                    } else if (_sortBy == _SortBy.name) {
+                      topLine = '$displayName / ${userDoc.id}';
+                    } else {
+                      topLine = '${userDoc.id} / $displayName';
+                    }
 
                     final Set<String> knownFields = {
                       'DisplayName',
@@ -307,7 +372,7 @@ class _AppUsersPageState extends State<AppUsersPage> {
                         .toList()
                       ..sort();
 
-                    return Container(
+                    return Material(
                       color: surfaceColor,
                       child: ExpansionTile(
                         title: Text(topLine, style: nameStyle),
