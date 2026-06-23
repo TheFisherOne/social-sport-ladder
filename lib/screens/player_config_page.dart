@@ -100,6 +100,9 @@ Future<void> movePlayerDown(String fromLadder, String toLadder) async {
       'WeeksRegistered':highestPlayerDoc.get('WeeksRegistered'),
       'WeeksAway':highestPlayerDoc.get('WeeksAway'),
       'WeeksAwayWithoutNotice':highestPlayerDoc.get('WeeksAwayWithoutNotice'),
+      'OnCourtOfFive':
+          (((highestPlayerDoc.data() as Map<String, dynamic>?)?['OnCourtOfFive'] as num?) ?? 0)
+              .toInt(),
       'MatchScores':'',
     });
 
@@ -188,6 +191,9 @@ Future<void> movePlayerUp(String fromLadder, String toLadder, {int fromRank = 1}
       'WeeksRegistered':fromPlayerDoc.get('WeeksRegistered'),
       'WeeksAway':fromPlayerDoc.get('WeeksAway'),
       'WeeksAwayWithoutNotice':fromPlayerDoc.get('WeeksAwayWithoutNotice'),
+      'OnCourtOfFive':
+          (((fromPlayerDoc.data() as Map<String, dynamic>?)?['OnCourtOfFive'] as num?) ?? 0)
+              .toInt(),
       'MatchScores':'',
     });
 
@@ -369,6 +375,7 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
           'WeeksRegistered':0,
           'WeeksAway':0,
           'WeeksAwayWithoutNotice':0,
+          'OnCourtOfFive':0,
           'MatchScores':'',
           'ScoresConfirmed': false,
         });
@@ -935,10 +942,14 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
                 actions: [
                   IconButton(
                       onPressed: () {
-                        String result = 'Rank,Name,Email,Helper,WaitListRank,WeeksAwayWithoutNotice,WeeksAway,WeeksPlayed\n';
+                        String result = 'Rank,Name,Email,Helper,WaitListRank,WeeksAwayWithoutNotice,WeeksAway,OnCourtOfFive,WeeksPlayed\n';
                         for (int row = 0; row < _players.length; row++) {
+                          final Map<String, dynamic>? rowData =
+                              _players[row].data() as Map<String, dynamic>?;
+                          final int onCourtOfFive =
+                              ((rowData?['OnCourtOfFive'] as num?) ?? 0).toInt();
                           String line = '${_players[row].get('Rank')},${_players[row].get('Name')},${_players[row].id},${_players[row].get('Helper')},${_players[row].get('WaitListRank')},'
-                          '${_players[row].get('DaysAwayWithoutNotice')},${_players[row].get('WeeksAway')},${activeLadderDoc!.get('WeeksPlayed')}';
+                          '${_players[row].get('DaysAwayWithoutNotice')},${_players[row].get('WeeksAway')},$onCourtOfFive,${activeLadderDoc!.get('WeeksPlayed')}';
                           result += '$line\n';
                         }
 

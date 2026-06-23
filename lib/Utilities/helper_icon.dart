@@ -55,9 +55,13 @@ class ActiveUser {
 String buildCsv(List<PlayerList>? listOfPlayers,
     CourtAssignmentsRgStandard courtAssignments) {
   String result =
-      'Rank,NewR,Present,Unassigned,Away,Player Name,Score,Pos,Court#,CourtName,aw+-,tot+-,TimePresent,Scr1,Scr2,Scr3,Scr4,Scr5,WeeksAwayWithoutNotice,WeeksAway,WeeksPlayed\n';
+      'Rank,NewR,Present,Unassigned,Away,Player Name,Score,Pos,Court#,CourtName,aw+-,tot+-,TimePresent,Scr1,Scr2,Scr3,Scr4,Scr5,WeeksAwayWithoutNotice,WeeksAway,OnCourtOfFive,WeeksPlayed\n';
   for (int i = 0; i < listOfPlayers!.length; i++) {
     PlayerList pl = listOfPlayers[i];
+    final Map<String, dynamic>? playerData =
+        pl.snapshot.data() as Map<String, dynamic>?;
+    final int onCourtOfFive =
+        ((playerData?['OnCourtOfFive'] as num?) ?? 0).toInt();
     List<String> matchScores = pl.snapshot.get('MatchScores').split('|');
     while (matchScores.length < 5) {
       matchScores.add('');
@@ -74,7 +78,7 @@ String buildCsv(List<PlayerList>? listOfPlayers,
           '${pl.present ? DateFormat('yyyy.MM.dd_HH:mm:ss').format(
           pl.snapshot.get('TimePresent').toDate()) : ''},$matchScoreStr,'
           '${pl.snapshot.get('WeeksAwayWithoutNotice')},${pl.snapshot.get(
-          'WeeksAway')},${activeLadderDoc!.get('WeeksPlayed')}\n';
+          'WeeksAway')},$onCourtOfFive,${activeLadderDoc!.get('WeeksPlayed')}\n';
     } else {
       result +=
       '${pl.startingRank},${pl.newRank},${pl.present ? 'true' : ''},${pl
@@ -88,7 +92,7 @@ String buildCsv(List<PlayerList>? listOfPlayers,
           '${pl.present ? DateFormat('yyyy.MM.dd_HH:mm:ss').format(
           pl.snapshot.get('TimePresent').toDate()) : ''},$matchScoreStr,'
           '${pl.snapshot.get('WeeksAwayWithoutNotice')},${pl.snapshot.get(
-          'WeeksAway')},${activeLadderDoc!.get('WeeksPlayed')}\n';
+          'WeeksAway')},$onCourtOfFive,${activeLadderDoc!.get('WeeksPlayed')}\n';
     }
   }
   return result;
@@ -391,6 +395,13 @@ class _HelperFunctionDialog extends StatelessWidget {
                           int currentRound = activeLadderRef.get('CurrentRound') as int? ?? 1;
 
                           // the Scores documents get initialized when the ladder is refrozen
+                          final Map<int, int> playersPerCourt = {};
+                          for (var player in listOfPlayers!) {
+                            if (player.present && !player.unassigned && (player.courtNumber >= 0)) {
+                              playersPerCourt[player.courtNumber] =
+                                  (playersPerCourt[player.courtNumber] ?? 0) + 1;
+                            }
+                          }
                           for (var pl = 0;
                           pl < listOfPlayers!.length;
                           pl++) {
@@ -429,6 +440,10 @@ class _HelperFunctionDialog extends StatelessWidget {
                                       FieldValue
                                           .increment(1);
                                 }
+                              } else if (!listOfPlayers![pl].unassigned &&
+                                  ((playersPerCourt[listOfPlayers![pl].courtNumber] ?? 0) == 5)) {
+                                playerData['OnCourtOfFive'] =
+                                    FieldValue.increment(1);
                               }
                             }
                             transaction.update(
@@ -787,6 +802,7 @@ class _HelperFunctionDialog extends StatelessWidget {
                         transaction.update(playerRef, {
                           'WeeksAway': 0,
                           'WeeksAwayWithoutNotice': 0,
+                          'OnCourtOfFive': 0,
                         });
                         transaction.update(ladderRef, {
                           'WeeksPlayed': 0,
@@ -808,7 +824,7 @@ class _HelperFunctionDialog extends StatelessWidget {
               navigator.pop();
             },
             label: Text(
-                'Reset WeeksAway and WeeksAwayWithoutNotice stats'),
+                'Reset WeeksAway, WeeksAwayWithoutNotice, and OnCourtOfFive stats'),
           ),
       ],
     );

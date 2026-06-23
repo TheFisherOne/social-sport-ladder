@@ -85,6 +85,8 @@ class PlayerList {
   }
 
   bool daysAwayIncludes(String dayStr) {
+    // Present players are treated as active for this round even if DaysAway still contains the date.
+    if (present) return false;
     return snapshot.get('DaysAway').split('|').contains(dayStr);
   }
 }

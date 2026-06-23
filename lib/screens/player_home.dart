@@ -203,7 +203,7 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
     String nextPlayDateStr = DateFormat('yyyy.MM.dd').format(nextPlayDate);
 
     List<String> awayList = player.get('DaysAway').split('|');
-    if (awayList.contains(nextPlayDateStr)) {
+    if (!player.get('Present') && awayList.contains(nextPlayDateStr)) {
       return (
         Icons.airplanemode_active,
         'You have marked yourself as away for $nextPlayDateStr'
@@ -291,9 +291,44 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
     );
   }
 
+  double _getAverageOnCourtOfFive() {
+    if ((_players == null) || _players!.isEmpty || (activeLadderDoc == null)) {
+      return 0.0;
+    }
+    final int totalWeeks =
+        ((activeLadderDoc!.get('WeeksPlayed') as num?) ?? 0).toInt();
+    double totalFraction = 0.0;
+    int countIncludedPlayers = 0;
+
+    for (final player in _players!) {
+      final Map<String, dynamic>? playerData =
+          player.data() as Map<String, dynamic>?;
+      final int onCourtOfFive =
+          ((playerData?['OnCourtOfFive'] as num?) ?? 0).toInt();
+      final int weeksAway =
+          ((playerData?['WeeksAway'] as num?) ?? 0).toInt();
+      final int denominator = totalWeeks - weeksAway;
+      if (denominator <= 0) {
+        continue;
+      }
+      totalFraction += onCourtOfFive / denominator;
+      countIncludedPlayers++;
+    }
+
+    if (countIncludedPlayers == 0) {
+      return 0.0;
+    }
+    return totalFraction / countIncludedPlayers;
+  }
+
   Widget unfrozenSubLine(QueryDocumentSnapshot player) {
     _getPlayerImage(player.id);
     clickedOnPlayerDoc = player;
+    final Map<String, dynamic>? playerData =
+        player.data() as Map<String, dynamic>?;
+    final int onCourtOfFive =
+        ((playerData?['OnCourtOfFive'] as num?) ?? 0).toInt();
+    final double averageOnCourtOfFive = _getAverageOnCourtOfFive();
     if (player.id == activeUser.id) {
       if (player.get('Present')) {
         // print('unfrozen stopTimer');
@@ -471,13 +506,12 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
                     : SizedBox(
                         width: 1,
                       ),
-                if (((player.get('WeeksAwayWithoutNotice') >= 3) ||
-                        (player.get('WeeksAway') >= 7)) ||
-                    (loggedInUser == player.id) ||
+                if ((loggedInUser == player.id) ||
                     activeUser.admin)
                   Text(
                     'No Notice: ${player.get('WeeksAwayWithoutNotice')}\ntotal Away ${player.get('WeeksAway')}\n'
-                    'Total weeks: ${activeLadderDoc!.get('WeeksPlayed')}',
+                    'On Court of 5: $onCourtOfFive Avg: ${averageOnCourtOfFive.toStringAsFixed(1)}\n'
+                     'Total weeks: ${activeLadderDoc!.get('WeeksPlayed')}',
                     style: errorNameStyle,
                   ),
                 SizedBox(key: _targetKey, height: 1),
@@ -609,12 +643,7 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
       return Text(
           'ERROR: ${player.id} missing WeeksAwayWithoutNotice (Number)');
     }
-    int weeksAway = -1;
-    try {
-      weeksAway = player.get('WeeksAway');
-    } catch (e) {
-      return Text('ERROR: ${player.id} missing WeeksAway (Number)');
-    }
+
     int waitListRank = -1;
     try {
       waitListRank = player.get('WaitListRank');
@@ -676,10 +705,10 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
                 color: Colors.green,
                   size: iconSize
               ),
-            if ((weeksAwayWithoutNotice >= 3) || (weeksAway >= 7))
+            if (weeksAwayWithoutNotice >= 3)
               Icon(
                 Icons.warning,
-                color: Colors.yellow,size: iconSize
+                color: Colors.yellow,size: iconSize/2
               ),
             if (cantMakeIt)
               Icon(Icons.close, color: Colors.red,size: iconSize),
