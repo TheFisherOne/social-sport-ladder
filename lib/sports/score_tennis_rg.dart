@@ -44,6 +44,7 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
     with WidgetsBindingObserver{
   String _beingEditedById = '';
   bool _clearUsEditing = false;
+  bool _pendingClaimTransaction = false; // guard: only one runTransaction in flight at a time
   late String _beingEditedByName;
   late String _gameScoresStr;
   late List<List<int?>> _gameScores;
@@ -751,6 +752,7 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
     if (newId.isEmpty) {
       _beingEditedById = '';
       _clearUsEditing = true;
+      _pendingClaimTransaction = false; // reset so a fresh tap can claim again
       cancelWorkingScores();
       firestore
           .collection('Ladder')
@@ -763,9 +765,15 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
       // print('scoreBox new user editing: "" docId=$_scoreDocStr');
       return;
     }
-    if (_beingEditedById.isEmpty) {
+    if (_beingEditedById.isEmpty && !_pendingClaimTransaction) {
       // we should wait for the database to be updated as we might not get it
       // _beingEditedById = newId;
+
+      // Guard against multiple concurrent transactions (e.g. rapid taps before
+      // Firebase responds). Without this flag every tap would spawn a new
+      // runTransaction and they would all conflict/retry, and if they all fail
+      // the save button would never appear.
+      _pendingClaimTransaction = true;
 
       // Get the document reference and make sure it is empty before updating it
       DocumentReference scoreDocRef = firestore
@@ -801,6 +809,20 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
           //   print('scoreBox new user editing: $newId docId=${scoreDocRef.id}');
           // }
         }
+      }).catchError((e) {
+        // Transaction failed (network error, max retries, etc.).
+        // Reset the guard so the next tap can try again, and show an error.
+        if (kDebugMode) {
+          print('runTransaction failed in updateBeingEditedBy: $e');
+        }
+        _pendingClaimTransaction = false;
+        _scoreEntryErrorString = 'Failed to claim score entry lock: $e';
+        if (mounted) {
+          setState(() {});
+        }
+      }).then((_) {
+        // Transaction completed (success or conditional no-op). Reset the guard.
+        _pendingClaimTransaction = false;
       });
     }
   }
