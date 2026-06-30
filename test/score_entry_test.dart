@@ -450,7 +450,9 @@ void main() {
     var saveToTap = find.byKey(const Key('save-button'));
     expect(saveToTap, findsNothing, reason: "nothing to save, so button should not appear");
     var autofillToTap = find.byKey(const Key('autofill-0'));
-    expect(autofillToTap, findsNothing, reason: "nothing to fill, so button should not appear");
+    expect(autofillToTap, findsOneWidget, reason: "auto fill row is visible but disabled when nothing can be filled");
+    expect((tester.widget(autofillToTap) as IconButton).onPressed, isNull,
+        reason: "nothing to fill, so button should be disabled");
 
     var textBeforeTap = find.descendant(of: scoreBoxToTap, matching: find.byType(Text));
     expect((tester.firstWidget(textBeforeTap) as Text).data, '', reason: "Score box should initially be empty.");
@@ -609,7 +611,9 @@ void main() {
     var text3BeforeTap = find.descendant(of: scoreBox3ToTap, matching: find.byType(Text));
     expect((tester.firstWidget(text3BeforeTap) as Text).data, '', reason: "Score box 4 should initially be empty.");
     var autofillToTap = find.byKey(const Key('autofill-0'));
-    expect(autofillToTap, findsNothing, reason: "nothing to fill, so button should not appear");
+    expect(autofillToTap, findsOneWidget, reason: "auto fill row is visible but disabled when nothing can be filled");
+    expect((tester.widget(autofillToTap) as IconButton).onPressed, isNull,
+        reason: "nothing to fill, so button should be disabled");
 
     await tester.tap(scoreBoxToTap);
     await tester.tap(scoreBox3ToTap);

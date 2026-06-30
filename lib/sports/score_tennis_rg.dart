@@ -695,6 +695,18 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
     }
     return null;
   }
+
+  bool _canUseAutoFill() {
+    if (!widget.allowEdit) return false;
+    if (!(_loggedInPlayerOnCourt || activeUser.helper)) return false;
+    // Auto-fill is only allowed after the lock is confirmed in the stream.
+    // This avoids a race where transaction completion beats UI doc refresh.
+    if (_beingEditedById != activeUser.id) {
+      return false;
+    }
+    return true;
+  }
+
   void addToGlobalEmails(String email) async {
     DocumentSnapshot<Map<String, dynamic>> userDoc =
     await firestore.collection('Users').doc(email).get();
@@ -1218,7 +1230,7 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
   }
 
   void setScoresForGame4(int game) {
-    if (!widget.allowEdit) return;
+    if (!_canUseAutoFill()) return;
     if (_playerList.length != 4) {
       if (kDebugMode) {
         print(
@@ -1237,7 +1249,7 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
   }
 
   void setScoresForGame5(int game) {
-    if (!widget.allowEdit) return;
+    if (!_canUseAutoFill()) return;
     if (_playerList.length != 5) {
       if (kDebugMode) {
         print(
@@ -1266,9 +1278,9 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
       //for last divider line
       itemBuilder: (BuildContext context, int row) {
         if (row == _playerList.length) {
-          // print('in extra row ${!widget.allowEdit} ${_beingEditedById != activeUser.id} ${getSportDescriptor(1).contains('singles')}');
-          if ((!widget.allowEdit) || (_beingEditedById != activeUser.id)  ||
-              (getSportDescriptor(1).contains('singles'))) {
+          // Match 5-player behavior: keep row visible when editable mode is on,
+          // and let button enabled state reflect whether auto-fill is currently allowed.
+          if (getSportDescriptor(1).contains('singles')) {
             return SizedBox(
               height: 1,
             );
@@ -1293,7 +1305,7 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
                 flex: 1,
                 child: IconButton(
                     key: const Key('autofill-0'),
-                    onPressed: (autoFill4(0) == null)
+                    onPressed: (!_canUseAutoFill() || (autoFill4(0) == null))
                         ? null
                         : () {
                             setScoresForGame4(0);
@@ -1306,7 +1318,7 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
                 flex: 1,
                 child: IconButton(
                     key: const Key('autofill-1'),
-                    onPressed: (autoFill4(1) == null)
+                    onPressed: (!_canUseAutoFill() || (autoFill4(1) == null))
                         ? null
                         : () {
                             setScoresForGame4(1);
@@ -1319,7 +1331,7 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
                 flex: 1,
                 child: IconButton(
                     key: const Key('autofill-2'),
-                    onPressed: (autoFill4(2) == null)
+                    onPressed: (!_canUseAutoFill() || (autoFill4(2) == null))
                         ? null
                         : () {
                             setScoresForGame4(2);
@@ -1433,7 +1445,7 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
               Expanded(
                 flex: 1,
                 child: IconButton(
-                    onPressed: (autoFill5(0) == null)
+                    onPressed: (!_canUseAutoFill() || (autoFill5(0) == null))
                         ? null
                         : () {
                             setScoresForGame5(0);
@@ -1445,7 +1457,7 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
               Expanded(
                 flex: 1,
                 child: IconButton(
-                    onPressed: (autoFill5(1) == null)
+                    onPressed: (!_canUseAutoFill() || (autoFill5(1) == null))
                         ? null
                         : () {
                             setScoresForGame5(1);
@@ -1457,7 +1469,7 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
               Expanded(
                 flex: 1,
                 child: IconButton(
-                    onPressed: (autoFill5(2) == null)
+                    onPressed: (!_canUseAutoFill() || (autoFill5(2) == null))
                         ? null
                         : () {
                             setScoresForGame5(2);
@@ -1469,7 +1481,7 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
               Expanded(
                 flex: 1,
                 child: IconButton(
-                    onPressed: (autoFill5(3) == null)
+                    onPressed: (!_canUseAutoFill() || (autoFill5(3) == null))
                         ? null
                         : () {
                             setScoresForGame5(3);
@@ -1481,7 +1493,7 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
               Expanded(
                 flex: 1,
                 child: IconButton(
-                    onPressed: (autoFill5(4) == null)
+                    onPressed: (!_canUseAutoFill() || (autoFill5(4) == null))
                         ? null
                         : () {
                             setScoresForGame5(4);
@@ -1618,7 +1630,7 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
               Expanded(
                 flex: 1,
                 child: IconButton(
-                    onPressed: (autoFill4(0) == null)
+                    onPressed: (!_canUseAutoFill() || (autoFill4(0) == null))
                         ? null
                         : () {
                             setScoresForGame4(0);
@@ -1630,7 +1642,7 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
               Expanded(
                 flex: 1,
                 child: IconButton(
-                    onPressed: (autoFill4(1) == null)
+                    onPressed: (!_canUseAutoFill() || (autoFill4(1) == null))
                         ? null
                         : () {
                             setScoresForGame4(1);
@@ -1642,7 +1654,7 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
               Expanded(
                 flex: 1,
                 child: IconButton(
-                    onPressed: (autoFill4(2) == null)
+                    onPressed: (!_canUseAutoFill() || (autoFill4(2) == null))
                         ? null
                         : () {
                             setScoresForGame4(2);
