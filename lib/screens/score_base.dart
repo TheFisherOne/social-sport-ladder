@@ -212,7 +212,7 @@ class _ScoreBaseState extends State<ScoreBase> {
   String _dateStr = '';
   String _scoreDocStr = '';
   late DocumentSnapshot<Object?> _scoreDoc;
-  bool? _scoresConfirmed;
+  bool _sawUnconfirmedWhileViewing = false;
 
   @override
   Widget build(BuildContext context) {
@@ -279,17 +279,16 @@ class _ScoreBaseState extends State<ScoreBase> {
                 _scoreDoc = snapshot.data!;
                 bool areScoresConfirmedNow = (_scoreDoc.get('ScoresEnteredBy') as String ).endsWith(' CONFIRMED');
                 // print('score_base1: areScoresConfirmedNow: $areScoresConfirmedNow, _scoresConfirmed: $_scoresConfirmed');
-                if (_scoresConfirmed == null){
-                  _scoresConfirmed = areScoresConfirmedNow;
-                } else if (_scoresConfirmed != areScoresConfirmedNow){
-                  // if the confirmed status changes that boot everyone out of the scoring screen
-                  // they need to go in again to make sure the data is refreshed properly
+                if (!areScoresConfirmedNow) {
+                  _sawUnconfirmedWhileViewing = true;
+                } else if (_sawUnconfirmedWhileViewing) {
+                  // Only pop when confirmation happens after this page has already
+                  // displayed unconfirmed scores at least once.
                   WidgetsBinding.instance.addPostFrameCallback((_) {
                     if (mounted) {
                       Navigator.of(context).pop();
                     }
                   });
-                  // print('score_base3: scheduling a pop');
                   return Text('About to exit');
                 }
                 // print('score_base2: areScoresConfirmedNow: $areScoresConfirmedNow, _scoresConfirmed: $_scoresConfirmed');
