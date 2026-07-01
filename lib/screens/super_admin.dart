@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:social_sport_ladder/constants/constants.dart';
 import 'package:social_sport_ladder/screens/app_users.dart';
 import '../Utilities/my_text_field.dart';
@@ -271,10 +272,138 @@ class _SuperAdminState extends State<SuperAdmin> {
   }
 
   bool waitingForRebuild = false;
+  bool historyCopyInProgress = false;
   String newLadderName = '';
+  String historyCopyStatus = '';
 
   final TextEditingController _ladderNameController = TextEditingController();
   final TextEditingController _revisionController = TextEditingController();
+  final TextEditingController _historySourceDirController =
+      TextEditingController();
+  final TextEditingController _historyDestIdController =
+      TextEditingController();
+
+  Future<void> _copyHistoryFilesByFolderToId() async {
+    final String sourceInput = _historySourceDirController.text.trim();
+    final String destinationLadderId = _historyDestIdController.text.trim();
+
+    if (sourceInput.isEmpty || destinationLadderId.isEmpty) {
+      setState(() {
+        historyCopyStatus =
+            'Please enter both source folder name and destination ladder id.';
+      });
+      return;
+    }
+
+    setState(() {
+      historyCopyInProgress = true;
+      historyCopyStatus = 'Validating destination ladder...';
+    });
+
+    try {
+      final destinationDoc =
+          await firestore.collection('Ladder').doc(destinationLadderId).get();
+      if (!destinationDoc.exists) {
+        setState(() {
+          historyCopyInProgress = false;
+          historyCopyStatus =
+              'Destination ladder id "$destinationLadderId" was not found.';
+        });
+        return;
+      }
+
+      final FirebaseStorage storage = FirebaseStorage.instance;
+      final String sourceFolder = sourceInput.replaceAll(' ', '_');
+      final String sourcePath = '$sourceFolder/History/';
+      final String destinationPath = '$destinationLadderId/History/';
+
+      setState(() {
+        historyCopyStatus = 'Listing files from $sourcePath';
+      });
+
+      final ListResult sourceFiles = await storage.ref(sourcePath).listAll();
+      int copied = 0;
+      int skipped = 0;
+      int failed = 0;
+
+      for (final Reference sourceRef in sourceFiles.items) {
+        final String fileName = sourceRef.name;
+        // print('Copying file $sourcePath / ${sourceRef.name}');
+        final Reference destinationRef =
+            storage.ref('$destinationPath$fileName');
+
+        bool destinationExists = false;
+        try {
+          await destinationRef.getMetadata();
+          destinationExists = true;
+        } catch (_) {
+          destinationExists = false;
+        }
+
+        if (destinationExists) {
+          skipped++;
+          continue;
+        }
+        String downloadUrl='';
+        try {
+          final FullMetadata metadata = await sourceRef.getMetadata();
+          downloadUrl = await sourceRef.getDownloadURL();
+          print('got url: $downloadUrl');
+          print('parsed url: ${Uri.parse(downloadUrl)}');
+          final http.Response response = await http.get(Uri.parse(downloadUrl));
+          print('back from http.get ${response.statusCode}');
+
+
+          if (response.statusCode < 200 || response.statusCode >= 300) {
+            failed++;
+            if (kDebugMode) {
+              print(
+                  'Failed to download ${sourceRef.fullPath}: HTTP ${response.statusCode}');
+            }
+            continue;
+          }
+
+          print('writing ${response.body.length} bytes');
+          await destinationRef.putString(
+            response.body,
+            format: PutStringFormat.raw,
+            metadata: SettableMetadata(
+              contentType: metadata.contentType ?? 'text/csv',
+            ),
+          );
+          copied++;
+        } catch (e) {
+          failed++;
+          if (kDebugMode) {
+            print('Failed to copy ${sourceRef.fullPath} -> ${destinationRef.fullPath}: $e');
+            // print(downloadUrl);
+          }
+        }
+
+        if (mounted) {
+          setState(() {
+            historyCopyStatus =
+                'Copying history files... copied:$copied skipped:$skipped failed:$failed';
+          });
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          historyCopyInProgress = false;
+          historyCopyStatus =
+              'Copy complete. copied:$copied skipped:$skipped failed:$failed';
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          historyCopyInProgress = false;
+          historyCopyStatus = 'Copy failed: $e';
+        });
+      }
+    }
+  }
 
   void refresh() {
     if (mounted) {
@@ -508,6 +637,55 @@ class _SuperAdminState extends State<SuperAdmin> {
                     )
                   ],
                 ),
+                MyTextField(
+                  labelText: 'Source history dir (old DisplayName)',
+                  helperText:
+                      'Folder name under Storage root, before /History. Spaces are converted to underscores.',
+                  controller: _historySourceDirController,
+                  entryOK: (entry) {
+                    if (entry.trim().isEmpty) {
+                      return 'enter source directory name';
+                    }
+                    return null;
+                  },
+                  clearEntryOnLostFocus: false,
+                ),
+                MyTextField(
+                  labelText: 'Destination ladder id',
+                  helperText: 'Existing ladder doc id (target folder: <id>/History/)',
+                  controller: _historyDestIdController,
+                  entryOK: (entry) {
+                    if (entry.trim().isEmpty) {
+                      return 'enter destination ladder id';
+                    }
+                    return null;
+                  },
+                  clearEntryOnLostFocus: false,
+                ),
+                TextButton.icon(
+                  style: ButtonStyle(
+                    backgroundColor: WidgetStatePropertyAll(
+                        historyCopyInProgress ? Colors.grey : Colors.brown.shade600),
+                    foregroundColor: const WidgetStatePropertyAll(Colors.white),
+                  ),
+                  onPressed: historyCopyInProgress
+                      ? null
+                      : () async {
+                          await _copyHistoryFilesByFolderToId();
+                        },
+                  icon: const Icon(Icons.copy_all),
+                  label: Text(
+                    historyCopyInProgress
+                        ? 'Copying History Files...'
+                        : 'Copy old DisplayName History to ladder id',
+                    style: nameStyle,
+                  ),
+                ),
+                if (historyCopyStatus.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    child: Text(historyCopyStatus, style: nameStyle),
+                  ),
                 Row(
                   children: [
                     Text(
@@ -614,11 +792,15 @@ class _SuperAdminState extends State<SuperAdmin> {
 
                               for (final Reference ref in result.items) {
                                 try {
-                                  // Filename example: 2025.01.28_1.csv
+                                  // Filename example: Some_Ladder_2025.01.28_1.csv
                                   final fileName = ref.name;
-                                  // Extract the date part: "2025.01.28"
+                                  // Extract the date from the tail to support names
+                                  // that include a DisplayName prefix.
+                                  if (fileName.length < 16) {
+                                    throw FormatException('Unexpected history filename: $fileName');
+                                  }
                                   final String dateString =
-                                      fileName.split('_')[0];
+                                      fileName.substring(fileName.length - 16, fileName.length - 6);
 
                                   final DateTime fileDate = DateTime.parse(
                                       dateString.replaceAll('.', '-'));

@@ -104,9 +104,9 @@ void saveHistoryFile(String result) async {
   if (getSportDescriptorString('programOnly').isNotEmpty){
     dateStr = DateFormat('yyyy.MM.dd_1').format(DateTime.now());
   }
-  String filename = '${activeLadderDoc!.get('DisplayName')}/History/'
-          '${activeLadderDoc!.get('DisplayName')}_$dateStr.csv'
-      .replaceAll(' ', '_');
+  String displayName = activeLadderDoc!.get('DisplayName').replaceAll(' ', '_');
+  String filename = '${activeLadderDoc!.id}/History/'
+          '${displayName}_$dateStr.csv';
   // print('saving to file $filename');
   try {
     // print('writing to file $filename');

@@ -420,7 +420,7 @@ class CalendarPageState extends State<CalendarPage> {
   final List<Reference> _fileList = [];
   Future<void> listAllFiles() async {
     String folderPath =
-        '${activeLadderDoc!.get('DisplayName')}/History/'.replaceAll(' ', '_');
+        '${activeLadderDoc!.id}/History/';
     // print('listAllFiles: $folderPath');
     final storageRef = FirebaseStorage.instance.ref().child(
         folderPath); // Replace 'your-directory-path/' with the path to your directory

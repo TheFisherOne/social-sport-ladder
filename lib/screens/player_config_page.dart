@@ -217,6 +217,7 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
   String _sortBy = 'Rank';
   String _selectedPlayerId = '';
   String _errorText = '';
+  bool _transactionInProgress = false;
 
   List<String>? _existingEmails;
 
@@ -292,6 +293,8 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
   }
 
   void addPlayer(BuildContext context, String newPlayerEmail, {String newDisplayName = ''}) async {
+    if (_transactionInProgress) return;
+    setState(() { _transactionInProgress = true; });
     int newRank = -1;
     DocumentReference globalUserRef = firestore.collection('Users').doc(newPlayerEmail);
     String displayName = 'New Player';
@@ -422,9 +425,11 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
               ]));
         },
       );
-      setState(() {
-        _errorText = 'you are now logged in as new user:$newPlayerEmail';
-      });
+      if (mounted) {
+        setState(() {
+          _errorText = 'you are now logged in as new user:$newPlayerEmail';
+        });
+      }
     }).catchError((e) {
       if (e.code == 'email-already-in-use') {
         if (kDebugMode) {
@@ -434,19 +439,24 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
         if (kDebugMode) {
           print('addPlayer, error during registration of $newPlayerEmail $e');
         }
-        setState(() {
-          _errorText = 'error during registration of $newPlayerEmail $e';
-        });
+        if (mounted) {
+          setState(() {
+            _errorText = 'error during registration of $newPlayerEmail $e';
+          });
+        }
       }
     });
     // print('addPlayer: return');
     if (newRank > 0){
       changeRank(newPlayerEmail, _players.length + 1, newRank);
     }
+    if (mounted) setState(() { _transactionInProgress = false; });
     return;
   }
 
   void deletePlayer(String playerId, int newRank) {
+    if (_transactionInProgress) return;
+    setState(() { _transactionInProgress = true; });
     List<DocumentReference> playerRef = List.empty(growable: true);
     for (var doc in _players) {
       DocumentReference docRef = firestore.collection('Ladder').doc(activeLadderId).collection('Players').doc(doc.id);
@@ -486,31 +496,6 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
         // print('deletePlayer deleting from Ladder $activeLadderId the Players $playerId');
         transaction.delete(firestore.collection('Ladder').doc(activeLadderId).collection('Players').doc(playerId));
 
-        // DocumentReference ladderRef = firestore.collection('Ladder').doc(activeLadderId);
-        // var ladderDoc = await ladderRef.get();
-        // List<String> oldAdmins = ladderDoc.get('Admins').split(',');
-        // List<String> ladders = globalUserDoc.get('Ladders').split(',');
-        // there is no real harm in leaving them with access to a ladder that they were in.
-        // it is fairly complicated to figure out if they should be removed or not
-        // but the super admin can always rebuild the list on a regular basis
-        // if (!oldAdmins.contains(playerId)) {
-        //   // we deleted the player, and it is not an admin on this ladder so we can remove it
-        //   String newLadders = "";
-        //   for (var lad in ladders) {
-        //     if (lad != activeLadderId) {
-        //       if (newLadders.isEmpty) {
-        //         newLadders = lad;
-        //       } else {
-        //         newLadders = '$newLadders,$lad';
-        //       }
-        //     }
-        //   }
-        //   // print('delete user, removing $activeLadderId from $ladders now "$newLadders"');
-        //   transaction.update(firestore.collection('Users').doc(playerId), {
-        //     'Ladders': newLadders,
-        //   });
-        // }
-        // print('deletePlayer: $newRank');
         transaction.update(firestore.collection('Users').doc(playerId), {
           'LastRanks': '$lastRanks${lastRanks.isEmpty ? "" : "|"}$activeLadderId:$newRank',
         });
@@ -522,11 +507,19 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
           action: 'DeleteUser',
           newValue: 'Delete',
         );
+      }).then((_) {
+        if (mounted) setState(() { _transactionInProgress = false; });
+      }).catchError((e, stackTrace) {
+        if (kDebugMode) {
+          print('ERROR on deletePlayer $e\n$stackTrace');
+        }
+        if (mounted) setState(() { _transactionInProgress = false; });
       });
     } catch(e,stackTrace){
       if (kDebugMode) {
         print('ERROR on deletePlayer $e\n$stackTrace');
       }
+      if (mounted) setState(() { _transactionInProgress = false; });
     }
   }
 
@@ -534,6 +527,8 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
     // print('in changeRank $playerId $oldRank to $newRank');
     if (newRank <= 0) return;
     if (newRank > _players.length) return;
+    if (_transactionInProgress) return;
+    setState(() { _transactionInProgress = true; });
 
     List<DocumentReference> playerRef = List.empty(growable: true);
     for (var doc in _players) {
@@ -575,7 +570,14 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
 
         transactionAudit(transaction: transaction, user: activeUser.id, documentName: playerId, action: 'Change Rank', newValue: newRank.toString(), oldValue: oldRank.toString());
       }
-      setState(() {});
+      if (mounted) setState(() {});
+    }).then((_) {
+      if (mounted) setState(() { _transactionInProgress = false; });
+    }).catchError((e, stackTrace) {
+      if (kDebugMode) {
+        print('ERROR on changeRank $e\n$stackTrace');
+      }
+      if (mounted) setState(() { _transactionInProgress = false; });
     });
   }
 
@@ -932,7 +934,7 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
             } else {
               _players.sort((a, b) => a.get(_sortBy).compareTo(b.get(_sortBy)));
             }
-            return Scaffold(
+            final scaffold = Scaffold(
               backgroundColor: Colors.green[50],
               appBar: AppBar(
                 title: Text('Players: $activeLadderId'),
@@ -1142,6 +1144,27 @@ class _PlayerConfigPageState extends State<PlayerConfigPage> {
                   ],
                 ),
               ),
+            );
+            return Stack(
+              children: [
+                scaffold,
+                if (_transactionInProgress) ...[
+                  const ModalBarrier(dismissible: false, color: Color(0x88000000)),
+                  const Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        CircularProgressIndicator(color: Colors.white),
+                        SizedBox(height: 16),
+                        Text(
+                          'Please wait…',
+                          style: TextStyle(color: Colors.white, fontSize: 18, decoration: TextDecoration.none),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
             );
           } catch (e, stackTrace) {
             return Text('player config EXCEPTION: $e\n$stackTrace', style: TextStyle(color: Colors.red));
