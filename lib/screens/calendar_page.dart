@@ -48,6 +48,21 @@ bool shouldAutoCreatePlayDate({
       !mapContainsDateKey(playOnCalendarEvents, selectedDay);
 }
 
+DateTime? tryParseHistoryFileDateFromPath(String fullPath) {
+  final RegExpMatch? match = RegExp(r'(\d{4}\.\d{2}\.\d{2})')
+      .allMatches(fullPath)
+      .lastOrNull;
+  if (match == null) {
+    return null;
+  }
+
+  try {
+    return DateFormat('yyyy.MM.dd').parseStrict(match.group(1)!);
+  } catch (_) {
+    return null;
+  }
+}
+
 (DateTime?, String) getNextPlayDateTime(DocumentSnapshot<Object?> ladderDoc) {
   List<String> daysOfPlayOrig = ladderDoc.get('DaysOfPlay').split('|');
   if ((daysOfPlayOrig.length == 1) && (daysOfPlayOrig[0].isEmpty)) {
@@ -435,7 +450,15 @@ class CalendarPageState extends State<CalendarPage> {
       }
 
       for (var ref in result.items) {
-        // print('File: ${ref.name}');
+        final DateTime? fileDate =
+            tryParseHistoryFileDateFromPath(ref.fullPath);
+        if (fileDate == null) {
+          if (kDebugMode) {
+            print(
+                'Ignoring history file with unparseable date: ${ref.fullPath}');
+          }
+          continue;
+        }
         _fileList.add(ref);
       }
       setState(() {
@@ -1141,8 +1164,13 @@ class CalendarPageState extends State<CalendarPage> {
         //print('list files found: ${_fileList.length}');
         for (int i = 0; i < _fileList.length; i++) {
           String fp = _fileList[i].fullPath;
-          String d = fp.substring(fp.length - 16, fp.length - 6);
-          DateTime fileDate = DateFormat('yyyy.MM.dd').parse(d);
+          final DateTime? fileDate = tryParseHistoryFileDateFromPath(fp);
+          if (fileDate == null) {
+            if (kDebugMode) {
+              print('Ignoring history file with unparseable date: $fp');
+            }
+            continue;
+          }
           int underscore1 = fp.lastIndexOf('_');
           int underscore2 = fp.lastIndexOf('_', underscore1 - 1);
           String title = fp.substring(underscore2 + 1);

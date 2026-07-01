@@ -52,5 +52,37 @@ void main() {
       expect(result, isTrue);
     });
   });
+
+  group('tryParseHistoryFileDateFromPath', () {
+    test('returns a date when the file path contains a valid yyyy.MM.dd date', () {
+      final result = tryParseHistoryFileDateFromPath(
+        'My Ladder/History/history_round_2030.01.16.csv',
+      );
+
+      expect(result, DateTime(2030, 1, 16));
+    });
+
+    test('returns null when the file path is too short to contain a date', () {
+      final result = tryParseHistoryFileDateFromPath('short');
+
+      expect(result, isNull);
+    });
+
+    test('returns null when the file path does not contain a date', () {
+      final result = tryParseHistoryFileDateFromPath(
+        'My Ladder/History/history_round_final.csv',
+      );
+
+      expect(result, isNull);
+    });
+
+    test('returns null when the file path contains an invalid date', () {
+      final result = tryParseHistoryFileDateFromPath(
+        'My Ladder/History/history_round_2030.13.99.csv',
+      );
+
+      expect(result, isNull);
+    });
+  });
 }
 
