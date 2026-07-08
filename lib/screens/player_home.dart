@@ -510,7 +510,7 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
                     activeUser.admin)
                   Text(
                     'No Notice: ${player.get('WeeksAwayWithoutNotice')}\ntotal Away ${player.get('WeeksAway')}\n'
-                    'On Court of 5: $onCourtOfFive Avg: ${averageOnCourtOfFive.toStringAsFixed(1)}\n'
+                    'On Court of 5: $onCourtOfFive\n Avg: ${averageOnCourtOfFive.toStringAsFixed(1)}\n'
                      'Total weeks: ${activeLadderDoc!.get('WeeksPlayed')}',
                     style: errorNameStyle,
                   ),
