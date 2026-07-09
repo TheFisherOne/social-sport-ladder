@@ -202,7 +202,7 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
 
     String nextPlayDateStr = DateFormat('yyyy.MM.dd').format(nextPlayDate);
 
-    List<String> awayList = player.get('DaysAway').split('|');
+    List<String> awayList = ((player.data() as Map<String, dynamic>?)?['DaysAway'] as String? ?? '').split('|');
     if (!player.get('Present') && awayList.contains(nextPlayDateStr)) {
       return (
         Icons.airplanemode_active,
@@ -767,10 +767,13 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
           if (kDebugMode) {
             print(error);
           }
-          return Text(error);
+          return Scaffold(
+            backgroundColor: Colors.white,
+            body: SingleChildScrollView(child: Padding(padding: const EdgeInsets.all(16.0),
+                child: Text(error, style: const TextStyle(color: Colors.red)))),
+          );
         }
-        if (!ladderSnapshot.hasData ||
-            (ladderSnapshot.connectionState != ConnectionState.active)) {
+        if (!ladderSnapshot.hasData) {
           // print('ladder_selection_page getting user $loggedInUser but hasData is false');
           return const CircularProgressIndicator();
         }
@@ -817,6 +820,7 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
                   .snapshots(),
               builder: (BuildContext context,
                   AsyncSnapshot<QuerySnapshot<Object?>> playerSnapshots) {
+                try {
                 // print('Ladder snapshot');
                 if (playerSnapshots.error != null) {
                   String error =
@@ -824,12 +828,14 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
                   if (kDebugMode) {
                     print(error);
                   }
-                  return Text(error);
+                  return Scaffold(
+                    backgroundColor: Colors.white,
+                    body: SingleChildScrollView(child: Padding(padding: const EdgeInsets.all(16.0),
+                        child: Text(error, style: const TextStyle(color: Colors.red)))),
+                  );
                 }
                 // print('in StreamBuilder ladder 0');
-                if (!playerSnapshots.hasData ||
-                    (playerSnapshots.connectionState !=
-                        ConnectionState.active)) {
+                if (!playerSnapshots.hasData) {
                   // print('ladder_selection_page getting user $loggedInUser but hasData is false');
                   return const CircularProgressIndicator();
                 }
@@ -1115,10 +1121,34 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
                     ),
                   ),
                 );
+              } catch (e, stackTrace) {
+                return Scaffold(
+                  backgroundColor: Colors.white,
+                  body: SingleChildScrollView(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Text(
+                        'player home (players) EXCEPTION: $e\n$stackTrace',
+                        style: const TextStyle(color: Colors.red),
+                      ),
+                    ),
+                  ),
+                );
+              }
               });
         } catch (e, stackTrace) {
-          return Text('player home EXCEPTION: $e\n$stackTrace',
-              style: TextStyle(color: Colors.red));
+          return Scaffold(
+            backgroundColor: Colors.white,
+            body: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Text(
+                  'player home EXCEPTION: $e\n$stackTrace',
+                  style: const TextStyle(color: Colors.red),
+                ),
+              ),
+            ),
+          );
         }
       },
     );

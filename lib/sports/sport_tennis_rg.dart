@@ -1096,6 +1096,19 @@ class _SportTennisRGState extends State<SportTennisRG> {
   List<QueryDocumentSnapshot>? _players;
   String _dateStr = '';
   List<PlayerList>? _movement;
+  late final Stream<QuerySnapshot> _playersStream;
+
+  @override
+  void initState() {
+    super.initState();
+    _playersStream = firestore
+        .collection('Ladder')
+        .doc(activeLadderId)
+        .collection('Players')
+        .orderBy('Rank')
+        .snapshots();
+  }
+
   @override
   void dispose() {
     sportTennisRgInstance = null;
@@ -1120,14 +1133,10 @@ class _SportTennisRGState extends State<SportTennisRG> {
 
     // print('SportTennisRGPage build');
     return StreamBuilder<QuerySnapshot>(
-        stream: firestore
-            .collection('Ladder')
-            .doc(activeLadderId)
-            .collection('Players')
-            .orderBy('Rank')
-            .snapshots(),
+        stream: _playersStream,
         builder: (BuildContext context,
             AsyncSnapshot<QuerySnapshot<Object?>> playerSnapshots) {
+          try {
           // print('Ladder snapshot');
           if (playerSnapshots.error != null) {
             String error =
@@ -1135,11 +1144,18 @@ class _SportTennisRGState extends State<SportTennisRG> {
             if (kDebugMode) {
               print(error);
             }
-            return Text(error);
+            return Scaffold(
+              backgroundColor: Colors.white,
+              body: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Text(error, style: const TextStyle(color: Colors.red)),
+                ),
+              ),
+            );
           }
           // print('in StreamBuilder ladder 0');
-          if (!playerSnapshots.hasData ||
-              (playerSnapshots.connectionState != ConnectionState.active)) {
+          if (!playerSnapshots.hasData) {
             // print('ladder_selection_page getting user $loggedInUser but hasData is false');
             return const CircularProgressIndicator();
           }
@@ -1247,6 +1263,20 @@ class _SportTennisRGState extends State<SportTennisRG> {
                       _players, _movement!, context);
                 }),
           );
+          } catch (e, stackTrace) {
+            return Scaffold(
+              backgroundColor: Colors.white,
+              body: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Text(
+                    'SportTennisRG EXCEPTION: $e\n$stackTrace',
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                ),
+              ),
+            );
+          }
         });
   }
 }
