@@ -147,6 +147,8 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
         //TODO: remove this LifecycleState as it now does nothing
         // setState(() {});
         // Example: Refresh data, restart animations
+        // Mobile Chrome can suspend Firestore streams; this nudges reconnection on resume.
+        firestore.enableNetwork();
         break;
       case AppLifecycleState.inactive:
         if (kDebugMode) {
@@ -775,11 +777,11 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
         }
         if (!ladderSnapshot.hasData) {
           // print('ladder_selection_page getting user $loggedInUser but hasData is false');
-          return const CircularProgressIndicator();
+          return _streamReconnectSpinner();
         }
         if (ladderSnapshot.data == null) {
           // print('ladder_selection_page getting user global ladder but data is null');
-          return const CircularProgressIndicator();
+          return _streamReconnectSpinner();
         }
         // developer.log('${DateTime.now()} player_home StreamBuilder');
         try {
@@ -837,11 +839,11 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
                 // print('in StreamBuilder ladder 0');
                 if (!playerSnapshots.hasData) {
                   // print('ladder_selection_page getting user $loggedInUser but hasData is false');
-                  return const CircularProgressIndicator();
+                  return _streamReconnectSpinner();
                 }
                 if (playerSnapshots.data == null) {
                   // print('ladder_selection_page getting user global ladder but data is null');
-                  return const CircularProgressIndicator();
+                  return _streamReconnectSpinner();
                 }
                 _players = playerSnapshots.data!.docs;
 
@@ -1151,6 +1153,13 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
           );
         }
       },
+    );
+  }
+
+  Widget _streamReconnectSpinner() {
+    return Scaffold(
+      backgroundColor: Color.lerp(activeLadderBackgroundColor, Colors.white, 0.8),
+      body: const Center(child: CircularProgressIndicator()),
     );
   }
 }

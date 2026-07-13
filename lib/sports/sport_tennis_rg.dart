@@ -1092,7 +1092,8 @@ class SportTennisRG extends StatefulWidget {
   State<SportTennisRG> createState() => _SportTennisRGState();
 }
 
-class _SportTennisRGState extends State<SportTennisRG> {
+class _SportTennisRGState extends State<SportTennisRG>
+    with WidgetsBindingObserver {
   List<QueryDocumentSnapshot>? _players;
   String _dateStr = '';
   List<PlayerList>? _movement;
@@ -1101,6 +1102,7 @@ class _SportTennisRGState extends State<SportTennisRG> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _playersStream = firestore
         .collection('Ladder')
         .doc(activeLadderId)
@@ -1112,7 +1114,17 @@ class _SportTennisRGState extends State<SportTennisRG> {
   @override
   void dispose() {
     sportTennisRgInstance = null;
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      // Mobile Chrome can suspend Firestore streams; this nudges reconnection on resume.
+      firestore.enableNetwork();
+    }
   }
 
   void refresh() {
