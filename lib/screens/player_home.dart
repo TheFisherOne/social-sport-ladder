@@ -147,8 +147,9 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
         //TODO: remove this LifecycleState as it now does nothing
         // setState(() {});
         // Example: Refresh data, restart animations
-        // Mobile Chrome can suspend Firestore streams; this nudges reconnection on resume.
-        firestore.enableNetwork();
+        // Do not force enableNetwork() here. On Chrome/web, Firestore reconnects
+        // on its own and forcing a reconnect during resume can cause duplicate
+        // target-id listener errors while streams are reattaching.
         break;
       case AppLifecycleState.inactive:
         if (kDebugMode) {

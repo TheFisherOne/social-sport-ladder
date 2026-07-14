@@ -1122,8 +1122,9 @@ class _SportTennisRGState extends State<SportTennisRG>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
     if (state == AppLifecycleState.resumed) {
-      // Mobile Chrome can suspend Firestore streams; this nudges reconnection on resume.
-      firestore.enableNetwork();
+      // Let Firestore reconnect naturally on resume. Forcing enableNetwork()
+      // here can race with existing web listeners and trigger duplicate
+      // target-id errors on Chrome.
     }
   }
 
