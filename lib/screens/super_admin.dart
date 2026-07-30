@@ -348,10 +348,16 @@ class _SuperAdminState extends State<SuperAdmin> {
         try {
           final FullMetadata metadata = await sourceRef.getMetadata();
           downloadUrl = await sourceRef.getDownloadURL();
-          print('got url: $downloadUrl');
-          print('parsed url: ${Uri.parse(downloadUrl)}');
+          if (kDebugMode) {
+            print('got url: $downloadUrl');
+          }
+          if (kDebugMode) {
+            print('parsed url: ${Uri.parse(downloadUrl)}');
+          }
           final http.Response response = await http.get(Uri.parse(downloadUrl));
-          print('back from http.get ${response.statusCode}');
+          if (kDebugMode) {
+            print('back from http.get ${response.statusCode}');
+          }
 
 
           if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -363,7 +369,9 @@ class _SuperAdminState extends State<SuperAdmin> {
             continue;
           }
 
-          print('writing ${response.body.length} bytes');
+          if (kDebugMode) {
+            print('writing ${response.body.length} bytes');
+          }
           await destinationRef.putString(
             response.body,
             format: PutStringFormat.raw,

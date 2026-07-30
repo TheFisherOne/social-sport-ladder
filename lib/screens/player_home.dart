@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer' as developer;
 import 'dart:math';
 
@@ -103,10 +104,42 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
   late LocationService? _loc;
   final ScrollController _scrollController = ScrollController();
   final GlobalKey _targetKey = GlobalKey();
+  DateTime? _lastBackgroundedAt;
+  bool _firestoreReconnectInProgress = false;
 
   void refresh() {
     if (mounted) {
       setState(() {});
+    }
+  }
+
+  Future<void> _maybeReconnectFirestoreAfterResume() async {
+    if (!mounted || _firestoreReconnectInProgress) {
+      return;
+    }
+
+    _firestoreReconnectInProgress = true;
+    try {
+      // Give existing listeners a moment to reattach before requesting a reconnect.
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      await firestore.enableNetwork();
+      if (kDebugMode) {
+        print('Player_home: Firestore network re-enabled after resume.');
+      }
+    } catch (e) {
+      final errorText = e.toString().toLowerCase();
+      if (errorText.contains('target id already exists')) {
+        if (kDebugMode) {
+          print('Player_home: ignoring Firestore enableNetwork race: $e');
+        }
+      } else if (kDebugMode) {
+        print('Player_home: enableNetwork() failed after resume: $e');
+      }
+    } finally {
+      _firestoreReconnectInProgress = false;
+      if (mounted) {
+        setState(() {});
+      }
     }
   }
 
@@ -141,27 +174,29 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
         if (kDebugMode) {
           print("Player_home: App is resumed (in the foreground).");
         }
-        // this was removed as it forced a scroll to the top of the window
-        // which was annoying.
-        // I think this was added to force a database refresh which really should not be necessary
-        //TODO: remove this LifecycleState as it now does nothing
-        // setState(() {});
-        // Example: Refresh data, restart animations
-        // Do not force enableNetwork() here. On Chrome/web, Firestore reconnects
-        // on its own and forcing a reconnect during resume can cause duplicate
-        // target-id listener errors while streams are reattaching.
+        final DateTime? backgroundedAt = _lastBackgroundedAt;
+        _lastBackgroundedAt = null;
+        if (backgroundedAt != null &&
+            DateTime.now().difference(backgroundedAt) >=
+                const Duration(seconds: 5)) {
+          unawaited(_maybeReconnectFirestoreAfterResume());
+        } else {
+          refresh();
+        }
         break;
       case AppLifecycleState.inactive:
         if (kDebugMode) {
           print("Player_home:App is inactive (e.g., an incoming call, or multitasking view).");
         }
         // Example: Pause animations, save state lightly
+        _lastBackgroundedAt ??= DateTime.now();
         break;
       case AppLifecycleState.paused:
         // if (kDebugMode) {
         //   print("App is paused (in the background).");
         // }
         // Example: Release resources, save persistent state
+        _lastBackgroundedAt = DateTime.now();
         break;
       case AppLifecycleState.detached:
         // if (kDebugMode) {
@@ -174,6 +209,7 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
         //   print("App is hidden (a new state, similar to paused but the UI is completely hidden).");
         // }
         // This state is similar to paused but for platforms that support hiding without pausing.
+        _lastBackgroundedAt = DateTime.now();
         break;
     }
   }
