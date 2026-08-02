@@ -96,7 +96,7 @@ class PlayerHome extends StatefulWidget {
   State<PlayerHome> createState() => _PlayerHomeState();
 }
 
-class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
+class _PlayerHomeState extends State<PlayerHome> {
   List<QueryDocumentSnapshot>? _players;
   int _clickedOnRank = -1;
   int _checkInProgress = -1;
@@ -104,42 +104,10 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
   late LocationService? _loc;
   final ScrollController _scrollController = ScrollController();
   final GlobalKey _targetKey = GlobalKey();
-  DateTime? _lastBackgroundedAt;
-  bool _firestoreReconnectInProgress = false;
 
   void refresh() {
     if (mounted) {
       setState(() {});
-    }
-  }
-
-  Future<void> _maybeReconnectFirestoreAfterResume() async {
-    if (!mounted || _firestoreReconnectInProgress) {
-      return;
-    }
-
-    _firestoreReconnectInProgress = true;
-    try {
-      // Give existing listeners a moment to reattach before requesting a reconnect.
-      await Future<void>.delayed(const Duration(milliseconds: 300));
-      await firestore.enableNetwork();
-      if (kDebugMode) {
-        print('Player_home: Firestore network re-enabled after resume.');
-      }
-    } catch (e) {
-      final errorText = e.toString().toLowerCase();
-      if (errorText.contains('target id already exists')) {
-        if (kDebugMode) {
-          print('Player_home: ignoring Firestore enableNetwork race: $e');
-        }
-      } else if (kDebugMode) {
-        print('Player_home: enableNetwork() failed after resume: $e');
-      }
-    } finally {
-      _firestoreReconnectInProgress = false;
-      if (mounted) {
-        setState(() {});
-      }
     }
   }
 
@@ -149,7 +117,6 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
     _loc!.init();
     _loc!.addListener(refresh);
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
     waitingForFreezeCheckins = false;
   }
 
@@ -161,58 +128,10 @@ class _PlayerHomeState extends State<PlayerHome> with WidgetsBindingObserver {
     _loc?.dispose();
     _loc=null;
 
-    WidgetsBinding.instance.removeObserver(this);
     _scrollController.dispose();
     super.dispose();
   }
 
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    super.didChangeAppLifecycleState(state);
-    switch (state) {
-      case AppLifecycleState.resumed:
-        if (kDebugMode) {
-          print("Player_home: App is resumed (in the foreground).");
-        }
-        final DateTime? backgroundedAt = _lastBackgroundedAt;
-        _lastBackgroundedAt = null;
-        if (backgroundedAt != null &&
-            DateTime.now().difference(backgroundedAt) >=
-                const Duration(seconds: 5)) {
-          unawaited(_maybeReconnectFirestoreAfterResume());
-        } else {
-          refresh();
-        }
-        break;
-      case AppLifecycleState.inactive:
-        if (kDebugMode) {
-          print("Player_home:App is inactive (e.g., an incoming call, or multitasking view).");
-        }
-        // Example: Pause animations, save state lightly
-        _lastBackgroundedAt ??= DateTime.now();
-        break;
-      case AppLifecycleState.paused:
-        // if (kDebugMode) {
-        //   print("App is paused (in the background).");
-        // }
-        // Example: Release resources, save persistent state
-        _lastBackgroundedAt = DateTime.now();
-        break;
-      case AppLifecycleState.detached:
-        // if (kDebugMode) {
-        //   print("App is detached (Flutter engine is running but not attached to any view).");
-        // }
-        // This state is rarely used for typical app logic.
-        break;
-      case AppLifecycleState.hidden:
-        // if (kDebugMode) {
-        //   print("App is hidden (a new state, similar to paused but the UI is completely hidden).");
-        // }
-        // This state is similar to paused but for platforms that support hiding without pausing.
-        _lastBackgroundedAt = DateTime.now();
-        break;
-    }
-  }
 
   (IconData, String) presentCheckBoxInfo(QueryDocumentSnapshot player) {
     IconData standardIcon = Icons.check_box_outline_blank;

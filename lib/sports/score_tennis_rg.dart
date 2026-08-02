@@ -12,8 +12,7 @@ import 'package:social_sport_ladder/sports/sport_tennis_rg.dart';
 import '../main.dart';
 import '../screens/audit_page.dart';
 
-
-Map<String,String> globalEmails={};
+Map<String, String> globalEmails = {};
 
 class ScoreTennisRg extends StatefulWidget {
   final String ladderName;
@@ -39,12 +38,15 @@ class ScoreTennisRg extends StatefulWidget {
   @override
   State<ScoreTennisRg> createState() => ScoreTennisRgState();
 }
+
 @visibleForTesting
 class ScoreTennisRgState extends State<ScoreTennisRg>
-    with WidgetsBindingObserver{
+    with WidgetsBindingObserver {
   String _beingEditedById = '';
   bool _clearUsEditing = false;
-  bool _pendingClaimTransaction = false; // guard: only one runTransaction in flight at a time
+  bool _pendingClaimTransaction =
+      false; // guard: only one runTransaction in flight at a time
+  bool _awaitingOwnClaimSync = false;
   late String _beingEditedByName;
   late String _gameScoresStr;
   late List<List<int?>> _gameScores;
@@ -117,19 +119,19 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
     // print("readBeingEditedBy= $docBeingEditedById from ${widget.scoreDoc.id}");
     // print('updateFromDoc start2 docBeingEditedById: $docBeingEditedById internal:$_beingEditedById clear:$_clearUsEditing');
     if (docBeingEditedById.isNotEmpty) {
-
       // if it is someone else then we need to abort editing
       if ((_clearUsEditing && (docBeingEditedById == activeUser.id))) {
         if (kDebugMode) {
           // print('Just cancelled and waiting for doc to update');
         }
-      } else if ((_beingEditedById != docBeingEditedById) && (docBeingEditedById != activeUser.id)) {
-
+      } else if ((_beingEditedById != docBeingEditedById) &&
+          (docBeingEditedById != activeUser.id)) {
         // if (kDebugMode) {
         //   print(
         //       'new user editing changes from "$_beingEditedById" to "$docBeingEditedById"');
         // }
         _clearUsEditing = false;
+        _awaitingOwnClaimSync = false;
         _beingEditedById = docBeingEditedById;
         // print('updateFromDoc4 _startTimer');
         _startTimer();
@@ -139,16 +141,17 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
       } else {
         _beingEditedById = docBeingEditedById;
         _clearUsEditing = false;
+        _awaitingOwnClaimSync = false;
       }
     } else {
-      _beingEditedById = '';
-      _clearUsEditing = false;
+      // Keep local ownership latched while claim is in flight.
+      if (!(_awaitingOwnClaimSync && (_beingEditedById == activeUser.id))) {
+        _beingEditedById = '';
+        _clearUsEditing = false;
+      }
     }
     // print('updateFromDoc3 _beingEditedById: $_beingEditedById');
     _beingEditedByName = playerIdToName(_beingEditedById);
-
-
-
 
     _allScoresEntered = true;
     _gameScoresStr = widget.scoreDoc.get('GameScores');
@@ -699,9 +702,8 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
   bool _canUseAutoFill() {
     if (!widget.allowEdit) return false;
     if (!(_loggedInPlayerOnCourt || activeUser.helper)) return false;
-    // Auto-fill is only allowed after the lock is confirmed in the stream.
-    // This avoids a race where transaction completion beats UI doc refresh.
-    if (_beingEditedById != activeUser.id) {
+    // Allow local lock owner while waiting for stream sync after claim transaction.
+    if ((_beingEditedById != activeUser.id) && !_awaitingOwnClaimSync) {
       return false;
     }
     return true;
@@ -709,7 +711,7 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
 
   void addToGlobalEmails(String email) async {
     DocumentSnapshot<Map<String, dynamic>> userDoc =
-    await firestore.collection('Users').doc(email).get();
+        await firestore.collection('Users').doc(email).get();
     if (userDoc.exists && userDoc.data()!.containsKey('DisplayName')) {
       // If it exists, add the email and DisplayName to the local map
       if (mounted) {
@@ -761,25 +763,58 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
   }
 
   void updateBeingEditedBy(String newId) {
+    DocumentReference scoreDocRef = firestore
+        .collection('Ladder')
+        .doc(activeLadderId)
+        .collection('Scores')
+        .doc(widget.scoreDoc.id);
+
     if (newId.isEmpty) {
+      // Nothing to clear locally or remotely.
+      if (_beingEditedById.isEmpty && !_awaitingOwnClaimSync) {
+        return;
+      }
+
       _beingEditedById = '';
       _clearUsEditing = true;
       _pendingClaimTransaction = false; // reset so a fresh tap can claim again
+      _awaitingOwnClaimSync = false;
       cancelWorkingScores();
-      firestore
-          .collection('Ladder')
-          .doc(widget.ladderName)
-          .collection('Scores')
-          .doc(_scoreDocStr)
-          .update({
-        'BeingEditedBy': '',
+
+      // Clear only if this user currently owns the lock.
+      firestore.runTransaction<bool>((transaction) async {
+        DocumentSnapshot freshScoreDoc = await transaction.get(scoreDocRef);
+        if (!freshScoreDoc.exists) return false;
+
+        final data = freshScoreDoc.data() as Map<String, dynamic>?;
+        String currentBeingEditedBy = '';
+        if (data != null && data.containsKey('BeingEditedBy')) {
+          currentBeingEditedBy = data['BeingEditedBy'] as String;
+        }
+
+        if (currentBeingEditedBy == activeUser.id) {
+          transaction.update(scoreDocRef, {
+            'BeingEditedBy': '',
+          });
+          return true;
+        }
+        return false;
+      }).catchError((e) {
+        if (kDebugMode) {
+          print('runTransaction failed clearing BeingEditedBy: $e');
+        }
+        return false;
       });
       // print('scoreBox new user editing: "" docId=$_scoreDocStr');
       return;
     }
     if (_beingEditedById.isEmpty && !_pendingClaimTransaction) {
-      // we should wait for the database to be updated as we might not get it
-      // _beingEditedById = newId;
+      // Optimistically claim locally so Save/autofill are visible immediately.
+      _beingEditedById = newId;
+      _awaitingOwnClaimSync = true;
+      if (mounted) {
+        setState(() {});
+      }
 
       // Guard against multiple concurrent transactions (e.g. rapid taps before
       // Firebase responds). Without this flag every tap would spawn a new
@@ -788,13 +823,7 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
       _pendingClaimTransaction = true;
 
       // Get the document reference and make sure it is empty before updating it
-      DocumentReference scoreDocRef = firestore
-          .collection('Ladder')
-          .doc(
-              activeLadderId) // Assuming activeLadderId is available and correct
-          .collection('Scores')
-          .doc(widget.scoreDoc.id);
-      firestore.runTransaction((transaction) async {
+      firestore.runTransaction<bool>((transaction) async {
         // 1. Read the document within the transaction
         DocumentSnapshot freshScoreDoc = await transaction.get(scoreDocRef);
 
@@ -803,7 +832,7 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
           if (kDebugMode) {
             print('score document does not exist in scoreBox');
           }
-          return;
+          return false;
         }
         final data = freshScoreDoc.data() as Map<String, dynamic>?;
         String currentBeingEditedBy = "";
@@ -820,7 +849,9 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
           // if (kDebugMode) {
           //   print('scoreBox new user editing: $newId docId=${scoreDocRef.id}');
           // }
+          return true;
         }
+        return false;
       }).catchError((e) {
         // Transaction failed (network error, max retries, etc.).
         // Reset the guard so the next tap can try again, and show an error.
@@ -828,13 +859,25 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
           print('runTransaction failed in updateBeingEditedBy: $e');
         }
         _pendingClaimTransaction = false;
+        _awaitingOwnClaimSync = false;
+        _beingEditedById = '';
         _scoreEntryErrorString = 'Failed to claim score entry lock: $e';
         if (mounted) {
           setState(() {});
         }
-      }).then((_) {
+        return false;
+      }).then((claimed) {
         // Transaction completed (success or conditional no-op). Reset the guard.
         _pendingClaimTransaction = false;
+        if (claimed != true) {
+          _awaitingOwnClaimSync = false;
+          if (_beingEditedById == activeUser.id) {
+            _beingEditedById = '';
+          }
+        }
+        if (mounted) {
+          setState(() {});
+        }
       });
     }
   }
@@ -853,6 +896,7 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
     WidgetsBinding.instance.addObserver(this);
     super.initState();
   }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
@@ -867,8 +911,8 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
         }
         break;
 
-    // These states mean the app is no longer active and visible.
-    // Group them together to handle all platforms.
+      // These states mean the app is no longer active and visible.
+      // Group them together to handle all platforms.
       case AppLifecycleState.inactive:
       case AppLifecycleState.paused:
       case AppLifecycleState.hidden: // This is the key state for web browsers
@@ -882,7 +926,6 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
         break;
     }
   }
-
 
   Widget scoreBox(int? initialValue, int playerNum, int gameNum,
       {Color? backgroundColor, Key? key}) {
@@ -1065,9 +1108,9 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
         for (int i = 0; i < result.length; i++) {
           if (result[i] < 0) result[i] = score2;
         }
-      }else if (getSportDescriptor(0) == 'generic') {
+      } else if (getSportDescriptor(0) == 'generic') {
         //print('doing autofill4 with generic');
-        if (getScoringMethod() != 'total'){
+        if (getScoringMethod() != 'total') {
           if (score1 >= getGamesFor4()) return null;
           int score2 = getGamesFor4();
           result[lastPlayerWithScore] = score1;
@@ -1121,8 +1164,9 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
           if (result[i] < 0) result[i] = score2;
         }
       } else if (getSportDescriptor(0) == 'generic') {
-        if (getScoringMethod() != 'total'){
-          if (score1 >= getGamesFor4()) return null; // can not autofill with 2 max scores
+        if (getScoringMethod() != 'total') {
+          if (score1 >= getGamesFor4())
+            return null; // can not autofill with 2 max scores
           int score2 = getGamesFor4();
           result[lastPlayerWithScore] = score1;
           result[playerWithSameScore] = score1;
@@ -1201,7 +1245,7 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
         }
         result[4 - game] = null; // the diagonal blank scores
       } else if (getSportDescriptor(0) == 'generic') {
-        if (getScoringMethod() != 'total'){
+        if (getScoringMethod() != 'total') {
           if (score1 >= getGamesFor5()) return null;
           int score2 = getGamesFor5();
           result[lastPlayerWithScore] = score1;
@@ -1380,7 +1424,8 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
                       null,
                       null,
                       Colors.green.shade200
-                    ][row], key: Key('scoreBox-$row-0'))),
+                    ][row],
+                    key: Key('scoreBox-$row-0'))),
             Expanded(
                 flex: 1,
                 child: scoreBox(getScore(row, 1), row, 1,
@@ -1389,7 +1434,8 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
                       null,
                       Colors.green.shade200,
                       null
-                    ][row], key: Key('scoreBox-$row-1'))),
+                    ][row],
+                    key: Key('scoreBox-$row-1'))),
             Expanded(
                 flex: 1,
                 child: scoreBox(getScore(row, 2), row, 2,
@@ -1398,7 +1444,8 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
                       Colors.green.shade200,
                       null,
                       null
-                    ][row], key: Key('scoreBox-$row-2'))),
+                    ][row],
+                    key: Key('scoreBox-$row-2'))),
             Expanded(
                 flex: 1,
                 child: Padding(
@@ -1873,7 +1920,9 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
                     style: nameStyle,
                   ),
                 const Divider(color: Colors.black),
-                if ((_beingEditedById == activeUser.id) && widget.allowEdit)
+                if (((_beingEditedById == activeUser.id) ||
+                        _awaitingOwnClaimSync) &&
+                    widget.allowEdit)
                   Row(
                     children: [
                       Align(
@@ -1881,7 +1930,6 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
                         child: InkWell(
                           key: const Key('save-button'),
                           onTap: () async {
-
                             String gameScoresStr = saveWorkingScores();
                             String thisUser = activeUser.id;
                             String whereInScores = '';
@@ -1929,7 +1977,8 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
                                     print(
                                         'this user $thisUser got kicked out by: ${scoreSnapshot.get('BeingEditedBy')}');
                                   }
-                                  _scoreEntryErrorString = 'this user $thisUser got kicked out by: ${scoreSnapshot.get('BeingEditedBy')}';
+                                  _scoreEntryErrorString =
+                                      'this user $thisUser got kicked out by: ${scoreSnapshot.get('BeingEditedBy')}';
                                   return; // Abort the transaction
                                 }
 
@@ -1986,9 +2035,11 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
                             } catch (e) {
                               // Handle transaction failure
                               if (kDebugMode) {
-                                print('Error saving scores: $whereInScores// ${e.toString()}');
+                                print(
+                                    'Error saving scores: $whereInScores// ${e.toString()}');
                               }
-                              _scoreEntryErrorString = '$whereInScores// ${e.toString()}';
+                              _scoreEntryErrorString =
+                                  '$whereInScores// ${e.toString()}';
                               // return; // skip the clearing
                             }
                             if (mounted) {
@@ -2121,8 +2172,8 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
                           'ScoresConfirmed': true,
                         });
                       }
-                      if (mounted){
-                      setState(() {});
+                      if (mounted) {
+                        setState(() {});
                       }
                     },
                     child: Text('Confirm Scores', style: nameStyle),
