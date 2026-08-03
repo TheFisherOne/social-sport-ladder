@@ -56,6 +56,7 @@ String buildCsv(List<PlayerList>? listOfPlayers,
     CourtAssignmentsRgStandard courtAssignments) {
   String result =
       'Rank,NewR,Present,Unassigned,Away,Player Name,Score,Pos,Court#,CourtName,aw+-,tot+-,TimePresent,Scr1,Scr2,Scr3,Scr4,Scr5,WeeksAwayWithoutNotice,WeeksAway,OnCourtOfFive,WeeksPlayed\n';
+  // print('CourtNames: ${courtAssignments.shuffledCourtNames}');
   for (int i = 0; i < listOfPlayers!.length; i++) {
     PlayerList pl = listOfPlayers[i];
     final Map<String, dynamic>? playerData =
@@ -80,19 +81,25 @@ String buildCsv(List<PlayerList>? listOfPlayers,
           '${pl.snapshot.get('WeeksAwayWithoutNotice')},${pl.snapshot.get(
           'WeeksAway')},$onCourtOfFive,${activeLadderDoc!.get('WeeksPlayed')}\n';
     } else {
-      result +=
-      '${pl.startingRank},${pl.newRank},${pl.present ? 'true' : ''},${pl
-          .unassigned ? 'true' : ''},${pl.markedAway ? 'true' : ''},${pl
-          .snapshot.get('Name')},'
-          '${pl.totalScore},${pl.startingOrder},${pl.courtNumber >= 0 ? pl
-          .courtNumber + 1 : ''},${pl.courtNumber >= 0 ? courtAssignments
-          .shuffledCourtNames[pl.courtNumber] : ''},'
-          '${pl.startingRank - pl.afterDownTwo},${pl.startingRank -
-          pl.afterWinLose},'
-          '${pl.present ? DateFormat('yyyy.MM.dd_HH:mm:ss').format(
-          pl.snapshot.get('TimePresent').toDate()) : ''},$matchScoreStr,'
-          '${pl.snapshot.get('WeeksAwayWithoutNotice')},${pl.snapshot.get(
-          'WeeksAway')},$onCourtOfFive,${activeLadderDoc!.get('WeeksPlayed')}\n';
+      if (pl.courtNumber >= courtAssignments.shuffledCourtNames.length){
+        if (kDebugMode) {
+          print(' assignedCourt too high: email:${pl.snapshot.id} Rank:${pl.startingRank} AssignedCourt:${pl.courtNumber}');
+        }
+      } else {
+        result +=
+        '${pl.startingRank},${pl.newRank},${pl.present ? 'true' : ''},${pl
+            .unassigned ? 'true' : ''},${pl.markedAway ? 'true' : ''},${pl
+            .snapshot.get('Name')},'
+            '${pl.totalScore},${pl.startingOrder},${pl.courtNumber >= 0 ? pl
+            .courtNumber + 1 : ''},${pl.courtNumber >= 0 ? courtAssignments
+            .shuffledCourtNames[pl.courtNumber] : ''},'
+            '${pl.startingRank - pl.afterDownTwo},${pl.startingRank -
+            pl.afterWinLose},'
+            '${pl.present ? DateFormat('yyyy.MM.dd_HH:mm:ss').format(
+            pl.snapshot.get('TimePresent').toDate()) : ''},$matchScoreStr,'
+            '${pl.snapshot.get('WeeksAwayWithoutNotice')},${pl.snapshot.get(
+            'WeeksAway')},$onCourtOfFive,${activeLadderDoc!.get('WeeksPlayed')}\n';
+      }
     }
   }
   return result;

@@ -250,15 +250,23 @@ List<PlayerList>? sportTennisRGDetermineMovement(
   for (int i = 0; i < players.length; i++) {
     int startingOrder = startingList[i].startingOrder;
     startingList[i].startingRank = startingList[i].rank;
-    if ((startingList[i].present && !startingList[i].unassigned) ||
-        (startingList[i].snapshot.get('WaitListRank') >
-            activeLadderDoc!.get('NumberFromWaitList')) ){
-      if (startingOrder < lastStartingOrder) {
+    if ((startingList[i].present && !startingList[i].unassigned) &&
+        !(startingList[i].snapshot.get('WaitListRank') >
+            activeLadderDoc!.get('NumberFromWaitList'))){
+      // startingOrder=0 means the player was absent/unassigned last round
+      // and has no prior court position. Never treat it as a court boundary.
+      if (startingOrder > 0 && (startingOrder < lastStartingOrder)) {
         currentCourt++;
+        courtAssignments.add(List<PlayerList>.empty(growable: true));
+      } else if (currentCourt < 0) {
+        // First assigned player seen and their startingOrder is 0 (never frozen).
+        currentCourt = 0;
         courtAssignments.add(List<PlayerList>.empty(growable: true));
       }
       courtAssignments[currentCourt].add(startingList[i]);
-      lastStartingOrder = startingOrder;
+      if (startingOrder > 0) {
+        lastStartingOrder = startingOrder;
+      }
       // print('startingOrder: i: $i court: $currentCourt startingOrder:$startingOrder ${startingList[i].snapshot.id}');
 
       startingList[i].courtNumber = currentCourt;

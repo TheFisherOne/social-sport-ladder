@@ -395,6 +395,58 @@ void main() {
 
     expect(result[12].newRank, 13, reason: 'newRank should not change 13 as is bottom player');
   });
+
+  test('courtNumber bug: unassigned waitlist player must not be given a court', () async {
+    // Regression test: a player with WaitListRank > NumberFromWaitList who is
+    // also marked unassigned was incorrectly assigned courtNumber=1 because the
+    // || in the court-assignment if-condition bypassed the !unassigned guard.
+    testFirestore = FakeFirebaseFirestore();
+    firestore = testFirestore;
+    // NumberFromWaitList=0 so any WaitListRank > 0 is an uncalled waitlist player.
+    await initActiveLadderDoc(testFirestore, overrides: {'NumberFromWaitList': 0});
+
+    final DocumentReference ladderRef = testFirestore.collection('Ladder').doc('Ladder 500');
+    final CollectionReference<Map<String, dynamic>> collection = ladderRef.collection('Players');
+
+    // Players 1-5 check in early; player 6 checks in latest and is a waitlist player.
+    for (int i = 1; i <= 5; i++) {
+      Map<String, dynamic> p = createPlayer(i);
+      // Earlier check-in times so they are NOT the unassigned one.
+      p['TimePresent'] = Timestamp.fromDate(DateTime.now().subtract(Duration(minutes: 10 - i)));
+      collection.doc('test0$i@gmail.com').set(p);
+    }
+    // Player 6: waitlist player (WaitListRank=1 > NumberFromWaitList=0), present, latest check-in.
+    Map<String, dynamic> p6 = createPlayer(6);
+    p6['WaitListRank'] = 1;
+    p6['TimePresent'] = Timestamp.fromDate(DateTime.now()); // most recent → unassigned
+    collection.doc('test06@gmail.com').set(p6);
+
+    // Player 7: not present.
+    Map<String, dynamic> p7 = createPlayer(7);
+    p7['Present'] = false;
+    collection.doc('test07@gmail.com').set(p7);
+
+    QuerySnapshot querySnapshot = await ladderRef.collection('Players').get();
+    await prepareForScoreEntry(activeLadderDoc!, querySnapshot.docs);
+    querySnapshot = await ladderRef.collection('Players').get();
+    final result = sportTennisRGDetermineMovement(querySnapshot.docs, '');
+
+    expect(PlayerList.numPresent, 6, reason: 'numPresent should be 6');
+    expect(PlayerList.numCourtsOf5, 1, reason: 'should have 1 court of 5');
+    expect(PlayerList.numUnassigned, 1, reason: 'one player should be unassigned');
+
+    // First 5 ranked players on court 0.
+    expect(result![0].courtNumber, 0, reason: 'player 1 should be on court 0');
+    expect(result[1].courtNumber, 0, reason: 'player 2 should be on court 0');
+    expect(result[2].courtNumber, 0, reason: 'player 3 should be on court 0');
+    expect(result[3].courtNumber, 0, reason: 'player 4 should be on court 0');
+    expect(result[4].courtNumber, 0, reason: 'player 5 should be on court 0');
+    // Player 6 is the unassigned waitlist player: must NOT get courtNumber=1.
+    expect(result[5].courtNumber, -1, reason: 'unassigned waitlist player must be -1, not 1');
+    // Player 7 not present.
+    expect(result[6].courtNumber, -1, reason: 'absent player must be -1');
+  });
+
   test('sportTennisRGDetermineMovement with 13 players 12 present', () async {
     testFirestore = FakeFirebaseFirestore();
     firestore = testFirestore;
