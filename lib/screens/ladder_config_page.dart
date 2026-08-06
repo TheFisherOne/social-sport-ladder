@@ -226,7 +226,14 @@ Future<void> uploadPicture(XFile file) async {
   img.Image resized = img.copyResize(image, height: 100);
   try {
     // print('now doing putData to: $filename');
-    await FirebaseStorage.instance.ref(filename).putData(img.encodePng(resized));
+    await FirebaseStorage.instance.ref(filename).putData(
+      img.encodeJpg(resized, quality: 85),
+      SettableMetadata(
+        contentType: 'image/jpeg',
+        // Cache image bytes for repeat loads, but revalidate within a day.
+        cacheControl: 'public,max-age=86400',
+      ),
+    );
   } catch (e) {
     if (kDebugMode) {
       print('Error on write to storage $e');

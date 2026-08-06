@@ -28,6 +28,13 @@ String activeLadderId = '';
 
 Map<String, String?> urlCache = {};
 
+String _withCacheBuster(String url) {
+  final Uri parsed = Uri.parse(url);
+  final Map<String, String> updatedQuery = Map<String, String>.from(parsed.queryParameters);
+  updatedQuery['v'] = DateTime.now().millisecondsSinceEpoch.toString();
+  return parsed.replace(queryParameters: updatedQuery).toString();
+}
+
 Future<bool> getLadderImage(String ladderId,
     {bool overrideCache = false}) async {
   if (!overrideCache && (urlCache.containsKey(ladderId)) || !enableImages) {
@@ -43,9 +50,9 @@ Future<bool> getLadderImage(String ladderId,
     final ref = storage.ref(filename);
     // print('getLadderImage: for $filename');
 
-    final url = await ref.getDownloadURL();
+    final String url = await ref.getDownloadURL();
     // print('URL: $url');
-    urlCache[ladderId] = url;
+    urlCache[ladderId] = overrideCache ? _withCacheBuster(url) : url;
     // print('Image $filename downloaded successfully! $url');
   } catch (e) {
     if (e is FirebaseException) {

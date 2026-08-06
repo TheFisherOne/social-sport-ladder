@@ -8,6 +8,13 @@ import '../constants/constants.dart';
 
 Map<String,String?> playerImageCache = {};
 
+String _withCacheBuster(String url) {
+  final Uri parsed = Uri.parse(url);
+  final Map<String, String> updatedQuery = Map<String, String>.from(parsed.queryParameters);
+  updatedQuery['v'] = DateTime.now().millisecondsSinceEpoch.toString();
+  return parsed.replace(queryParameters: updatedQuery).toString();
+}
+
 Future<bool> getPlayerImage(String playerEmail, {bool overrideCache = false}) async {
   if (!enableImages) return false;
   if (!overrideCache && ( playerImageCache.containsKey(playerEmail))){
@@ -23,9 +30,9 @@ Future<bool> getPlayerImage(String playerEmail, {bool overrideCache = false}) as
   final ref = storage.ref(filename);
   // print('getPlayerImage: for $filename');
   try {
-    final url = await ref.getDownloadURL();
+    final String url = await ref.getDownloadURL();
     // print('URL: $url');
-    playerImageCache[playerEmail] = url;
+    playerImageCache[playerEmail] = overrideCache ? _withCacheBuster(url) : url;
     // print('Image $filename downloaded successfully! $url');
   } catch (e) {
     if (e is FirebaseException) {
@@ -72,7 +79,14 @@ Future<void> uploadPlayerPicture(XFile file, String playerId) async {
   img.Image resized = img.copyResize(image, height: 100);
   try {
     // print('now doing putData to: $filename');
-    await FirebaseStorage.instance.ref(filename).putData(img.encodePng(resized));
+    await FirebaseStorage.instance.ref(filename).putData(
+      img.encodeJpg(resized, quality: 85),
+      SettableMetadata(
+        contentType: 'image/jpeg',
+        // Cache image bytes for repeat loads, but allow daily refresh without stale app code risk.
+        cacheControl: 'public,max-age=86400',
+      ),
+    );
   } catch (e) {
     if (kDebugMode) {
       print('Error on write to storage $e');
