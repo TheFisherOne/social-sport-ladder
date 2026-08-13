@@ -229,7 +229,10 @@ class _ScoreBaseState extends State<ScoreBase> {
             return Text(error);
           }
           // print('in StreamBuilder ladder 0');
-          if (!snapshot.hasData || (snapshot.connectionState != ConnectionState.active)) {
+          // Only block on first load (no data yet). Once we have data, keep
+          // rendering the last known snapshot while the stream reconnects
+          // (e.g. after a phone lock/unlock cycle) so the canvas never goes black.
+          if (!snapshot.hasData) {
             // if (kDebugMode) {
             //   print('hasData: ${snapshot.hasData} ConnectionState: ${snapshot.connectionState}');
             // }
@@ -254,7 +257,7 @@ class _ScoreBaseState extends State<ScoreBase> {
           return StreamBuilder<DocumentSnapshot>(
               stream: firestore.collection('Ladder').doc(widget.ladderName).collection('Scores').doc(_scoreDocStr).snapshots(),
               builder: (BuildContext context, AsyncSnapshot<DocumentSnapshot<Object?>> snapshot) {
-                // print('Ladder snapshot');
+                // print('Ladder snapshot')
                 if (snapshot.error != null) {
                   String error = 'Snapshot error: ${snapshot.error.toString()} on getting scores for ${widget.ladderName}/$_scoreDocStr';
                   if (kDebugMode) {
@@ -262,8 +265,9 @@ class _ScoreBaseState extends State<ScoreBase> {
                   }
                   return Text(error);
                 }
-                // print('in StreamBuilder ladder 0');
-                if (!snapshot.hasData || (snapshot.connectionState != ConnectionState.active)) {
+                // Only block on first load; keep last data while reconnecting
+                // after lock/unlock so Flutter web's canvas stays painted.
+                if (!snapshot.hasData) {
                   // print('ladder_selection_page getting user $loggedInUser but hasData is false or ConnectionState: ${snapshot.connectionState}');
                   return const CircularProgressIndicator();
                 }

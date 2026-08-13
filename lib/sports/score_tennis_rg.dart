@@ -905,10 +905,16 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
         if (kDebugMode) {
           print("App is resumed (in the foreground or tab is visible).");
         }
-        // It's often useful to refresh state when the user comes back.
-        if (mounted) {
-          setState(() {});
-        }
+        // Use addPostFrameCallback so the setState fires after the canvas
+        // has had a chance to repaint following a Chrome Android lock/unlock
+        // cycle. Calling setState synchronously here can be a no-op if the
+        // widget was temporarily unmounted while the Firestore stream was
+        // reconnecting.
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            setState(() {});
+          }
+        });
         break;
 
       // These states mean the app is no longer active and visible.

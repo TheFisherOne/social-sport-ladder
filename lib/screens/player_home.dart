@@ -249,9 +249,9 @@ class _PlayerHomeState extends State<PlayerHome> {
     );
   }
 
-  double _getAverageOnCourtOfFive() {
+  int  _getAverageOnCourtOfFive() {
     if ((_players == null) || _players!.isEmpty || (activeLadderDoc == null)) {
-      return 0.0;
+      return 0;
     }
     final int totalWeeks =
         ((activeLadderDoc!.get('WeeksPlayed') as num?) ?? 0).toInt();
@@ -274,9 +274,10 @@ class _PlayerHomeState extends State<PlayerHome> {
     }
 
     if (countIncludedPlayers == 0) {
-      return 0.0;
+      return 0;
     }
-    return totalFraction / countIncludedPlayers;
+    return
+      ((totalFraction / countIncludedPlayers) * 100).toInt();
   }
 
   Widget unfrozenSubLine(QueryDocumentSnapshot player) {
@@ -286,7 +287,12 @@ class _PlayerHomeState extends State<PlayerHome> {
         player.data() as Map<String, dynamic>?;
     final int onCourtOfFive =
         ((playerData?['OnCourtOfFive'] as num?) ?? 0).toInt();
-    final double averageOnCourtOfFive = _getAverageOnCourtOfFive();
+    int weeksPresent = activeLadderDoc!.get('WeeksPlayed')-player.get('WeeksAway');
+    if (weeksPresent<1){
+      weeksPresent = 1;
+    }
+    final int percentCourtOf5 = ((onCourtOfFive / weeksPresent) *100.0).toInt() ;
+    final int averageOnCourtOfFive = _getAverageOnCourtOfFive();
     if (player.id == activeUser.id) {
       if (player.get('Present')) {
         // print('unfrozen stopTimer');
@@ -468,8 +474,8 @@ class _PlayerHomeState extends State<PlayerHome> {
                     activeUser.admin)
                   Text(
                     'No Notice: ${player.get('WeeksAwayWithoutNotice')}\ntotal Away ${player.get('WeeksAway')}\n'
-                    'On Court of 5: $onCourtOfFive\n Avg: ${averageOnCourtOfFive.toStringAsFixed(1)}\n'
-                     'Total weeks: ${activeLadderDoc!.get('WeeksPlayed')}',
+                    'On crt of 5: $percentCourtOf5%\n vs Avg: ${averageOnCourtOfFive}%\n'
+                     'Total weeks: ${activeLadderDoc!.get('WeeksPlayed')-player.get('WeeksAway')}',
                     style: errorNameStyle,
                   ),
                 SizedBox(key: _targetKey, height: 1),

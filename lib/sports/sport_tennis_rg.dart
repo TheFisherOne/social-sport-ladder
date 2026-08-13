@@ -1133,6 +1133,12 @@ class _SportTennisRGState extends State<SportTennisRG>
       // Let Firestore reconnect naturally on resume. Forcing enableNetwork()
       // here can race with existing web listeners and trigger duplicate
       // target-id errors on Chrome.
+      //
+      // However, on Chrome Android the CanvasKit rendering pipeline can stall
+      // after the lock screen. Schedule a forced frame so the canvas repaints
+      // even if no widget is dirty yet.
+      WidgetsBinding.instance.scheduleFrame();
+      if (mounted) setState(() {});
     }
   }
 
