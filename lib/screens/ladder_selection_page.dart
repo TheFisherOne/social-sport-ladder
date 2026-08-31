@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'package:flutter_html/flutter_html.dart';
 
 import '../Utilities/html_none.dart'
     if (dart.library.html) '../Utilities/html_only.dart';
@@ -210,6 +209,16 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
     }
   }
 
+  /// Strips basic HTML tags and converts <br>/<p> to newlines so the tip body
+  /// is readable as plain text without requiring flutter_html.
+  String _stripHtml(String html) {
+    return html
+        .replaceAll(RegExp(r'<br\s*/?>', caseSensitive: false), '\n')
+        .replaceAll(RegExp(r'</p>', caseSensitive: false), '\n')
+        .replaceAll(RegExp(r'<[^>]+>'), '')
+        .trim();
+  }
+
   void showHtmlPopup(BuildContext context, String title, String htmlContent) {
     showDialog(
       context: context,
@@ -217,24 +226,9 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
         return AlertDialog(
           title: Text(title),
           content: SingleChildScrollView(
-            // In case the HTML is long
-            child: Html(
-              data: htmlContent,
-              // You can customize styling and behavior here
-              style: {
-                "body": Style(
-                  fontSize: FontSize(appFontSize),
-                ),
-              },
-              onLinkTap: (url, attributes, element) {
-                // Handle link taps within the HTML
-                if (url != null) {
-                  // You might want to launch the URL using url_launcher package
-                  if (kDebugMode) {
-                    print('Tapped on link: $url');
-                  }
-                }
-              },
+            child: Text(
+              _stripHtml(htmlContent),
+              style: TextStyle(fontSize: appFontSize),
             ),
           ),
           actions: <Widget>[

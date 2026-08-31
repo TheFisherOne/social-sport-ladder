@@ -400,6 +400,7 @@ class _HelperFunctionDialog extends StatelessWidget {
                           }
                           // updating CurrentRound
                           int currentRound = activeLadderRef.get('CurrentRound') as int? ?? 1;
+                          int numberFromWaitList = activeLadderRef.get('NumberFromWaitList') as int? ?? 0;
 
                           // the Scores documents get initialized when the ladder is refrozen
                           final Map<int, int> playersPerCourt = {};
@@ -434,11 +435,13 @@ class _HelperFunctionDialog extends StatelessWidget {
                               playerData['Present'] = false;
                             }
                             if (currentRound == 1) {
+                              // Skip away stats for waitlist players not enabled to play
+                              bool isDisabledWaitList = listOfPlayers![pl].waitListRank > 0 &&
+                                  listOfPlayers![pl].waitListRank > numberFromWaitList;
                               if (!listOfPlayers![pl]
-                                  .present) {
+                                  .present && !isDisabledWaitList) {
                                 playerData['WeeksAway'] =
-                                    FieldValue.increment(
-                                        1);
+                                    FieldValue.increment(1);
 
                                 if (!listOfPlayers![pl]
                                     .markedAway) {
@@ -471,7 +474,7 @@ class _HelperFunctionDialog extends StatelessWidget {
                             'CurrentRound': currentRound,
                             'DaysOfPlay':
                             newDaysOfPlay.join('|'),
-                            'NumberFromWaitlist': 0,
+                            'NumberFromWaitList': 0,
                             'WeeksPlayed':
                             FieldValue.increment(1),
                           });

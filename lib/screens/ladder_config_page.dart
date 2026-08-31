@@ -3,6 +3,8 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
+import 'package:timezone/timezone.dart' as tz;
 import 'package:social_sport_ladder/Utilities/my_text_field.dart';
 import 'package:social_sport_ladder/Utilities/string_validators.dart';
 import 'package:social_sport_ladder/screens/player_config_page.dart';
@@ -520,20 +522,70 @@ class _ConfigPageState extends State<ConfigPage> {
                           return null;
                         },
                         onIconClicked: (entry) {
-                          String attrName = 'NumberFromWaitList';
+                          const String attrName = 'NumberFromWaitList';
+                          int desiredNonAwayCount = 0;
+                          try {
+                            desiredNonAwayCount = int.parse(entry.trim());
+                          } catch (_) {}
 
-                          String newValueStr = entry.trim().replaceAll(RegExp(r' \s+'), ' ');
-                          String oldValue = activeLadderDoc!.get(attrName).toString();
-                          if (newValueStr != oldValue) {
-                            writeAudit(user: loggedInUser, documentName: 'LadderConfig', action: 'Set $attrName', newValue: newValueStr, oldValue: oldValue);
-                            int number = 0;
-                            try {
-                              number = int.parse(entry);
-                            } catch (_) {}
-                            firestore.collection('Ladder').doc(activeLadderId).update({
-                              attrName: number,
-                            });
-                          }
+                          // Async: compute the actual rank cutoff needed to allow
+                          // desiredNonAwayCount non-away waitlist players to play.
+                          () async {
+                            // Today's date in ladder timezone (format matches DaysAway entries)
+                            String tzName = 'America/Edmonton';
+                            try { tzName = activeLadderDoc!.get('TimeZone'); } catch (_) {}
+                            final tz.TZDateTime now = tz.TZDateTime.now(tz.getLocation(tzName));
+                            final String todayStr = DateFormat('yyyy.MM.dd').format(now);
+
+                            // Fetch all players and find waitlist members
+                            final QuerySnapshot playersSnapshot = await firestore
+                                .collection('Ladder')
+                                .doc(activeLadderId)
+                                .collection('Players')
+                                .get();
+
+                            final List<QueryDocumentSnapshot> waitListPlayers = playersSnapshot.docs
+                                .where((doc) => (doc.get('WaitListRank') as int? ?? 0) > 0)
+                                .toList();
+                            waitListPlayers.sort((a, b) =>
+                                (a.get('WaitListRank') as int)
+                                    .compareTo(b.get('WaitListRank') as int));
+
+                            int actualValue;
+                            if (desiredNonAwayCount == 0 || waitListPlayers.isEmpty) {
+                              actualValue = 0;
+                            } else {
+                              // Walk in rank order, counting non-away players until we
+                              // reach desiredNonAwayCount or exhaust the waitlist.
+                              int nonAwayCount = 0;
+                              actualValue = waitListPlayers.last.get('WaitListRank') as int;
+                              for (final player in waitListPlayers) {
+                                final String daysAway = player.get('DaysAway') as String? ?? '';
+                                final bool isAwayToday = daysAway.split('|').contains(todayStr);
+                                if (!isAwayToday) {
+                                  nonAwayCount++;
+                                  if (nonAwayCount >= desiredNonAwayCount) {
+                                    actualValue = player.get('WaitListRank') as int;
+                                    break;
+                                  }
+                                }
+                              }
+                            }
+
+                            final String oldValue = activeLadderDoc!.get(attrName).toString();
+                            if (actualValue.toString() != oldValue) {
+                              writeAudit(
+                                  user: loggedInUser,
+                                  documentName: 'LadderConfig',
+                                  action: 'Set $attrName (requested $desiredNonAwayCount non-away)',
+                                  newValue: actualValue.toString(),
+                                  oldValue: oldValue);
+                              firestore
+                                  .collection('Ladder')
+                                  .doc(activeLadderId)
+                                  .update({attrName: actualValue});
+                            }
+                          }();
                         },
                         initialValue: activeLadderDoc!.get('NumberFromWaitList').toString(),
                       ),

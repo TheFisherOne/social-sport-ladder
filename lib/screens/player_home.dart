@@ -472,11 +472,26 @@ class _PlayerHomeState extends State<PlayerHome> {
                       ),
                 if ((loggedInUser == player.id) ||
                     activeUser.admin)
-                  Text(
-                    'No Notice: ${player.get('WeeksAwayWithoutNotice')}\ntotal Away ${player.get('WeeksAway')}\n'
-                    'On crt of 5: $percentCourtOf5%\n vs Avg: ${averageOnCourtOfFive}%\n'
-                     'Total weeks: ${activeLadderDoc!.get('WeeksPlayed')-player.get('WeeksAway')}',
-                    style: errorNameStyle,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            'No Notice: ${player.get('WeeksAwayWithoutNotice')}',
+                            style: errorNameStyle,
+                          ),
+                          if ((player.get('WeeksAwayWithoutNotice') ?? 0) >= 3)
+                            Icon(Icons.warning, color: Colors.yellow, size: appFontSize * 1.2),
+                        ],
+                      ),
+                      Text(
+                        'total Away ${player.get('WeeksAway')}\n'
+                        'On crt of 5: $percentCourtOf5%\n vs Avg: $averageOnCourtOfFive%\n'
+                        'Total weeks: ${activeLadderDoc!.get('WeeksPlayed')-player.get('WeeksAway')}',
+                        style: errorNameStyle,
+                      ),
+                    ],
                   ),
                 SizedBox(key: _targetKey, height: 1),
               ],
@@ -669,7 +684,7 @@ class _PlayerHomeState extends State<PlayerHome> {
                 color: Colors.green,
                   size: iconSize
               ),
-            if (weeksAwayWithoutNotice >= 3)
+            if (weeksAwayWithoutNotice >= 3 && activeUser.helper)
               Icon(
                 Icons.warning,
                 color: Colors.yellow,size: iconSize/2

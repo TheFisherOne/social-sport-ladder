@@ -1171,8 +1171,9 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
         }
       } else if (getSportDescriptor(0) == 'generic') {
         if (getScoringMethod() != 'total') {
-          if (score1 >= getGamesFor4())
+          if (score1 >= getGamesFor4()) {
             return null; // can not autofill with 2 max scores
+          }
           int score2 = getGamesFor4();
           result[lastPlayerWithScore] = score1;
           result[playerWithSameScore] = score1;
