@@ -1212,13 +1212,24 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
 
     if (scoresFilledIn == 0) return null;
     if (scoresFilledIn == 1) {
-      var orderOfPartners = [
-        [1, 0, 3, 2, -1],
-        [4, 2, 1, -1, 0],
-        [3, 4, -1, 0, 1],
-        [2, -1, 0, 4, 3],
-        [-1, 3, 4, 1, 2],
-      ];
+      // Support alternate 5-player partner ordering via SportDescriptor option
+      // generic|...|5playerorder=2
+      int fivePlayerOrder = getSportDescriptorInt('5playerorder');
+      var orderOfPartners = (fivePlayerOrder == 2)
+          ? [
+              [3, 2, 1, 0, -1],
+              [1, 0, 4, -1, 2],
+              [4, 3, -1, 1, 0],
+              [2, -1, 0, 4, 3],
+              [-1, 4, 3, 2, 1],
+            ]
+          : [
+              [1, 0, 3, 2, -1],
+              [4, 2, 1, -1, 0],
+              [3, 4, -1, 0, 1],
+              [2, -1, 0, 4, 3],
+              [-1, 3, 4, 1, 2],
+            ];
       int partner = (orderOfPartners[game])[lastPlayerWithScore];
       List result = [-1, -1, -1, -1, -1];
       int score1 = getScore(lastPlayerWithScore, game)!;
@@ -1467,6 +1478,8 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
   }
 
   Widget show5Players() {
+    int fivePlayerOrder = getSportDescriptorInt('5playerorder');
+    bool useOrder2 = (fivePlayerOrder == 2);
     return ListView.builder(
       scrollDirection: Axis.vertical,
       shrinkWrap: true,
@@ -1592,20 +1605,20 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
                 child: scoreBox(getScore(row, 0), row, 0,
                     backgroundColor: [
                       Colors.green.shade200,
-                      Colors.green.shade200,
+                      useOrder2 ? null : Colors.green.shade200,
                       null,
-                      null,
-                      Colors.blue.shade200
+                      useOrder2 ? Colors.green.shade200 : null,
+                      Colors.blue.shade200,
                     ][row])),
             Expanded(
                 flex: 1,
                 child: scoreBox(getScore(row, 1), row, 1,
                     backgroundColor: [
                       Colors.green.shade200,
-                      null,
+                      useOrder2 ? Colors.green.shade200 : null,
                       null,
                       Colors.blue.shade200,
-                      Colors.green.shade200
+                      useOrder2 ? null : Colors.green.shade200,
                     ][row])),
             Expanded(
                 flex: 1,
@@ -1614,8 +1627,8 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
                       Colors.green.shade200,
                       null,
                       Colors.blue.shade200,
-                      Colors.green.shade200,
-                      null
+                      useOrder2 ? null : Colors.green.shade200,
+                      useOrder2 ? Colors.green.shade200 : null,
                     ][row])),
             Expanded(
                 flex: 1,
@@ -1634,8 +1647,8 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
                       Colors.blue.shade200,
                       Colors.green.shade200,
                       null,
-                      Colors.green.shade200,
-                      null
+                      useOrder2 ? null : Colors.green.shade200,
+                      useOrder2 ? Colors.green.shade200 : null,
                     ][row])),
             Expanded(
                 flex: 1,
