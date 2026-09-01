@@ -948,8 +948,8 @@ void main() {
     expect(PlayerList.numPresent, 8, reason: '8 players present');
     // 7 players present: 1 court of 4, 1 court of 3. If 3 doesn't form, then 1 court of 4.
     // Assuming a court of 3 is not formed by default:
-    expect(PlayerList.numCourtsOf4, 2, reason: 'One court of 4 should be formed');
-    expect(PlayerList.numCourtsOf5, 0, reason: 'One court of 5 should be formed');
+    expect(PlayerList.numCourtsOf4, 2, reason: 'Two court of 4 should be formed');
+    expect(PlayerList.numCourtsOf5, 0, reason: 'Zero court of 5 should be formed');
     expect(PlayerList.numCourts, 2, reason: 'two courts in total');
 
     // for (int i = 0; i < 12; i++) {
@@ -959,8 +959,8 @@ void main() {
     // }
     // Player 1 (Original Rank 1, Present)
     expect(result![0].newRank, 1, reason: 'Player  1 new rank');
-    expect(result[1].newRank,  4, reason: 'Player  2 new rank down 1 due to away');
-    expect(result[2].newRank,  3, reason: 'Player  3 new rank down 1 marked away bumped back up');
+    expect(result[1].newRank,  4, reason: 'Player  2 new rank down 2 due to away without notice');
+    expect(result[2].newRank,  3, reason: 'Player  3 new rank down 1 marked away but bumped back up');
     expect(result[3].newRank,  2, reason: 'Player  4 new rank bumped up due to player away');
     expect(result[4].newRank,  5, reason: 'Player  5 new rank');
     expect(result[5].newRank,  7, reason: 'Player  6 new rank bumped up due to player away');

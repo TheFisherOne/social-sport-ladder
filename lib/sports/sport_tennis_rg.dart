@@ -273,21 +273,21 @@ List<PlayerList>? sportTennisRGDetermineMovement(
       startingList[i].newRank = startingList[i].rank;
       presentList.add(startingList[i]);
     } else {
-      // disabled waitlist players (waitListRank > NumberFromWaitList) never move down,
-      // whether present or not. Also handles away and unassigned cases cleanly.
-      if (startingList[i].waitListRank > (activeLadderDoc!.get('NumberFromWaitList') as int? ?? 0)) {
+      // special case: if you are on waiting list and marked yourself as away you do not move down at all
+      if ((startingList[i].snapshot.get('WaitListRank') >
+           activeLadderDoc!.get('NumberFromWaitList'))&&
+           (startingList[i].daysAwayIncludes(dateStr))) {
         startingList[i].newRank = startingList[i].rank;
-      } else if (startingList[i].daysAwayIncludes(dateStr)) {
-        // marked away — no movement
-        startingList[i].newRank = startingList[i].rank;
-      } else if (startingList[i].unassigned) {
-        // could not fit on a court — no movement
-        startingList[i].newRank = startingList[i].rank;
-      } else {
-        // absent without notice — move down one
-        startingList[i].newRank = startingList[i].rank + 1;
+        notPresentList.add(startingList[i]);
       }
-      notPresentList.add(startingList[i]);
+      if (startingList[i].unassigned) {
+        // if we could not assign them then they also do not move
+        startingList[i].newRank = startingList[i].rank;
+        notPresentList.add(startingList[i]);
+      } else {
+        startingList[i].newRank = startingList[i].rank + 1;
+        notPresentList.add(startingList[i]);
+      }
     }
   }
 
@@ -406,7 +406,7 @@ List<PlayerList>? sportTennisRGDetermineMovement(
     if (!pl.present || pl.unassigned) {
       afterScores.add(pl);
     } else {
-      if (afterScoresTmp.length > 0 ) {
+      if (afterScoresTmp.isNotEmpty ) {
         afterScores.add(afterScoresTmp.removeAt(0));
       }
     }
