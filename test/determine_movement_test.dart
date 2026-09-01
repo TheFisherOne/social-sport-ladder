@@ -447,6 +447,34 @@ void main() {
     expect(result[6].courtNumber, -1, reason: 'absent player must be -1');
   });
 
+  test('waitlist movement bug: NumberFromWaitList=0 keeps absent waitlist rank unchanged', () async {
+    testFirestore = FakeFirebaseFirestore();
+    firestore = testFirestore;
+    await initActiveLadderDoc(testFirestore, overrides: {'NumberFromWaitList': 0});
+
+    final DocumentReference ladderRef = testFirestore.collection('Ladder').doc('Ladder 500');
+    final CollectionReference<Map<String, dynamic>> collection = ladderRef.collection('Players');
+
+    for (int i = 1; i <= 5; i++) {
+      Map<String, dynamic> p = createPlayer(i);
+      collection.doc('test0$i@gmail.com').set(p);
+    }
+
+    // Waitlist player is not present this round and should never be moved down.
+    Map<String, dynamic> p6 = createPlayer(6);
+    p6['WaitListRank'] = 1;
+    p6['Present'] = false;
+    collection.doc('test06@gmail.com').set(p6);
+
+    QuerySnapshot querySnapshot = await ladderRef.collection('Players').get();
+    await prepareForScoreEntry(activeLadderDoc!, querySnapshot.docs);
+    querySnapshot = await ladderRef.collection('Players').get();
+    final result = sportTennisRGDetermineMovement(querySnapshot.docs, '');
+
+    expect(result![5].rank, 6, reason: 'setup sanity: waitlist player starts at rank 6');
+    expect(result[5].newRank, 6, reason: 'waitlist player should not move when NumberFromWaitList is 0');
+  });
+
   test('sportTennisRGDetermineMovement with 13 players 12 present', () async {
     testFirestore = FakeFirebaseFirestore();
     firestore = testFirestore;

@@ -273,14 +273,12 @@ List<PlayerList>? sportTennisRGDetermineMovement(
       startingList[i].newRank = startingList[i].rank;
       presentList.add(startingList[i]);
     } else {
-      // special case: if you are on waiting list and marked yourself as away you do not move down at all
-      if ((startingList[i].snapshot.get('WaitListRank') >
-           activeLadderDoc!.get('NumberFromWaitList'))&&
-           (startingList[i].daysAwayIncludes(dateStr))) {
+      // Players beyond NumberFromWaitList are not eligible this round and never move down.
+      if (startingList[i].snapshot.get('WaitListRank') >
+          activeLadderDoc!.get('NumberFromWaitList')) {
         startingList[i].newRank = startingList[i].rank;
         notPresentList.add(startingList[i]);
-      }
-      if (startingList[i].unassigned) {
+      } else if (startingList[i].unassigned) {
         // if we could not assign them then they also do not move
         startingList[i].newRank = startingList[i].rank;
         notPresentList.add(startingList[i]);
