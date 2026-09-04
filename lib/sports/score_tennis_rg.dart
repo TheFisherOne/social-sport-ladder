@@ -699,6 +699,76 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
     return null;
   }
 
+  Future<String?> _buildEndingRanksFromLatestPlayers(
+      {bool requireServerRead = false}) async {
+    final Query<Map<String, dynamic>> playersQuery = firestore
+        .collection('Ladder')
+        .doc(widget.ladderName)
+        .collection('Players')
+        .orderBy('Rank');
+
+    QuerySnapshot<Map<String, dynamic>> playersSnapshot;
+    if (requireServerRead) {
+      try {
+        playersSnapshot =
+            await playersQuery.get(const GetOptions(source: Source.server));
+      } catch (_) {
+        // Fallback keeps tests/offline usable while still preferring server
+        // freshness when available.
+        playersSnapshot = await playersQuery.get();
+      }
+    } else {
+      playersSnapshot = await playersQuery.get();
+    }
+    final List<PlayerList>? movementList =
+        sportTennisRGDetermineMovement(playersSnapshot.docs, _dateStr);
+    if (movementList == null) {
+      return null;
+    }
+
+    String endingRanksStr = '';
+    for (int play = 0; play < _gameScores.length; play++) {
+      for (int i = 0; i < movementList.length; i++) {
+        if (movementList[i].snapshot.id == _playerList[play]) {
+          if (play != 0) endingRanksStr += '|';
+          endingRanksStr += movementList[i].afterWinLose.toString();
+          break;
+        }
+      }
+    }
+    return endingRanksStr;
+  }
+
+  Future<void> _waitForSavedTotalsOnServer(
+      Map<String, int> expectedTotals) async {
+    if (expectedTotals.isEmpty) return;
+    final CollectionReference<Map<String, dynamic>> playersRef = firestore
+        .collection('Ladder')
+        .doc(widget.ladderName)
+        .collection('Players');
+
+    for (int attempt = 0; attempt < 8; attempt++) {
+      bool allMatch = true;
+      for (final entry in expectedTotals.entries) {
+        try {
+          final doc = await playersRef
+              .doc(entry.key)
+              .get(const GetOptions(source: Source.server));
+          if (!doc.exists ||
+              ((doc.data()?['TotalScore'] ?? -1) != entry.value)) {
+            allMatch = false;
+            break;
+          }
+        } catch (_) {
+          allMatch = false;
+          break;
+        }
+      }
+      if (allMatch) return;
+      await Future.delayed(const Duration(milliseconds: 150));
+    }
+  }
+
   bool _canUseAutoFill() {
     if (!widget.allowEdit) return false;
     if (!(_loggedInPlayerOnCourt || activeUser.helper)) return false;
@@ -1953,6 +2023,21 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
                             String gameScoresStr = saveWorkingScores();
                             String thisUser = activeUser.id;
                             String whereInScores = '';
+                            final Map<String, int> expectedTotals =
+                                <String, int>{};
+                            for (int play = 0;
+                                play < _gameScores.length;
+                                play++) {
+                              int score = 0;
+                              for (int i = 0;
+                                  i < _gameScores[play].length;
+                                  i++) {
+                                if (_gameScores[play][i] != null) {
+                                  score += _gameScores[play][i]!;
+                                }
+                              }
+                              expectedTotals[_playerList[play]] = score;
+                            }
                             try {
                               await firestore
                                   .runTransaction((transaction) async {
@@ -2051,6 +2136,20 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
                               updateBeingEditedBy('');
                               _scoreEntryErrorString = '';
                               whereInScores = '';
+                              // Keep EndingRanks aligned with the latest score save,
+                              // even if no one confirms later.
+                              await _waitForSavedTotalsOnServer(expectedTotals);
+                              final String? endingRanksStr =
+                                  await _buildEndingRanksFromLatestPlayers(
+                                      requireServerRead: true);
+                              if (endingRanksStr != null) {
+                                await firestore
+                                    .collection('Ladder')
+                                    .doc(widget.ladderName)
+                                    .collection('Scores')
+                                    .doc(_scoreDocStr)
+                                    .update({'EndingRanks': endingRanksStr});
+                              }
                               // cancelWorkingScores();
                             } catch (e) {
                               // Handle transaction failure
@@ -2148,19 +2247,17 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
                           const WidgetStatePropertyAll(Colors.white),
                     ),
                     onPressed: () async {
-                      String endingRanksStr = '';
-                      for (int play = 0; play < _gameScores.length; play++) {
-                        for (int i = 0; i < _movementList!.length; i++) {
-                          if (_movementList![i].snapshot.id ==
-                              _playerList[play]) {
-                            if (play != 0) endingRanksStr += '|';
-                            endingRanksStr +=
-                                _movementList![i].afterWinLose.toString();
-                            // print('ending ranks: play: $play i:$i ${_playerList[play]} =>$endingRanksStr');
-                            break;
-                          }
+                      final String? endingRanksMaybe =
+                          await _buildEndingRanksFromLatestPlayers(
+                              requireServerRead: true);
+                      if (endingRanksMaybe == null) {
+                        if (kDebugMode) {
+                          print(
+                              'Unable to build EndingRanks from latest players');
                         }
+                        return;
                       }
+                      final String endingRanksStr = endingRanksMaybe;
                       writeAudit(
                           user: activeUser.id,
                           documentName: '${widget.ladderName}/$_scoreDocStr',
@@ -2171,27 +2268,29 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
                       if (newScoresEnteredBy.isNotEmpty) {
                         newScoresEnteredBy += '|';
                       }
-                      await firestore
+                      final WriteBatch batch = firestore.batch();
+                      final DocumentReference scoreRef = firestore
                           .collection('Ladder')
                           .doc(widget.ladderName)
                           .collection('Scores')
-                          .doc(_scoreDocStr)
-                          .update({
+                          .doc(_scoreDocStr);
+                      batch.update(scoreRef, {
                         'ScoresEnteredBy':
                             '$newScoresEnteredBy${activeUser.id} CONFIRMED',
                         'EndingRanks': endingRanksStr,
                       });
-
                       for (int i = 0; i < _playerList.length; i++) {
-                        await firestore
-                            .collection('Ladder')
-                            .doc(widget.ladderName)
-                            .collection('Players')
-                            .doc(_playerList[i])
-                            .update({
-                          'ScoresConfirmed': true,
-                        });
+                        batch.update(
+                            firestore
+                                .collection('Ladder')
+                                .doc(widget.ladderName)
+                                .collection('Players')
+                                .doc(_playerList[i]),
+                            {
+                              'ScoresConfirmed': true,
+                            });
                       }
+                      await batch.commit();
                       if (mounted) {
                         setState(() {});
                       }
