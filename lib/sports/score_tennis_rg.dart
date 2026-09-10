@@ -1063,61 +1063,64 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
           child: InkWell(
             key: key,
             borderRadius: BorderRadius.circular(10),
-            onTap: (allowedToEdit &&
-                    ((_beingEditedById.isEmpty) ||
-                        (_beingEditedById == activeUser.id)) &&
-                    (_loggedInPlayerOnCourt || activeUser.helper))
-                ? () {
-                    // print('clicked on P:$playerNum, G:$gameNum V:$initialValue/$workingValue');
-                    workingValue = (workingValue ?? 0) + 1;
-                    if (getSportDescriptor(0) == 'generic') {
-                      //print('workingValue: $workingValue, len=${_playerList.length}');
-                      if (_playerList.length == 4) {
-                        if (workingValue! > getGamesFor4()) workingValue = 0;
-                      } else if (_playerList.length == 5) {
-                        if (workingValue! > getGamesFor5()) workingValue = 0;
-                      } else {
-                        if (workingValue! > getGamesFor6()) workingValue = 0;
-                      }
-                    } else if (getSportDescriptor(0) == 'pickleballRG') {
-                      if (_numGames == 3) {
-                        if (workingValue! > 11) workingValue = 0;
-                      } else {
-                        if (workingValue! > 9) workingValue = 0;
-                      }
-                    } else if (getSportDescriptor(0) == 'badmintonRG') {
-                      if (_numGames == 3) {
-                        if (workingValue! > 21) workingValue = 0;
-                      } else {
-                        if (workingValue! > 21) workingValue = 0;
-                      }
-                    } else if (getSportDescriptor(1).contains('singles')) {
-                      if (_numGames == 3) {
-                        if (workingValue! > 8) workingValue = 0;
-                      } else {
-                        if (workingValue! > 6) workingValue = 0;
-                      }
-                    } else {
-                      if (_numGames == 3) {
-                        if (workingValue! > 8) workingValue = 0;
-                      } else {
-                        if (workingValue! > 6) workingValue = 0;
-                      }
-                    }
-                    _workingGameScores[playerNum][gameNum] = workingValue;
+            onTap: () {
+              // Always register taps; gate edits at tap-time to avoid
+              // first-tap misses while state settles on mobile Chrome.
+              if (!(allowedToEdit &&
+                  ((_beingEditedById.isEmpty) ||
+                      (_beingEditedById == activeUser.id)) &&
+                  (_loggedInPlayerOnCourt || activeUser.helper))) {
+                return;
+              }
+              // print('clicked on P:$playerNum, G:$gameNum V:$initialValue/$workingValue');
+              workingValue = (workingValue ?? 0) + 1;
+              if (getSportDescriptor(0) == 'generic') {
+                //print('workingValue: $workingValue, len=${_playerList.length}');
+                if (_playerList.length == 4) {
+                  if (workingValue! > getGamesFor4()) workingValue = 0;
+                } else if (_playerList.length == 5) {
+                  if (workingValue! > getGamesFor5()) workingValue = 0;
+                } else {
+                  if (workingValue! > getGamesFor6()) workingValue = 0;
+                }
+              } else if (getSportDescriptor(0) == 'pickleballRG') {
+                if (_numGames == 3) {
+                  if (workingValue! > 11) workingValue = 0;
+                } else {
+                  if (workingValue! > 9) workingValue = 0;
+                }
+              } else if (getSportDescriptor(0) == 'badmintonRG') {
+                if (_numGames == 3) {
+                  if (workingValue! > 21) workingValue = 0;
+                } else {
+                  if (workingValue! > 21) workingValue = 0;
+                }
+              } else if (getSportDescriptor(1).contains('singles')) {
+                if (_numGames == 3) {
+                  if (workingValue! > 8) workingValue = 0;
+                } else {
+                  if (workingValue! > 6) workingValue = 0;
+                }
+              } else {
+                if (_numGames == 3) {
+                  if (workingValue! > 8) workingValue = 0;
+                } else {
+                  if (workingValue! > 6) workingValue = 0;
+                }
+              }
+              _workingGameScores[playerNum][gameNum] = workingValue;
 
-                    updateBeingEditedBy(activeUser.id);
-                    if (mounted) {
-                      setState(() {
-                        _neverEdited = false;
-                      });
-                    }
-                    // print('workingGameScores2: $_workingGameScores');
-                  }
-                : null,
+              updateBeingEditedBy(activeUser.id);
+              if (mounted) {
+                setState(() {
+                  _neverEdited = false;
+                });
+              }
+              // print('workingGameScores2: $_workingGameScores');
+            },
             child: Align(
                 child: Text(
-              (workingValue == null) ? '' : workingValue!.toString(),
+              (workingValue == null) ? '' : workingValue.toString(),
               style: nameStyle,
             )),
           ),
@@ -1301,6 +1304,11 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
               [-1, 3, 4, 1, 2],
             ];
       int partner = (orderOfPartners[game])[lastPlayerWithScore];
+      if (partner < 0) {
+        // Blue diagonal (sit-out) score can be entered manually; autofill is
+        // undefined for that starting point.
+        return null;
+      }
       List result = [-1, -1, -1, -1, -1];
       int score1 = getScore(lastPlayerWithScore, game)!;
       if (getSportDescriptor(1).contains('singles')) {
@@ -1370,14 +1378,21 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
       }
     }
     List newScores = autoFill4(game)!;
-    for (int i = 0; i < _playerList.length; i++) {
-      _workingGameScores[i][game] = newScores[i];
+    if (mounted) {
+      setState(() {
+        for (int i = 0; i < _playerList.length; i++) {
+          _workingGameScores[i][game] = newScores[i];
+        }
+        _neverEdited = false;
+      });
+    } else {
+      for (int i = 0; i < _playerList.length; i++) {
+        _workingGameScores[i][game] = newScores[i];
+      }
+      _neverEdited = false;
     }
 
     updateBeingEditedBy(activeUser.id);
-    if (mounted) {
-      setState(() {});
-    }
   }
 
   void setScoresForGame5(int game) {
@@ -1389,14 +1404,21 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
       }
     }
     List newScores = autoFill5(game)!;
-    for (int i = 0; i < _playerList.length; i++) {
-      _workingGameScores[i][game] = newScores[i];
+    if (mounted) {
+      setState(() {
+        for (int i = 0; i < _playerList.length; i++) {
+          _workingGameScores[i][game] = newScores[i];
+        }
+        _neverEdited = false;
+      });
+    } else {
+      for (int i = 0; i < _playerList.length; i++) {
+        _workingGameScores[i][game] = newScores[i];
+      }
+      _neverEdited = false;
     }
 
     updateBeingEditedBy(activeUser.id);
-    if (mounted) {
-      setState(() {});
-    }
   }
 
   Widget show4Players() {
@@ -2075,15 +2097,26 @@ class ScoreTennisRgState extends State<ScoreTennisRg>
                                 DocumentSnapshot scoreSnapshot =
                                     await transaction.get(scoreDoc);
                                 // must handle case of this user no longer the active score enterer
-                                if (!scoreSnapshot.exists ||
-                                    scoreSnapshot.get('BeingEditedBy') !=
-                                        thisUser) {
+                                if (!scoreSnapshot.exists) {
                                   if (kDebugMode) {
                                     print(
-                                        'this user $thisUser got kicked out by: ${scoreSnapshot.get('BeingEditedBy')}');
+                                        'score doc $_scoreDocStr disappeared while saving for user $thisUser');
                                   }
                                   _scoreEntryErrorString =
-                                      'this user $thisUser got kicked out by: ${scoreSnapshot.get('BeingEditedBy')}';
+                                      'Score sheet was refreshed while saving. Please try again.';
+                                  return; // Abort the transaction
+                                }
+                                if (scoreSnapshot.get('BeingEditedBy') !=
+                                    thisUser) {
+                                  final String kickedOutBy = (scoreSnapshot
+                                          .get('BeingEditedBy') as String?) ??
+                                      '';
+                                  if (kDebugMode) {
+                                    print(
+                                        'this user $thisUser got kicked out by: $kickedOutBy');
+                                  }
+                                  _scoreEntryErrorString =
+                                      'this user $thisUser got kicked out by: $kickedOutBy';
                                   return; // Abort the transaction
                                 }
 

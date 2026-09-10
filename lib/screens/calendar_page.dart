@@ -473,7 +473,7 @@ class CalendarPageState extends State<CalendarPage> {
 
   final List<QueryDocumentSnapshot<Map<String, dynamic>>> _scoresList = [];
   Future<void> listScoreDocs() async {
-    DateTime timeLimit = DateTime.now().subtract(const Duration(days: 180));
+    DateTime timeLimit = DateTime.now().subtract(const Duration(days: 30*14));
     QuerySnapshot<Map<String, dynamic>> scores = await firestore
         .collection('Ladder')
         .doc(activeLadderId)

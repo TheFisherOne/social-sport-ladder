@@ -103,6 +103,9 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     firestore = testFirestore??FirebaseFirestore.instance;
+    if (kIsWeb) {
+      firestore.settings = const Settings(persistenceEnabled: true);
+    }
     initTimeZone();
 
     loggedInUser = '';
