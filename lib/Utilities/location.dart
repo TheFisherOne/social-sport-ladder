@@ -7,7 +7,8 @@ import 'package:geolocator/geolocator.dart';
 import '../screens/ladder_config_page.dart';
 
 String locationStatusString = 'Location Not Initialized';
-String lastLocationStatus='';
+String lastLocationStatus = '';
+
 class LocationService extends ChangeNotifier {
   Position? _lastLocation;
   DateTime? _lastUpdateTime;
@@ -15,6 +16,11 @@ class LocationService extends ChangeNotifier {
   bool _lastLocationOk = false;
   double _lastDistanceRefresh = 88888.0;
   Timer? _timer;
+  bool _permissionDenied = false;
+  bool _permissionDeniedForever = false;
+
+  bool get isPermissionDenied => _permissionDenied;
+  bool get isPermissionDeniedForever => _permissionDeniedForever;
 
   bool isLastLocationOk() {
     return _lastLocationOk;
@@ -23,12 +29,24 @@ class LocationService extends ChangeNotifier {
   double getLastDistanceAway() {
     return _lastDistanceAway;
   }
-  
-
 
   Future<void> updateLocation() async {
     Position? position;
     lastLocationStatus = '';
+
+    final LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
+      _permissionDenied = true;
+      _permissionDeniedForever = permission == LocationPermission.deniedForever;
+      lastLocationStatus = _permissionDeniedForever
+          ? 'Location permission is permanently denied. Open app settings.'
+          : 'Location permission is denied.';
+      stopTimer();
+      notifyListeners();
+      return;
+    }
+
     try {
       // On web, it's good to be explicit about accuracy.
       final locationSettings = LocationSettings(
@@ -41,7 +59,8 @@ class LocationService extends ChangeNotifier {
           locationSettings: locationSettings);
     } catch (e) {
       if (e is TimeoutException) {
-        lastLocationStatus = 'getCurrentPosition timed out, trying getLastKnownPosition';
+        lastLocationStatus =
+            'getCurrentPosition timed out, trying getLastKnownPosition';
         if (kDebugMode) {
           print('getCurrentPosition timed out, trying getLastKnownPosition');
         }
@@ -59,7 +78,9 @@ class LocationService extends ChangeNotifier {
         }
         if (e is PermissionDeniedException) {
           // Stop trying if permission is denied, to avoid spamming requests.
+          _permissionDenied = true;
           stopTimer();
+          notifyListeners();
         }
       }
     }
@@ -93,8 +114,7 @@ class LocationService extends ChangeNotifier {
     return (_lastLocation, seconds);
   }
 
-  double measureDistance(
-      double lat1, double lon1, double lat2, double lon2) {
+  double measureDistance(double lat1, double lon1, double lat2, double lon2) {
     const double R = 6371.0; // Radius of Earth in kilometers
     final double lat1Rad = lat1 * pi / 180.0;
     final double lon1Rad = lon1 * pi / 180.0;
@@ -120,8 +140,7 @@ class LocationService extends ChangeNotifier {
     return distance <= allowedDistance;
   }
 
-Future<void> startTimer() async {
-
+  Future<void> startTimer() async {
     stopTimer(); // Ensure no multiple timers are running
     // print('Starting location timer');
     _timer = Timer.periodic(const Duration(seconds: 10), (_) async {
@@ -140,6 +159,8 @@ Future<void> startTimer() async {
   Future<void> init() async {
     bool serviceEnabled;
     LocationPermission permission;
+    _permissionDenied = false;
+    _permissionDeniedForever = false;
 
     // Test if location services are enabled.
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
@@ -147,7 +168,7 @@ Future<void> startTimer() async {
       // Location services are not enabled don't continue
       // accessing the position and request users of the
       // App to enable the location services.
-      locationStatusString  = 'Location services are disabled.';
+      locationStatusString = 'Location services are disabled.';
       if (kDebugMode) {
         print('Location services are disabled.');
       }
@@ -156,6 +177,7 @@ Future<void> startTimer() async {
 
     permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
+      _permissionDenied = true;
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
         // Permissions are denied, next time you could try
@@ -163,30 +185,51 @@ Future<void> startTimer() async {
         // Android's shouldShowRequestPermissionRationale
         // returned true. According to Android guidelines
         // your App should show an explanatory UI now.
-        locationStatusString  = 'Location permissions are denied';
+        locationStatusString = 'Location permissions are denied';
         if (kDebugMode) {
           print('Location permissions are denied');
         }
+        notifyListeners();
         return;
       }
     }
 
     if (permission == LocationPermission.deniedForever) {
-      locationStatusString  = 'Location permissions are permanently denied, we cannot request permissions.';
+      _permissionDenied = true;
+      _permissionDeniedForever = true;
+      locationStatusString =
+          'Location permissions are permanently denied, we cannot request permissions.';
       // Permissions are denied forever, handle appropriately.
       if (kDebugMode) {
-        print('Location permissions are permanently denied, we cannot request permissions.');
+        print(
+            'Location permissions are permanently denied, we cannot request permissions.');
       }
+      notifyListeners();
       return;
     }
 
     // When we reach here, permissions are granted and we can
     // continue accessing the position of the device.
-    locationStatusString  = 'Location permissions are granted.';
+    locationStatusString = 'Location permissions are granted.';
     if (kDebugMode) {
       print('Location permissions are granted.');
     }
+    notifyListeners();
     await startTimer();
+  }
+
+  Future<void> retryPermissionFlow() async {
+    await init();
+  }
+
+  Future<bool> openAppSettingsForPermission() async {
+    if (kIsWeb) {
+      lastLocationStatus =
+          'Browser location permissions are managed by your browser settings.';
+      notifyListeners();
+      return false;
+    }
+    return Geolocator.openAppSettings();
   }
 
   @override
