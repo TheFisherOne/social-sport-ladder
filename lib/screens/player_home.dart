@@ -24,7 +24,7 @@ import 'audit_page.dart';
 import 'calendar_page.dart';
 import 'ladder_selection_page.dart';
 import '../Utilities/html_none.dart'
-if (dart.library.html) '../Utilities/html_only.dart';
+    if (dart.library.html) '../Utilities/html_only.dart';
 
 dynamic playerHomeInstance;
 QueryDocumentSnapshot? clickedOnPlayerDoc;
@@ -111,6 +111,20 @@ class _PlayerHomeState extends State<PlayerHome> {
     }
   }
 
+  Future<void> _fixLocationPermission() async {
+    if (_loc == null) {
+      return;
+    }
+    if (!kIsWeb && _loc!.isPermissionDeniedForever) {
+      await _loc!.openAppSettingsForPermission();
+    } else {
+      await _loc!.retryPermissionFlow();
+    }
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
   @override
   void initState() {
     _loc = LocationService();
@@ -126,12 +140,11 @@ class _PlayerHomeState extends State<PlayerHome> {
     _loc?.stopTimer();
     _loc?.removeListener(refresh);
     _loc?.dispose();
-    _loc=null;
+    _loc = null;
 
     _scrollController.dispose();
     super.dispose();
   }
-
 
   (IconData, String) presentCheckBoxInfo(QueryDocumentSnapshot player) {
     IconData standardIcon = Icons.check_box_outline_blank;
@@ -160,7 +173,9 @@ class _PlayerHomeState extends State<PlayerHome> {
 
     String nextPlayDateStr = DateFormat('yyyy.MM.dd').format(nextPlayDate);
 
-    List<String> awayList = ((player.data() as Map<String, dynamic>?)?['DaysAway'] as String? ?? '').split('|');
+    List<String> awayList =
+        ((player.data() as Map<String, dynamic>?)?['DaysAway'] as String? ?? '')
+            .split('|');
     if (!player.get('Present') && awayList.contains(nextPlayDateStr)) {
       return (
         Icons.airplanemode_active,
@@ -184,13 +199,13 @@ class _PlayerHomeState extends State<PlayerHome> {
       if ((!player.get('Present')) && (player.id == activeUser.id)) {
         Position? where;
         int secAgo = 9999;
-        if (_loc!=null) {
+        if (_loc != null) {
           (where, secAgo) = _loc!.getLast();
         }
         if ((where == null) || (secAgo > 60)) {
           return (Icons.location_off, 'Your location has not been determined');
         }
-        if ( !_loc!.isLastLocationOk()) {
+        if (!_loc!.isLastLocationOk()) {
           return (
             Icons.location_off,
             'You are too far away ${_loc!.getLastDistanceAway().toInt()} m'
@@ -249,7 +264,7 @@ class _PlayerHomeState extends State<PlayerHome> {
     );
   }
 
-  int  _getAverageOnCourtOfFive() {
+  int _getAverageOnCourtOfFive() {
     if ((_players == null) || _players!.isEmpty || (activeLadderDoc == null)) {
       return 0;
     }
@@ -263,8 +278,7 @@ class _PlayerHomeState extends State<PlayerHome> {
           player.data() as Map<String, dynamic>?;
       final int onCourtOfFive =
           ((playerData?['OnCourtOfFive'] as num?) ?? 0).toInt();
-      final int weeksAway =
-          ((playerData?['WeeksAway'] as num?) ?? 0).toInt();
+      final int weeksAway = ((playerData?['WeeksAway'] as num?) ?? 0).toInt();
       final int denominator = totalWeeks - weeksAway;
       if (denominator <= 0) {
         continue;
@@ -276,8 +290,7 @@ class _PlayerHomeState extends State<PlayerHome> {
     if (countIncludedPlayers == 0) {
       return 0;
     }
-    return
-      ((totalFraction / countIncludedPlayers) * 100).toInt();
+    return ((totalFraction / countIncludedPlayers) * 100).toInt();
   }
 
   Widget unfrozenSubLine(QueryDocumentSnapshot player) {
@@ -287,11 +300,13 @@ class _PlayerHomeState extends State<PlayerHome> {
         player.data() as Map<String, dynamic>?;
     final int onCourtOfFive =
         ((playerData?['OnCourtOfFive'] as num?) ?? 0).toInt();
-    int weeksPresent = activeLadderDoc!.get('WeeksPlayed')-player.get('WeeksAway');
-    if (weeksPresent<1){
+    int weeksPresent =
+        activeLadderDoc!.get('WeeksPlayed') - player.get('WeeksAway');
+    if (weeksPresent < 1) {
       weeksPresent = 1;
     }
-    final int percentCourtOf5 = ((onCourtOfFive / weeksPresent) *100.0).toInt() ;
+    final int percentCourtOf5 =
+        ((onCourtOfFive / weeksPresent) * 100.0).toInt();
     final int averageOnCourtOfFive = _getAverageOnCourtOfFive();
     if (player.id == activeUser.id) {
       if (player.get('Present')) {
@@ -317,13 +332,14 @@ class _PlayerHomeState extends State<PlayerHome> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if ((player.id == activeUser.id) && (_loc!=null) &&
+                if ((player.id == activeUser.id) &&
+                    (_loc != null) &&
                     ((checkBoxIcon == Icons.check_box) ||
                         (checkBoxIcon == Icons.check_box_outline_blank)))
                   Text(
                       'you are ${_loc!.getLastDistanceAway().toStringAsFixed(1)}m away'),
                 Container(
-                  height: appFontSize*1.4*2,
+                  height: appFontSize * 1.4 * 2,
                   width: 50,
                   color: (player.id == activeUser.id)
                       ? Colors.green.shade100
@@ -332,11 +348,11 @@ class _PlayerHomeState extends State<PlayerHome> {
                     padding: const EdgeInsets.all(0.0),
                     child: InkWell(
                       onTap: (((player.id == activeUser.id) ||
-                                  activeUser.helper) &&
-                              ((checkBoxIcon == Icons.check_box) ||
-                                  (checkBoxIcon ==
-                                      Icons.check_box_outline_blank))) &&
-                          (activeLadderDoc!.get("FreezeCheckIns")!=true)
+                                      activeUser.helper) &&
+                                  ((checkBoxIcon == Icons.check_box) ||
+                                      (checkBoxIcon ==
+                                          Icons.check_box_outline_blank))) &&
+                              (activeLadderDoc!.get("FreezeCheckIns") != true)
                           ? () async {
                               bool newPresent = false;
                               if (checkBoxIcon ==
@@ -365,7 +381,7 @@ class _PlayerHomeState extends State<PlayerHome> {
                           ? const Icon(Icons.refresh,
                               color: Colors.black, size: 60)
                           : Icon(checkBoxIcon,
-                              size: appFontSize * 1.4*2,
+                              size: appFontSize * 1.4 * 2,
                               color: ((checkBoxIcon == Icons.check_box) ||
                                       (checkBoxIcon ==
                                           Icons.check_box_outline_blank))
@@ -437,7 +453,7 @@ class _PlayerHomeState extends State<PlayerHome> {
                 SizedBox(height: 10),
                 (activeUser.helper || (loggedInUser == player.id))
                     ? Container(
-                        height: max(appFontSize*1.4*2, appFontSize * 2.7),
+                        height: max(appFontSize * 1.4 * 2, appFontSize * 2.7),
                         // width: 50,
                         color: (player.id == activeUser.id)
                             ? Colors.green.shade100
@@ -458,7 +474,8 @@ class _PlayerHomeState extends State<PlayerHome> {
                               child: Row(
                                 children: [
                                   Icon(Icons.edit_calendar,
-                                      size: appFontSize * 1.4*2, color: Colors.green),
+                                      size: appFontSize * 1.4 * 2,
+                                      color: Colors.green),
                                   Text(
                                     'Calendar:\nfor Away',
                                     style: nameStyle,
@@ -470,8 +487,7 @@ class _PlayerHomeState extends State<PlayerHome> {
                     : SizedBox(
                         width: 1,
                       ),
-                if ((loggedInUser == player.id) ||
-                    activeUser.admin)
+                if ((loggedInUser == player.id) || activeUser.admin)
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -482,13 +498,14 @@ class _PlayerHomeState extends State<PlayerHome> {
                             style: errorNameStyle,
                           ),
                           if ((player.get('WeeksAwayWithoutNotice') ?? 0) >= 3)
-                            Icon(Icons.warning, color: Colors.yellow, size: appFontSize * 1.2),
+                            Icon(Icons.warning,
+                                color: Colors.yellow, size: appFontSize * 1.2),
                         ],
                       ),
                       Text(
                         'total Away ${player.get('WeeksAway')}\n'
                         'On crt of 5: $percentCourtOf5%\n vs Avg: $averageOnCourtOfFive%\n'
-                        'Total weeks: ${activeLadderDoc!.get('WeeksPlayed')-player.get('WeeksAway')}',
+                        'Total weeks: ${activeLadderDoc!.get('WeeksPlayed') - player.get('WeeksAway')}',
                         style: errorNameStyle,
                       ),
                     ],
@@ -584,15 +601,18 @@ class _PlayerHomeState extends State<PlayerHome> {
     // print('buildPlayerLine: $row ${player.id} crt:${plAssignment!.snapshot.id} away: ${plAssignment!.markedAway}');
 
     Icon icon;
-    double iconSize = appFontSize*1.4;
+    double iconSize = appFontSize * 1.4;
     if (row == _checkInProgress) {
-      icon = Icon(Icons.refresh, color: Colors.green,size: iconSize);
+      icon = Icon(Icons.refresh, color: Colors.green, size: iconSize);
     } else if (player.get('Present')) {
-      icon = Icon(Icons.check_box, color: Colors.black,size: iconSize);
-    } else if ((plAssignment!.markedAway) ||(player.get('WaitListRank')>activeLadderDoc!.get('NumberFromWaitList'))){
-      icon = Icon(Icons.horizontal_rule, color: Colors.black,size: iconSize);
+      icon = Icon(Icons.check_box, color: Colors.black, size: iconSize);
+    } else if ((plAssignment!.markedAway) ||
+        (player.get('WaitListRank') >
+            activeLadderDoc!.get('NumberFromWaitList'))) {
+      icon = Icon(Icons.horizontal_rule, color: Colors.black, size: iconSize);
     } else {
-      icon = Icon(Icons.check_box_outline_blank, color: Colors.black,size: iconSize);
+      icon = Icon(Icons.check_box_outline_blank,
+          color: Colors.black, size: iconSize);
     }
 
     bool isFrozen = false;
@@ -630,7 +650,9 @@ class _PlayerHomeState extends State<PlayerHome> {
       return Text('ERROR: ${player.id} missing WaitListRank (Number)');
     }
     final data = player.data() as Map<String, dynamic>?;
-    bool cantMakeIt =  data != null && data.containsKey('CantMakeIt') && player.get('CantMakeIt');
+    bool cantMakeIt = data != null &&
+        data.containsKey('CantMakeIt') &&
+        player.get('CantMakeIt');
 
     // print('buildPlayerLine: _clickedOnRank: $_clickedOnRank vs $row admin: ${activeLadderDoc!.get('Admins').split(",").contains(loggedInUser) } ${player.id} vs $loggedInUser OR $loggedInUserIsSuper');
     return Column(
@@ -643,7 +665,7 @@ class _PlayerHomeState extends State<PlayerHome> {
                 setState(() {
                   if (isUserRow && !player.get('Present')) {
                     _loc?.startTimer();
-                  } else if (!isUserRow ){
+                  } else if (!isUserRow) {
                     _loc?.stopTimer();
                   }
                   _clickedOnRank = row;
@@ -658,7 +680,7 @@ class _PlayerHomeState extends State<PlayerHome> {
             });
           },
           child: Row(mainAxisAlignment: MainAxisAlignment.start, children: [
-            if (isFrozen && (assignedCourt>0))
+            if (isFrozen && (assignedCourt > 0))
               SizedBox(
                 width: iconSize,
                 child: Center(
@@ -669,29 +691,24 @@ class _PlayerHomeState extends State<PlayerHome> {
                       fontWeight: FontWeight.bold,
                       // technically the color should be red if the logged in player is on this court
                       // if you want it to match the other display method
-                      backgroundColor: (assignedCourt == activeUserCourt)?Colors.red:courtColors[assignedCourt-1 % courtColors.length],
+                      backgroundColor: (assignedCourt == activeUserCourt)
+                          ? Colors.red
+                          : courtColors[assignedCourt - 1 % courtColors.length],
                     ),
                   ),
                 ),
               )
-            else if ((_clickedOnRank == row) || ((assignedCourt==0) && isFrozen))
+            else if ((_clickedOnRank == row) ||
+                ((assignedCourt == 0) && isFrozen))
               SizedBox(width: iconSize)
             else
               icon,
             if (weeksRegistered <= 0)
-              Icon(
-                Icons.fiber_new,
-                color: Colors.green,
-                  size: iconSize
-              ),
+              Icon(Icons.fiber_new, color: Colors.green, size: iconSize),
             if (weeksAwayWithoutNotice >= 3 && activeUser.helper)
-              Icon(
-                Icons.warning,
-                color: Colors.yellow,size: iconSize/2
-              ),
+              Icon(Icons.warning, color: Colors.yellow, size: iconSize / 2),
             if (cantMakeIt)
-              Icon(Icons.close, color: Colors.red,size: iconSize),
-
+              Icon(Icons.close, color: Colors.red, size: iconSize),
             Expanded(
               child: Text(
                 ' $rank${(waitListRank > 0) ? "w$waitListRank" : ""}: ${player.get('Name')}',
@@ -748,8 +765,11 @@ class _PlayerHomeState extends State<PlayerHome> {
           }
           return Scaffold(
             backgroundColor: Colors.white,
-            body: SingleChildScrollView(child: Padding(padding: const EdgeInsets.all(16.0),
-                child: Text(error, style: const TextStyle(color: Colors.red)))),
+            body: SingleChildScrollView(
+                child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Text(error,
+                        style: const TextStyle(color: Colors.red)))),
           );
         }
         if (!ladderSnapshot.hasData) {
@@ -766,9 +786,9 @@ class _PlayerHomeState extends State<PlayerHome> {
 
           // this is needed because iphones cache way too much and so do not rebuild
           // the ladder selection page when they are brought up from scratch
-          double reqSoftwareVersion = (activeLadderDoc!
-              .get('RequiredSoftwareVersion') as num)
-              .toDouble();
+          double reqSoftwareVersion =
+              (activeLadderDoc!.get('RequiredSoftwareVersion') as num)
+                  .toDouble();
           if (reqSoftwareVersion > softwareVersion) {
             changeLoadingMessage('');
             return reloadHtml(context, reqSoftwareVersion);
@@ -787,7 +807,7 @@ class _PlayerHomeState extends State<PlayerHome> {
             allScoresConfirmed = false;
           }
           activeUserCourt = -1;
-          if (!activeLadderDoc!.get("FreezeCheckIns")){
+          if (!activeLadderDoc!.get("FreezeCheckIns")) {
             showScoresWhenFrozen = true;
           }
           return StreamBuilder<QuerySnapshot>(
@@ -800,320 +820,362 @@ class _PlayerHomeState extends State<PlayerHome> {
               builder: (BuildContext context,
                   AsyncSnapshot<QuerySnapshot<Object?>> playerSnapshots) {
                 try {
-                // print('Ladder snapshot');
-                if (playerSnapshots.error != null) {
-                  String error =
-                      'Snapshot error: ${playerSnapshots.error.toString()} on getting global ladders ';
-                  if (kDebugMode) {
-                    print(error);
-                  }
-                  return Scaffold(
-                    backgroundColor: Colors.white,
-                    body: SingleChildScrollView(child: Padding(padding: const EdgeInsets.all(16.0),
-                        child: Text(error, style: const TextStyle(color: Colors.red)))),
-                  );
-                }
-                // print('in StreamBuilder ladder 0');
-                if (!playerSnapshots.hasData) {
-                  // print('ladder_selection_page getting user $loggedInUser but hasData is false');
-                  return _streamReconnectSpinner();
-                }
-                if (playerSnapshots.data == null) {
-                  // print('ladder_selection_page getting user global ladder but data is null');
-                  return _streamReconnectSpinner();
-                }
-                _players = playerSnapshots.data!.docs;
-
-                // if (activeLadderDoc!.get('FreezeCheckIns')){
-                //   Future.delayed(Duration(milliseconds:500),(){
-                //     if (!context.mounted) return;
-                //     prepareForScoreEntry(activeLadderDoc!, _players);
-                //     showFrozenLadderPage(context, activeLadderDoc!, true);
-                //   });
-                //   return Text('Switching to frozen view');
-                // }
-                loggedInPlayerDoc = null;
-                int numberOfHelpersPresent = 0;
-                int numberOfPlayersPresent = 0;
-
-                for (var player in _players!) {
-                  if (player.id == loggedInUser) {
-                    loggedInPlayerDoc = player;
-                    activeUser.canBeHelper = loggedInPlayerDoc!.get('Helper');
-                  }
-                  if (player.get('Present')) {
-                    numberOfPlayersPresent++;
-                    if (player.get('Helper')) {
-                      numberOfHelpersPresent += 1;
+                  // print('Ladder snapshot');
+                  if (playerSnapshots.error != null) {
+                    String error =
+                        'Snapshot error: ${playerSnapshots.error.toString()} on getting global ladders ';
+                    if (kDebugMode) {
+                      print(error);
                     }
+                    return Scaffold(
+                      backgroundColor: Colors.white,
+                      body: SingleChildScrollView(
+                          child: Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Text(error,
+                                  style: const TextStyle(color: Colors.red)))),
+                    );
                   }
-                }
-                List<String> nonPlayingHelperStr =
-                    activeLadderDoc!.get('NonPlayingHelper').split(',');
-                // print('nonPlayingHelper: $nonPlayingHelperStr activeUser: ${activeUser.id}');
-                if (nonPlayingHelperStr.contains(activeUser.id)) {
-                  activeUser.canBeHelper = true;
-                  // print('setting canBeHelper to true');
-                }
-                if (!activeUser.canBeHelper) {
-                  activeUser.helperEnabled = false;
-                }
-
-                // if the logged in user is not one of the players, then they are either an admin or a nonPlayingHelper
-                // default admins to admin enabled.
-                if (loggedInPlayerDoc == null) {
-                  if (activeUser.canBeAdmin) {
-                    activeUser.adminEnabled = true;
+                  // print('in StreamBuilder ladder 0');
+                  if (!playerSnapshots.hasData) {
+                    // print('ladder_selection_page getting user $loggedInUser but hasData is false');
+                    return _streamReconnectSpinner();
                   }
-                }
-                if (!activeUser.canBeAdmin) {
-                  activeUser.adminEnabled = false;
-                }
-                DateTime? nextPlayDate;
-                (nextPlayDate, _) = getNextPlayDateTime(activeLadderDoc!);
-                DateTime timeNow = DateTime.now();
-                bool mayFreeze = false;
-                int minToStart = 9999;
-                if (nextPlayDate != null) {
-                  minToStart = nextPlayDate.difference(timeNow).inMinutes;
-                }
+                  if (playerSnapshots.data == null) {
+                    // print('ladder_selection_page getting user global ladder but data is null');
+                    return _streamReconnectSpinner();
+                  }
+                  _players = playerSnapshots.data!.docs;
 
-                //print('sportsDescriptor:programOnly:${getSportDescriptorString('programOnly')}!');
-                if (getSportDescriptorString('programOnly').isEmpty) {
-                  if (numberOfPlayersPresent >= 4) {
-                    if (activeUser.admin) mayFreeze = true;
-                    if (minToStart < 10) {
-                      if (activeUser.helper) {
-                        //TODO: can not unfreeze if scores are entered
-                        mayFreeze = true;
-                      } else if (((minToStart < 5.0) &&
-                          (numberOfHelpersPresent == 0)) ||
-                          (minToStart <= 0.0)) {
-                        // print('mayFreeze: special override, no helpers present, less than 5 minutes to go $nextPlayDate');
-                        mayFreeze = true;
+                  // if (activeLadderDoc!.get('FreezeCheckIns')){
+                  //   Future.delayed(Duration(milliseconds:500),(){
+                  //     if (!context.mounted) return;
+                  //     prepareForScoreEntry(activeLadderDoc!, _players);
+                  //     showFrozenLadderPage(context, activeLadderDoc!, true);
+                  //   });
+                  //   return Text('Switching to frozen view');
+                  // }
+                  loggedInPlayerDoc = null;
+                  int numberOfHelpersPresent = 0;
+                  int numberOfPlayersPresent = 0;
+
+                  for (var player in _players!) {
+                    if (player.id == loggedInUser) {
+                      loggedInPlayerDoc = player;
+                      activeUser.canBeHelper = loggedInPlayerDoc!.get('Helper');
+                    }
+                    if (player.get('Present')) {
+                      numberOfPlayersPresent++;
+                      if (player.get('Helper')) {
+                        numberOfHelpersPresent += 1;
                       }
                     }
                   }
-                }
-                // print('mayFreeze: $mayFreeze, nextDate $nextPlayDate, now: ${DateTime.now()}');
-                List<PlayerList>? listOfPlayers =
-                    determineMovement(activeLadderDoc!, _players);
-                CourtAssignmentsRgStandard courtAssignments =
-                    CourtAssignmentsRgStandard(_players!);
+                  List<String> nonPlayingHelperStr =
+                      activeLadderDoc!.get('NonPlayingHelper').split(',');
+                  // print('nonPlayingHelper: $nonPlayingHelperStr activeUser: ${activeUser.id}');
+                  if (nonPlayingHelperStr.contains(activeUser.id)) {
+                    activeUser.canBeHelper = true;
+                    // print('setting canBeHelper to true');
+                  }
+                  if (!activeUser.canBeHelper) {
+                    activeUser.helperEnabled = false;
+                  }
 
-                for (QueryDocumentSnapshot pl in _players!){
-                  if (pl.id == activeUser.id) {
-                    activeUserCourt = 0;
-                    try{
-                    activeUserCourt = pl.get('AssignedCourt') as int? ?? 0;
-                    } catch (e){
-                      activeUserCourt = 0;
+                  // if the logged in user is not one of the players, then they are either an admin or a nonPlayingHelper
+                  // default admins to admin enabled.
+                  if (loggedInPlayerDoc == null) {
+                    if (activeUser.canBeAdmin) {
+                      activeUser.adminEnabled = true;
                     }
                   }
-                }
+                  if (!activeUser.canBeAdmin) {
+                    activeUser.adminEnabled = false;
+                  }
+                  DateTime? nextPlayDate;
+                  (nextPlayDate, _) = getNextPlayDateTime(activeLadderDoc!);
+                  DateTime timeNow = DateTime.now();
+                  bool mayFreeze = false;
+                  int minToStart = 9999;
+                  if (nextPlayDate != null) {
+                    minToStart = nextPlayDate.difference(timeNow).inMinutes;
+                  }
 
-                if (_clickedOnRank <= 0) {
-                  _loc?.stopTimer();
-                }
-                return Scaffold(
-                  backgroundColor: Color.lerp(
-                      activeLadderBackgroundColor, Colors.white, 0.8),
-                  appBar: AppBar(
-                    title: Text(
-                        '${activeLadderDoc!.get('DisplayName') ?? 'No DisplayName attr'}'),
+                  //print('sportsDescriptor:programOnly:${getSportDescriptorString('programOnly')}!');
+                  if (getSportDescriptorString('programOnly').isEmpty) {
+                    if (numberOfPlayersPresent >= 4) {
+                      if (activeUser.admin) mayFreeze = true;
+                      if (minToStart < 10) {
+                        if (activeUser.helper) {
+                          //TODO: can not unfreeze if scores are entered
+                          mayFreeze = true;
+                        } else if (((minToStart < 5.0) &&
+                                (numberOfHelpersPresent == 0)) ||
+                            (minToStart <= 0.0)) {
+                          // print('mayFreeze: special override, no helpers present, less than 5 minutes to go $nextPlayDate');
+                          mayFreeze = true;
+                        }
+                      }
+                    }
+                  }
+                  // print('mayFreeze: $mayFreeze, nextDate $nextPlayDate, now: ${DateTime.now()}');
+                  List<PlayerList>? listOfPlayers =
+                      determineMovement(activeLadderDoc!, _players);
+                  CourtAssignmentsRgStandard courtAssignments =
+                      CourtAssignmentsRgStandard(_players!);
+
+                  for (QueryDocumentSnapshot pl in _players!) {
+                    if (pl.id == activeUser.id) {
+                      activeUserCourt = 0;
+                      try {
+                        activeUserCourt = pl.get('AssignedCourt') as int? ?? 0;
+                      } catch (e) {
+                        activeUserCourt = 0;
+                      }
+                    }
+                  }
+
+                  if (_clickedOnRank <= 0) {
+                    _loc?.stopTimer();
+                  }
+                  return Scaffold(
                     backgroundColor: Color.lerp(
-                        activeLadderBackgroundColor, Colors.white, 0.3),
-                    elevation: 0.0,
-                    automaticallyImplyLeading: true,
-                    actions: [
-                      IconButton.filled(
-                          style: IconButton.styleFrom(
-                              backgroundColor: Colors.white),
-                          padding: EdgeInsets.zero,
-                          onPressed: () {
-                            Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (context) =>
-                                        HelpPage(page: 'Player')));
-                          },
-                          icon: Icon(
-                            Icons.help,
-                            color: Colors.green,
-                            size: 30,
-                          )),
-                      activeUser.admin
-                          ? Padding(
-                              padding: const EdgeInsets.all(5.0),
-                              child: IconButton.filled(
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
-                                icon: const Icon(Icons.supervisor_account,
-                                    size: 30),
-                                onPressed: () {
-                                  Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                          builder: (context) =>
-                                              const ConfigPage()));
-                                },
-                                enableFeedback: true,
-                                color: Colors.redAccent,
-                                style: IconButton.styleFrom(
-                                    backgroundColor: Colors.white),
-                              ),
-                            )
-                          : const SizedBox(width: 2),
-                      SizedBox(width: activeUser.admin ? 10 : 1),
-                      if (mayFreeze)
-                        Padding(
-                          padding: const EdgeInsets.all(5.0),
-                          child: IconButton.filled(
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                            icon: Icon(
-                              waitingForFreezeCheckins
-                                  ? Icons.hourglass_bottom
-                                  : ((activeLadderDoc!.get('FreezeCheckIns') ??
-                                          false)
-                                      ? Icons.pause
-                                      : Icons.play_arrow),
-                              size: 30,
-                            ),
-                            onPressed: () async {
-                              setState(() {
-                                waitingForFreezeCheckins = true;
-                              });
-                              developer.log(
-                                  '${DateTime.now()} FreezeCheckIns pressed',
-                                  name: 'stage1');
-                              try {
-                                await prepareForScoreEntry(
-                                    activeLadderDoc!, _players);
-                                developer.log(
-                                    '${DateTime.now()} FreezeCheckIns pressed',
-                                    name: 'after prepareForScoreEntry');
-                              } catch (e) {
-                                final String errorText =
-                                    e.toString().replaceFirst('Exception: ', '');
-
-                                developer.log(
-                                    'Error during prepareForScoreEntry: $errorText',
-                                    name: 'error');
-
-                                // Record known freeze-preparation failures in Audit for phone-only debugging.
-                                if (errorText.startsWith('Court Assignment Error:')) {
-                                  writeAudit(
-                                    user: activeUser.id,
-                                    documentName: 'LadderConfig',
-                                    action: 'Set FreezeCheckIns Failed',
-                                    newValue: errorText,
-                                    oldValue: (activeLadderDoc?.get('FreezeCheckIns') ?? false)
-                                        .toString(),
-                                  );
-                                }
-
-                                if (context.mounted) {
-                                  showDialog(
-                                    context: context,
-                                    builder: (BuildContext ctx) => AlertDialog(
-                                      title: const Text('Unable to Freeze Check-Ins'),
-                                      content: Text(errorText),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () => Navigator.pop(ctx),
-                                          child: const Text('OK'),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                }
-                              } finally {
-                                if (mounted) {
-                                  setState(() {
-                                    waitingForFreezeCheckins = false;
-                                  });
-                                }
-                              }
-                              // showFrozenLadderPage(context, activeLadderDoc!, true);
-                            },
-                            enableFeedback: true,
-                            color: Colors.green,
+                        activeLadderBackgroundColor, Colors.white, 0.8),
+                    appBar: AppBar(
+                      title: Text(
+                          '${activeLadderDoc!.get('DisplayName') ?? 'No DisplayName attr'}'),
+                      backgroundColor: Color.lerp(
+                          activeLadderBackgroundColor, Colors.white, 0.3),
+                      elevation: 0.0,
+                      automaticallyImplyLeading: true,
+                      actions: [
+                        IconButton.filled(
                             style: IconButton.styleFrom(
                                 backgroundColor: Colors.white),
-                          ),
-                        ),
-                      const SizedBox(width: 10),
-                      // (activeUser.mayGetHelperIcon) ?
-                      helperIcon(context, activeLadderId, listOfPlayers,
-                              courtAssignments)
-                          // : SizedBox(width: 1),
-                      ,
-                      SizedBox(width: 20),
-                    ],
-                  ),
-                  body: SingleChildScrollView(
-                    key: PageStorageKey('playerScrollView'),
-                    controller: _scrollController,
-                    scrollDirection: Axis.vertical,
-                    child: Column(
-                      children: [
-                        (urlCache.containsKey(activeLadderId) &&
-                                (urlCache[activeLadderId] != null) &&
-                                enableImages)
-                            ? Image.network(
-                                urlCache[activeLadderId]!,
-                                height: 100,
+                            padding: EdgeInsets.zero,
+                            onPressed: () {
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) =>
+                                          HelpPage(page: 'Player')));
+                            },
+                            icon: Icon(
+                              Icons.help,
+                              color: Colors.green,
+                              size: 30,
+                            )),
+                        activeUser.admin
+                            ? Padding(
+                                padding: const EdgeInsets.all(5.0),
+                                child: IconButton.filled(
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(),
+                                  icon: const Icon(Icons.supervisor_account,
+                                      size: 30),
+                                  onPressed: () {
+                                    Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (context) =>
+                                                const ConfigPage()));
+                                  },
+                                  enableFeedback: true,
+                                  color: Colors.redAccent,
+                                  style: IconButton.styleFrom(
+                                      backgroundColor: Colors.white),
+                                ),
                               )
-                            : const SizedBox(
-                                height: 100,
+                            : const SizedBox(width: 2),
+                        SizedBox(width: activeUser.admin ? 10 : 1),
+                        if (mayFreeze)
+                          Padding(
+                            padding: const EdgeInsets.all(5.0),
+                            child: IconButton.filled(
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              icon: Icon(
+                                waitingForFreezeCheckins
+                                    ? Icons.hourglass_bottom
+                                    : ((activeLadderDoc!
+                                                .get('FreezeCheckIns') ??
+                                            false)
+                                        ? Icons.pause
+                                        : Icons.play_arrow),
+                                size: 30,
                               ),
-                        (listOfPlayers != null)
-                            ? headerSummary(_players, listOfPlayers)
-                            : Text(
-                                '. . . . . ',
-                                style: nameStyle,
-                              ),
-                        (listOfPlayers != null)
-                            ? ListView.separated(
-                                key: PageStorageKey('playerListView'),
-                                scrollDirection: Axis.vertical,
-                                shrinkWrap: true,
-                                physics: const ScrollPhysics(),
-                                separatorBuilder: (context, index) =>
-                                    const Divider(color: Colors.black),
-                                padding: const EdgeInsets.all(8),
-                                itemCount: _players!.length +
-                                    1, //for last divider line
-                                itemBuilder: (BuildContext context, int row) {
-                                  if (row == _players!.length) {
-                                    return Text("END OF PLAYER LIST: $locationStatusString/$lastLocationStatus");
+                              onPressed: () async {
+                                setState(() {
+                                  waitingForFreezeCheckins = true;
+                                });
+                                developer.log(
+                                    '${DateTime.now()} FreezeCheckIns pressed',
+                                    name: 'stage1');
+                                try {
+                                  await prepareForScoreEntry(
+                                      activeLadderDoc!, _players);
+                                  developer.log(
+                                      '${DateTime.now()} FreezeCheckIns pressed',
+                                      name: 'after prepareForScoreEntry');
+                                } catch (e) {
+                                  final String errorText = e
+                                      .toString()
+                                      .replaceFirst('Exception: ', '');
+
+                                  developer.log(
+                                      'Error during prepareForScoreEntry: $errorText',
+                                      name: 'error');
+
+                                  // Record known freeze-preparation failures in Audit for phone-only debugging.
+                                  if (errorText
+                                      .startsWith('Court Assignment Error:')) {
+                                    writeAudit(
+                                      user: activeUser.id,
+                                      documentName: 'LadderConfig',
+                                      action: 'Set FreezeCheckIns Failed',
+                                      newValue: errorText,
+                                      oldValue: (activeLadderDoc
+                                                  ?.get('FreezeCheckIns') ??
+                                              false)
+                                          .toString(),
+                                    );
                                   }
-                                  return buildPlayerLine(row, listOfPlayers);
-                                },
-                              )
-                            : Text(
-                                'Administrator Config error: ${PlayerList.errorString}',
-                                style: nameStyle,
-                              ),
+
+                                  if (context.mounted) {
+                                    showDialog(
+                                      context: context,
+                                      builder: (BuildContext ctx) =>
+                                          AlertDialog(
+                                        title: const Text(
+                                            'Unable to Freeze Check-Ins'),
+                                        content: Text(errorText),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () => Navigator.pop(ctx),
+                                            child: const Text('OK'),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  }
+                                } finally {
+                                  if (mounted) {
+                                    setState(() {
+                                      waitingForFreezeCheckins = false;
+                                    });
+                                  }
+                                }
+                                // showFrozenLadderPage(context, activeLadderDoc!, true);
+                              },
+                              enableFeedback: true,
+                              color: Colors.green,
+                              style: IconButton.styleFrom(
+                                  backgroundColor: Colors.white),
+                            ),
+                          ),
+                        const SizedBox(width: 10),
+                        // (activeUser.mayGetHelperIcon) ?
+                        helperIcon(context, activeLadderId, listOfPlayers,
+                            courtAssignments)
+                        // : SizedBox(width: 1),
+                        ,
+                        SizedBox(width: 20),
                       ],
                     ),
-                  ),
-                );
-              } catch (e, stackTrace) {
-                return Scaffold(
-                  backgroundColor: Colors.white,
-                  body: SingleChildScrollView(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Text(
-                        'player home (players) EXCEPTION: $e\n$stackTrace',
-                        style: const TextStyle(color: Colors.red),
+                    body: SingleChildScrollView(
+                      key: PageStorageKey('playerScrollView'),
+                      controller: _scrollController,
+                      scrollDirection: Axis.vertical,
+                      child: Column(
+                        children: [
+                          (urlCache.containsKey(activeLadderId) &&
+                                  (urlCache[activeLadderId] != null) &&
+                                  enableImages)
+                              ? Image.network(
+                                  urlCache[activeLadderId]!,
+                                  height: 100,
+                                )
+                              : const SizedBox(
+                                  height: 100,
+                                ),
+                          (listOfPlayers != null)
+                              ? headerSummary(_players, listOfPlayers)
+                              : Text(
+                                  '. . . . . ',
+                                  style: nameStyle,
+                                ),
+                          (listOfPlayers != null)
+                              ? ListView.separated(
+                                  key: PageStorageKey('playerListView'),
+                                  scrollDirection: Axis.vertical,
+                                  shrinkWrap: true,
+                                  physics: const ScrollPhysics(),
+                                  separatorBuilder: (context, index) =>
+                                      const Divider(color: Colors.black),
+                                  padding: const EdgeInsets.all(8),
+                                  itemCount: _players!.length +
+                                      1, //for last divider line
+                                  itemBuilder: (BuildContext context, int row) {
+                                    if (row == _players!.length) {
+                                      return Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                              "END OF PLAYER LIST: $locationStatusString/$lastLocationStatus"),
+                                          if ((_loc?.isPermissionDenied ??
+                                                  false) ||
+                                              (_loc?.isPermissionDeniedForever ??
+                                                  false))
+                                            Padding(
+                                              padding: const EdgeInsets.only(
+                                                  top: 8, bottom: 8),
+                                              child: ElevatedButton.icon(
+                                                onPressed:
+                                                    _fixLocationPermission,
+                                                icon: Icon(
+                                                    ((_loc?.isPermissionDeniedForever ??
+                                                                false) &&
+                                                            !kIsWeb)
+                                                        ? Icons.settings
+                                                        : Icons
+                                                            .location_searching),
+                                                label: Text((_loc
+                                                                ?.isPermissionDeniedForever ??
+                                                            false) &&
+                                                        !kIsWeb
+                                                    ? 'Open App Settings for Location'
+                                                    : 'Retry Location Permission'),
+                                              ),
+                                            ),
+                                        ],
+                                      );
+                                    }
+                                    return buildPlayerLine(row, listOfPlayers);
+                                  },
+                                )
+                              : Text(
+                                  'Administrator Config error: ${PlayerList.errorString}',
+                                  style: nameStyle,
+                                ),
+                        ],
                       ),
                     ),
-                  ),
-                );
-              }
+                  );
+                } catch (e, stackTrace) {
+                  return Scaffold(
+                    backgroundColor: Colors.white,
+                    body: SingleChildScrollView(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Text(
+                          'player home (players) EXCEPTION: $e\n$stackTrace',
+                          style: const TextStyle(color: Colors.red),
+                        ),
+                      ),
+                    ),
+                  );
+                }
               });
         } catch (e, stackTrace) {
           return Scaffold(
@@ -1135,7 +1197,8 @@ class _PlayerHomeState extends State<PlayerHome> {
 
   Widget _streamReconnectSpinner() {
     return Scaffold(
-      backgroundColor: Color.lerp(activeLadderBackgroundColor, Colors.white, 0.8),
+      backgroundColor:
+          Color.lerp(activeLadderBackgroundColor, Colors.white, 0.8),
       body: const Center(child: CircularProgressIndicator()),
     );
   }

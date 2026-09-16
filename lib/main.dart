@@ -127,6 +127,16 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Social Sport Ladder',
+      builder: (context, child) {
+        // Keep content above Android's bottom system navigation buttons.
+        return SafeArea(
+          top: false,
+          left: false,
+          right: false,
+          bottom: true,
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
       // theme: Provider.of<ThemeProvider>(context).themeData,
       home: loggedInUser.isEmpty?LoginPage( ):const UserStream(),
     );
