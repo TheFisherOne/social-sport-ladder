@@ -13,9 +13,10 @@ if [ "$1" != "webonly" ]; then
 
   sed -i "s/const int softwareVersion = $current_version;/const int softwareVersion = $next_version;/;s/bool enableImages = false;/bool enableImages = true;/" lib/constants/constants.dart
 
-  # this updates pubspec.yaml which in turn will update build/web/version.json which is used to clear the cache
-  # commenting pubspec.yaml change because it only really affects android and IOS
-#  sed -i -E "s/(version: 1\.0\.0\+)[0-9]+/\1$next_version/" pubspec.yaml
+  # keep Android/iOS build metadata aligned with the app software version
+  sed -i -E "s/^(version: [0-9]+\.[0-9]+\.[0-9]+\+)[0-9]+$/\1$next_version/" pubspec.yaml
+
+  flutter pub get
 
 fi
 
@@ -27,6 +28,9 @@ if [ "$1" != "webonly" ]; then
    echo deploying in normal mode V$next_version
 
    flutter build web
+
+   echo building Android app bundle V$next_version
+   flutter build appbundle --release
   fi
 fi
 

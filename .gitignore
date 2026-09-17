@@ -44,5 +44,15 @@ app.*.map.json
 
 /build
 lib/constants/firebase_setup.dart
-lib/pubspec.lock
 /android.old/
+.firebase/
+/coverage/
+build_log.txt
+*.orig
+*.backup
+*.refresh
+.idea_back/
+.idea_back2/
+/saveme/
+/lib/constants/firebase_setup2.dart
+/lib/constants/firebase_options.json
