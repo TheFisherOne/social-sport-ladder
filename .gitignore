@@ -56,3 +56,4 @@ build_log.txt
 /saveme/
 /lib/constants/firebase_setup2.dart
 /lib/constants/firebase_options.json
+/android/app/google-services.json

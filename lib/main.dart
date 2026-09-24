@@ -1,6 +1,7 @@
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -98,6 +99,8 @@ void main() async {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
+  static final FirebaseAnalytics _analytics = FirebaseAnalytics.instance;
+
 
   // This widget is the root of your application.
   @override
@@ -127,6 +130,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Social Sport Ladder',
+      navigatorObservers: [FirebaseAnalyticsObserver(analytics: _analytics)],
       builder: (context, child) {
         // Keep content above Android's bottom system navigation buttons.
         return SafeArea(

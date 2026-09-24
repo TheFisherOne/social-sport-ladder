@@ -11,7 +11,7 @@ void reloadWithNewVersion(double reqSoftwareVersion) {
 
 Future<void> _openPlayStore(BuildContext context) async {
   final Uri playStoreUri = Uri.parse(
-    'https://play.google.com/store/apps/details?id=com.example.social_sport_ladder',
+    'https://play.google.com/store/apps/details?id=com.doug.socialsportladder',
   );
 
   final bool opened = await launchUrl(

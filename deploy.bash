@@ -30,6 +30,11 @@ if [ "$1" != "webonly" ]; then
    flutter build web
 
    echo building Android app bundle V$next_version
+     if [ ! -f android/key.properties ]; then
+       echo "Error: android/key.properties not found. Configure Android release signing before building the app bundle."
+       echo "Tip: create android/key.properties with storeFile, storePassword, keyAlias, and keyPassword."
+       exit 1
+     fi
    flutter build appbundle --release
   fi
 fi
@@ -48,6 +53,7 @@ fi
 
 if [ "$1" != "webonly" ]; then
   echo DONE: Changing Version from "$current_version" to "$next_version"
+  echo Android bundle in build/app/outputs/bundle/release/app-release.aab
 else
   echo DONE: just updating the web server, not compiling the code
 fi
