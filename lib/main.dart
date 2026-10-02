@@ -74,26 +74,33 @@ void main() async {
 
   changeLoadingMessage('Initializing App as Google Firebase');
 
-  try {
-    await Firebase.initializeApp(options: FirebaseOptions(
-      apiKey: xorString(encodedApiKey, keyString),
-      authDomain: xorString(encodedAuthDomain, keyString),
-      appId: xorString(encodedAppId, keyString),
-      messagingSenderId: xorString(encodedMessagingSenderId, keyString),
-      projectId: xorString(encodedProjectId, keyString),
-      storageBucket: xorString(encodedStorageBucket, keyString),
-      measurementId: xorString(encodedMeasurementId, keyString),
-    ),);
-  } catch(e){
-    if (kDebugMode) {
-      print('Firebase.initializeApp ERROR: $e');
+    try {
+      await Firebase.initializeApp(options: FirebaseOptions(
+        apiKey: xorString(encodedApiKey, keyString),
+        authDomain: xorString(encodedAuthDomain, keyString),
+        appId: xorString(encodedAppId, keyString),
+        messagingSenderId: xorString(encodedMessagingSenderId, keyString),
+        projectId: xorString(encodedProjectId, keyString),
+        storageBucket: xorString(encodedStorageBucket, keyString),
+        measurementId: xorString(encodedMeasurementId, keyString),
+      ),);
+    } on FirebaseException catch (e) {
+      // Safely swallow the error if the native side already initialized [DEFAULT]
+      if (e.code == 'duplicate-app') {
+        debugPrint('Firebase [DEFAULT] already initialized by native Android for Analytics.');
+      } else {
+        rethrow;
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Firebase.initializeApp ERROR: $e');
+      }
+      return;
     }
-    return;
-  }
-  changeLoadingMessage('Finished Firebase initialize, starting app');
-  runApp(
-      const MyApp()
-  );
+    changeLoadingMessage('Finished Firebase initialize, starting app');
+    runApp(
+        const MyApp()
+    );
 }
 
 class MyApp extends StatelessWidget {

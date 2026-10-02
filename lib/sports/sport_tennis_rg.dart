@@ -699,6 +699,7 @@ class CourtAssignmentsRgStandard {
         }
       } else {
         while (courtsOf5LeftToAssign > 0) {
+          randomSeed = randomSeed*31 + 13; // needed so they will not be sequential
           int courtOfFive = randomSeed %
               (numberOnCourt.length - (courtsOfFive - courtsOf5LeftToAssign));
           // print('courtOfFive: $courtOfFive');

@@ -566,7 +566,7 @@ void main() {
     expect(PlayerList.numExpected, 13, reason: 'NumExpected 13');
     expect(result![0].courtNumber, 0, reason: 'assignedCourt-1 for first player');
     expect(result[5].courtNumber, 1, reason: 'assignedCourt-1 for 6th player');
-    expect(result[8].courtNumber, 1, reason: 'assignedCourt-1 for 9th player should be last person on court of 5');
+    expect(result[8].courtNumber, 2, reason: 'assignedCourt-1 for 9th player should be first person on court of 5');
     expect(result[10].courtNumber, 2, reason: 'assignedCourt-1 for 11th player');
     expect(result[12].courtNumber, 2, reason: 'assignedCourt-1 for last player');
 
@@ -606,11 +606,11 @@ void main() {
     expect(PlayerList.numAway, 0, reason: 'numAway  (marked themselves as away) 13');
     expect(PlayerList.numExpected, 13, reason: 'NumExpected 13');
     expect(result![0].courtNumber, 0, reason: 'assignedCourt-1 for first player');
-    expect(result[4].courtNumber, 1, reason: 'assignedCourt-1 for 5th player first player on 2nd court');
-    expect(result[8].courtNumber, 2, reason: 'assignedCourt-1 for 9th player should be first person on court of 5');
+    expect(result[4].courtNumber, 0, reason: 'assignedCourt-1 for 5th player last player on 1st court (of5)');
+    expect(result[8].courtNumber, 1, reason: 'assignedCourt-1 for 9th player should be first person on court of 5');
     expect(result[12].courtNumber, 2, reason: 'assignedCourt-1 for last player');
 
-    expect(result[5].newRank, 6, reason: 'newRank should not change 6');
+    expect(result[5].newRank, 5, reason: 'newRank should not change 6');
   });
 
   test('sportTennisRGDetermineMovement with 13 players 13 present random=102', () async {
@@ -643,7 +643,7 @@ void main() {
     expect(PlayerList.numAway, 0, reason: 'numAway  (marked themselves as away) 13');
     expect(PlayerList.numExpected, 13, reason: 'NumExpected 13');
     expect(result![0].courtNumber, 0, reason: 'assignedCourt-1 for first player');
-    expect(result[4].courtNumber, 0, reason: 'assignedCourt-1 for 5th player last player on 1st court (of5)');
+    expect(result[4].courtNumber, 1, reason: 'assignedCourt-1 for 5th player first player on 2st court which has 5');
     expect(result[8].courtNumber, 1, reason: 'assignedCourt-1 for 9th player should be last person on court of 4');
     expect(result[9].courtNumber, 2, reason: 'assignedCourt-1 for 10th player should be first on last court');
 
@@ -689,7 +689,7 @@ void main() {
     expect(result![0].courtNumber, 0, reason: 'assignedCourt-1 for first player');
     expect(result[4].courtNumber, 0, reason: 'assignedCourt-1 5th player last on court 1 (of 5)');
     expect(result[5].courtNumber, 1, reason: 'assignedCourt-1 for 6th player first on court 2');
-    expect(result[9].courtNumber, 1, reason: 'assignedCourt-1 for 10th player should be last person on court of 5');
+    expect(result[9].courtNumber, 2, reason: 'assignedCourt-1 for 10th player should be first person on the last court owhich is f 5');
     expect(result[10].courtNumber, 2, reason: 'assignedCourt-1 for 11th player');
     expect(result[13].courtNumber, 2, reason: 'assignedCourt-1 for last player');
 
@@ -701,9 +701,9 @@ void main() {
     expect(result[ 5].afterWinLose, 5, reason: 'newRank should be same');
     expect(result[ 6].afterWinLose, 7, reason: 'newRank should be same');
     expect(result[ 7].afterWinLose, 8, reason: 'newRank should be same');
-    expect(result[ 8].afterWinLose, 9, reason: 'newRank should be same');
-    expect(result[ 9].afterWinLose,11, reason: 'newRank loser should go down 1');
-    expect(result[10].afterWinLose,10, reason: 'newRank winner should go up 1');
+    expect(result[ 8].afterWinLose,10, reason: 'newRank should be same');
+    expect(result[ 9].afterWinLose, 9, reason: 'newRank loser should go down 1');
+    expect(result[10].afterWinLose,11, reason: 'newRank winner should go up 1');
     expect(result[11].afterWinLose,12, reason: 'newRank should be same');
     expect(result[12].afterWinLose,13, reason: 'newRank should be same');
     expect(result[13].afterWinLose,14, reason: 'newRank should be same');
@@ -751,7 +751,7 @@ void main() {
     expect(PlayerList.numAway, 0, reason: 'numAway  (marked themselves as away)');
     expect(PlayerList.numExpected, 14, reason: 'NumExpected');
     expect(result![0].courtNumber, 0, reason: 'assignedCourt-1 for first player');
-    expect(result[4].courtNumber, 1, reason: 'assignedCourt-1 5th player first on court 1 (of 5)');
+    expect(result[4].courtNumber, 0, reason: 'assignedCourt-1 5th player last player on court 1 which is of 5');
     expect(result[5].courtNumber, 1, reason: 'assignedCourt-1 for 6th player first on court 2');
     expect(result[9].courtNumber, 2, reason: 'assignedCourt-1 for 10th player should be first person on court of 5');
     expect(result[10].courtNumber, 2, reason: 'assignedCourt-1 for 11th player');
@@ -760,9 +760,9 @@ void main() {
     expect(result[ 0].afterWinLose, 1, reason: 'newRank should be same');
     expect(result[ 1].afterWinLose, 2, reason: 'newRank should be same');
     expect(result[ 2].afterWinLose, 3, reason: 'newRank should be same');
-    expect(result[ 3].afterWinLose, 5, reason: 'newRank loser should go down 1');
-    expect(result[ 4].afterWinLose, 4, reason: 'newRank winner should go up 1');
-    expect(result[ 5].afterWinLose, 6, reason: 'newRank should be same');
+    expect(result[ 3].afterWinLose, 4, reason: 'newRank loser should go down 1');
+    expect(result[ 4].afterWinLose, 6, reason: 'newRank winner should go up 1');
+    expect(result[ 5].afterWinLose, 5, reason: 'newRank should be same');
     expect(result[ 6].afterWinLose, 7, reason: 'newRank should be same');
     expect(result[ 7].afterWinLose, 8, reason: 'newRank should be same');
     expect(result[ 8].afterWinLose,10, reason: 'newRank loser should go down 1');
@@ -932,10 +932,10 @@ void main() {
     expect(result[2].newRank,  2, reason: 'Player  3 new rank bumped up due to player away');
     expect(result[3].newRank,  3, reason: 'Player  4 new rank bumped up due to player away');
     expect(result[4].newRank,  7, reason: 'Player  5 new rank down 2 due to away');
-    expect(result[5].newRank,  5, reason: 'Player  6 new rank bumped up due to player away');
-    expect(result[6].newRank,  8, reason: 'Player  7 new rank exchange places with winner from court below');
+    expect(result[5].newRank,  6, reason: 'Player  6 new rank bumped up due to player away');
+    expect(result[6].newRank,  5, reason: 'Player  7 new rank exchange places with winner from court below');
     expect(result[7].newRank, 10, reason: 'Player  8 new rank down 2 due to away');
-    expect(result[8].newRank,  6, reason: 'Player  9 new rank exchange places with loser from court above');
+    expect(result[8].newRank,  8, reason: 'Player  9 new rank exchange places with loser from court above');
     expect(result[9].newRank,  9, reason: 'Player 10 new rank cant change because at bottom');
     expect(result[10].newRank,11, reason: 'Player 11 new rank cant change because at bottom');
     expect(result[11].newRank,12, reason: 'Player 12 new rank cant change because at bottom');

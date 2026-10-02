@@ -1292,7 +1292,7 @@ class _ConfigPageState extends State<ConfigPage> {
                         helperText: 'List of magic strings using "|" to separate them. 1: sport, 2: scoring method',
                         controller: _sportsDescriptorController,
                         entryOK: (entry) {
-                          if (entry.length > 100) return 'String too long';
+                          if (entry.length > 200) return 'String too long';
 
                           return null;
                         },

@@ -71,6 +71,7 @@ Map<String, dynamic> createPlayer(int rank) {
 void main() {
   setUp(() {
     enableImages = false;
+    useServerFunctions = false;
   });
   initTimeZone();
 
