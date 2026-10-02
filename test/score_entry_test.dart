@@ -39,7 +39,7 @@ Future<void> initActiveLadderDoc(FakeFirebaseFirestore instance,
     'PriorityOfCourts': '8|9|10|1',
     'RandomCourtOf5': 100,
     'RequiredSoftwareVersion': 5,
-    'SportDescriptor': 'tennisRG|rg_mens',
+    'SportDescriptor': 'generic|rg_mens',
     'SuperDisabled': false,
     'VacationStopTime': 8.15,
   };
@@ -75,7 +75,7 @@ void main() {
   });
   initTimeZone();
 
-  testWidgets('score entry, 4 players, tennisRG|rg_mens',
+  testWidgets('score entry, 4 players, generic|rg_mens',
       (WidgetTester tester) async {
     activeUser.id = 'test01@gmail.com';
     activeUser.helperEnabled = true;

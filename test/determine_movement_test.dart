@@ -37,7 +37,7 @@ Future<void> initActiveLadderDoc(FakeFirebaseFirestore instance, {Map<String, dy
     'PriorityOfCourts': '8|9|10|1',
     'RandomCourtOf5': 100,
     'RequiredSoftwareVersion': 5,
-    'SportDescriptor': 'tennisRG|rg_mens',
+    'SportDescriptor': 'generic|rg_mens',
     'SuperDisabled': false,
     'VacationStopTime': 8.15,
   };

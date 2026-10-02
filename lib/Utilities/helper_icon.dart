@@ -430,8 +430,7 @@ class _HelperFunctionDialog extends StatelessWidget {
                               'WeeksRegistered':
                               FieldValue.increment(1),
                             };
-                            if ((getSportDescriptor(0) !='pickleballRG') &&
-                                (getSportDescriptorInt('RoundsPerDay') <= 1)){
+                            if (getSportDescriptorInt('RoundsPerDay') <= 1) {
                               playerData['Present'] = false;
                             }
                             if (currentRound == 1) {
@@ -459,8 +458,7 @@ class _HelperFunctionDialog extends StatelessWidget {
                             transaction.update(
                                 playerRef, playerData);
                           }
-                          if ((getSportDescriptor(0) ==
-                              'pickleballRG') || (getSportDescriptorInt('RoundsPerDay') > 1)) {
+                          if (getSportDescriptorInt('RoundsPerDay') > 1) {
                             currentRound++;
                           }
                           DocumentReference ladderRef =

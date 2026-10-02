@@ -11,17 +11,11 @@ void showFrozenLadderPage(
     dynamic context, DocumentSnapshot activeLadderDoc, bool withReplacement) {
   //print('SportDescriptor: "${sportDescriptor.split(':')}" withReplacement: $withReplacement');
   dynamic page;
-  if (getSportDescriptor(0) == 'tennisRG') {
-    page = const SportTennisRG();
-  } else if (getSportDescriptor(0) == 'pickleballRG') {
-    page = const SportTennisRG();
-  } else if (getSportDescriptor(0) == 'badmintonRG') {
-    page = const SportTennisRG();
-  } else if (getSportDescriptor(0) == 'generic') {
+  if (getSportDescriptor(0) == 'generic') {
     page = const SportTennisRG();
   } else {
     page = Text(
-        'bad sport descriptor ${getSportDescriptor(0)} should be one of: tennisRG pickleballRG badmintonRG');
+        'bad sport descriptor ${getSportDescriptor(0)} should be: generic');
   }
   if (withReplacement) {
     // we can create the Score Docs here
@@ -115,9 +109,6 @@ int getGamesFor6() {
       }
     }
     return games;
-  } else if ((getSportDescriptor(0) == 'tennisRG') &&
-      (getSportDescriptor(1) == 'rg_single')) {
-    return 6;
   }
   return 8;
 }
@@ -158,16 +149,7 @@ bool sportDescriptorIncludes(String descriptor) {
 
 Future<void> prepareForScoreEntry(DocumentSnapshot activeLadderDoc,
     List<QueryDocumentSnapshot>? players) async {
-  if (getSportDescriptor(0) == 'tennisRG') {
-    await sportTennisRGPrepareForScoreEntry(players);
-    return;
-  } else if (getSportDescriptor(0) == 'pickleballRG') {
-    await sportTennisRGPrepareForScoreEntry(players);
-    return;
-  } else if (getSportDescriptor(0) == 'badmintonRG') {
-    await sportTennisRGPrepareForScoreEntry(players);
-    return;
-  } else if (getSportDescriptor(0) == 'generic') {
+  if (getSportDescriptor(0) == 'generic') {
     await sportTennisRGPrepareForScoreEntry(players);
     return;
   }
@@ -180,13 +162,7 @@ Future<void> prepareForScoreEntry(DocumentSnapshot activeLadderDoc,
 List<PlayerList>? determineMovement(
     DocumentSnapshot activeLadderDoc, List<QueryDocumentSnapshot>? players) {
   String dateWithRoundStr = activeLadderDoc.get('FrozenDate');
-  if (getSportDescriptor(0) == 'tennisRG') {
-    return sportTennisRGDetermineMovement(players, dateWithRoundStr);
-  } else if (getSportDescriptor(0) == 'pickleballRG') {
-    return sportTennisRGDetermineMovement(players, dateWithRoundStr);
-  } else if (getSportDescriptor(0) == 'badmintonRG') {
-    return sportTennisRGDetermineMovement(players, dateWithRoundStr);
-  } else if (getSportDescriptor(0) == 'generic') {
+  if (getSportDescriptor(0) == 'generic') {
     return sportTennisRGDetermineMovement(players, dateWithRoundStr);
   }
   if (kDebugMode) {
@@ -351,10 +327,7 @@ class _ScoreBaseState extends State<ScoreBase> with WidgetsBindingObserver {
                   }
                   // print('score_base2: areScoresConfirmedNow: $areScoresConfirmedNow, _scoresConfirmed: $_scoresConfirmed');
 
-                  if ((getSportDescriptor(0) == 'tennisRG') ||
-                      (getSportDescriptor(0) == 'pickleballRG') ||
-                      (getSportDescriptor(0) == 'badmintonRG') ||
-                      (getSportDescriptor(0) == 'generic')) {
+                  if (getSportDescriptor(0) == 'generic') {
                     return ScoreTennisRg(
                       ladderName: widget.ladderName,
                       round: widget.round,

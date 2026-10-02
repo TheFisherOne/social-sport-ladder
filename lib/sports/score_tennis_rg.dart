@@ -470,102 +470,6 @@ class ScoreTennisRgState extends State<ScoreTennisRg> with WidgetsBindingObserve
         }
         _gameScoreErrors[game] = !allOK;
       }
-    } else if (getSportDescriptor(0) == 'pickleballRG') {
-      int maxScore3 = 11;
-      int maxScore5 = 9;
-      _gameScoreErrors = List.filled(_numGames, false);
-      for (int game = 0; game < _numGames; game++) {
-        bool allOK = true;
-        List<int?> scores = [for (var row in _gameScores) row[game]];
-        scores.sort((a, b) {
-          if (a == null) return -1; // Place nulls at the beginning
-          if (b == null) return 1; // Place nulls at the beginning
-          return a.compareTo(b); // Ascending order
-        });
-        if (scores.last != null) {
-          // if they are all null then it is ok nothing has been entered
-          if (_numGames == 3) {
-            if (scores.first == null) {
-              // print('_gameScoreErrors[$game] found null');
-              allOK = false;
-            } else {
-              if ((scores[0] != scores[1]) || (scores[2] != scores[3])) {
-                allOK = false;
-              }
-              if (scores.last != maxScore3) allOK = false;
-              if (!allOK) {
-                if (kDebugMode) {
-                  print('_gameScoreErrors[$game] 2 scores have to be $maxScore3 and the other 2 have to match');
-                }
-              }
-            }
-          } else {
-            if (((scores.first != null) && (scores.first != 0)) || (scores[1] == null)) {
-              // print('_gameScoreErrors[$game] did not find one null or zero $scores');
-              allOK = false;
-            } else {
-              if ((scores[1] != scores[2]) || (scores[3] != scores[4])) {
-                allOK = false;
-              }
-              if (scores.last != maxScore5) allOK = false;
-              if (!allOK) {
-                if (kDebugMode) {
-                  print('_gameScoreErrors[$game]  scores have to be $maxScore5 and the other 2 have to match');
-                }
-              }
-            }
-          }
-        }
-        _gameScoreErrors[game] = !allOK;
-      }
-    } else if (getSportDescriptor(0) == 'badmintonRG') {
-      int maxScore3 = 21;
-      int maxScore5 = 21;
-      _gameScoreErrors = List.filled(_numGames, false);
-      for (int game = 0; game < _numGames; game++) {
-        bool allOK = true;
-        List<int?> scores = [for (var row in _gameScores) row[game]];
-        scores.sort((a, b) {
-          if (a == null) return -1; // Place nulls at the beginning
-          if (b == null) return 1; // Place nulls at the beginning
-          return a.compareTo(b); // Ascending order
-        });
-        if (scores.last != null) {
-          // if they are all null then it is ok nothing has been entered
-          if (_numGames == 3) {
-            if (scores.first == null) {
-              // print('_gameScoreErrors[$game] found null');
-              allOK = false;
-            } else {
-              if ((scores[0] != scores[1]) || (scores[2] != scores[3])) {
-                allOK = false;
-              }
-              if (scores.last != maxScore3) allOK = false;
-              if (!allOK) {
-                if (kDebugMode) {
-                  print('_gameScoreErrors[$game] 2 scores have to be $maxScore3 and the other 2 have to match');
-                }
-              }
-            }
-          } else {
-            if (((scores.first != null) && (scores.first != 0)) || (scores[1] == null)) {
-              // print('_gameScoreErrors[$game] did not find one null or zero $scores');
-              allOK = false;
-            } else {
-              if ((scores[1] != scores[2]) || (scores[3] != scores[4])) {
-                allOK = false;
-              }
-              if (scores.last != maxScore5) allOK = false;
-              if (!allOK) {
-                if (kDebugMode) {
-                  print('_gameScoreErrors[$game]  scores have to be $maxScore5 and the other 2 have to match');
-                }
-              }
-            }
-          }
-        }
-        _gameScoreErrors[game] = !allOK;
-      }
     } else {
       int addUpTo = 8;
       if (_numGames == 5) addUpTo = 6;
@@ -1123,18 +1027,6 @@ class ScoreTennisRgState extends State<ScoreTennisRg> with WidgetsBindingObserve
                 } else {
                   if (workingValue! > getGamesFor6()) workingValue = 0;
                 }
-              } else if (getSportDescriptor(0) == 'pickleballRG') {
-                if (_numGames == 3) {
-                  if (workingValue! > 11) workingValue = 0;
-                } else {
-                  if (workingValue! > 9) workingValue = 0;
-                }
-              } else if (getSportDescriptor(0) == 'badmintonRG') {
-                if (_numGames == 3) {
-                  if (workingValue! > 21) workingValue = 0;
-                } else {
-                  if (workingValue! > 21) workingValue = 0;
-                }
               } else if (getSportDescriptor(1).contains('singles')) {
                 if (_numGames == 3) {
                   if (workingValue! > 8) workingValue = 0;
@@ -1203,30 +1095,6 @@ class ScoreTennisRgState extends State<ScoreTennisRg> with WidgetsBindingObserve
       int score1 = getScore(lastPlayerWithScore, game)!;
       if (getSportDescriptor(1).contains('singles')) {
         return null;
-      } else if (getSportDescriptor(0) == 'pickleballRG') {
-        if (score1 >= 11) return null;
-        int score2 = 11;
-        result[lastPlayerWithScore] = score1;
-        result[partner] = score1;
-        for (int i = 0; i < result.length; i++) {
-          if (result[i] < 0) result[i] = score2;
-        }
-      } else if (getSportDescriptor(0) == 'badmintonRG') {
-        if (score1 >= 21) return null;
-        int score2 = 21;
-        result[lastPlayerWithScore] = score1;
-        result[partner] = score1;
-        for (int i = 0; i < result.length; i++) {
-          if (result[i] < 0) result[i] = score2;
-        }
-      } else if (getSportDescriptor(0) == 'tennisRG') {
-        if (score1 > 8) return null;
-        int score2 = 8 - score1;
-        result[lastPlayerWithScore] = score1;
-        result[partner] = score1;
-        for (int i = 0; i < result.length; i++) {
-          if (result[i] < 0) result[i] = score2;
-        }
       } else if (getSportDescriptor(0) == 'generic') {
         //print('doing autofill4 with generic');
         if (getScoringMethod() != 'total') {
@@ -1254,34 +1122,8 @@ class ScoreTennisRgState extends State<ScoreTennisRg> with WidgetsBindingObserve
       // the 2 entered scores are lastPlayerWithScore and playerWithSameScore
       List result = [-1, -1, -1, -1];
       int score1 = getScore(lastPlayerWithScore, game)!;
-      if (getSportDescriptor(0) == 'pickleballRG') {
-        if (score1 >= 11) return null; // can not autofill with 2 max scores
-        int score2 = 11;
-        result[lastPlayerWithScore] = score1;
-        result[playerWithSameScore] = score1;
-        for (int i = 0; i < result.length; i++) {
-          if (result[i] < 0) result[i] = score2;
-        }
-      } else if (getSportDescriptor(0) == 'badmintonRG') {
-        if (score1 >= 21) return null; // can not autofill with 2 max scores
-        int score2 = 21;
-        result[lastPlayerWithScore] = score1;
-        result[playerWithSameScore] = score1;
-        for (int i = 0; i < result.length; i++) {
-          if (result[i] < 0) result[i] = score2;
-        }
-      } else if (getSportDescriptor(1).contains('singles')) {
+      if (getSportDescriptor(1).contains('singles')) {
         return null; // can not autofill for singles
-      } else if (getSportDescriptor(0) == 'tennisRG') {
-        if (score1 > 8) {
-          return null; // this is just an error that should not occur
-        }
-        int score2 = 8 - score1;
-        result[lastPlayerWithScore] = score1;
-        result[playerWithSameScore] = score1;
-        for (int i = 0; i < result.length; i++) {
-          if (result[i] < 0) result[i] = score2;
-        }
       } else if (getSportDescriptor(0) == 'generic') {
         if (getScoringMethod() != 'total') {
           if (score1 >= getGamesFor4()) {
@@ -1353,33 +1195,6 @@ class ScoreTennisRgState extends State<ScoreTennisRg> with WidgetsBindingObserve
       int score1 = getScore(lastPlayerWithScore, game)!;
       if (getSportDescriptor(1).contains('singles')) {
         return null;
-      } else if (getSportDescriptor(0) == 'pickleballRG') {
-        if (score1 >= 9) return null;
-        int score2 = 9;
-        result[lastPlayerWithScore] = score1;
-        result[partner] = score1;
-        for (int i = 0; i < result.length; i++) {
-          if (result[i] < 0) result[i] = score2;
-        }
-        result[4 - game] = null;
-      } else if (getSportDescriptor(0) == 'badmintonRG') {
-        if (score1 >= 21) return null;
-        int score2 = 21;
-        result[lastPlayerWithScore] = score1;
-        result[partner] = score1;
-        for (int i = 0; i < result.length; i++) {
-          if (result[i] < 0) result[i] = score2;
-        }
-        result[4 - game] = null;
-      } else if (getSportDescriptor(0) == 'tennisRG') {
-        if (score1 > 6) return null;
-        int score2 = 6 - score1;
-        result[lastPlayerWithScore] = score1;
-        result[partner] = score1;
-        for (int i = 0; i < result.length; i++) {
-          if (result[i] < 0) result[i] = score2;
-        }
-        result[4 - game] = null; // the diagonal blank scores
       } else if (getSportDescriptor(0) == 'generic') {
         if (getScoringMethod() != 'total') {
           if (score1 >= getGamesFor5()) return null;

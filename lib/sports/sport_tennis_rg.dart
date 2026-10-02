@@ -317,8 +317,7 @@ List<PlayerList>? sportTennisRGDetermineMovement(
   // (unless they were on the waiting list and not allowed to play)
   List<PlayerList> afterDownTwo;
 
-  if ((getSportDescriptor(0) == 'pickleballRG') ||
-      (getSportDescriptorInt('MoveDownIfAwayWithoutNotice') == 1)) {
+  if (getSportDescriptorInt('MoveDownIfAwayWithoutNotice') == 1) {
     afterDownTwo = afterDownOne;
     List<PlayerList> startingList2 = afterDownOne.toList();
     for (int i = 0; i < players.length; i++) {
@@ -809,10 +808,6 @@ class CourtAssignmentsRgStandard {
       }
       shuffledCourtNames = newNames;
       // print('after shuffle: $shuffledCourtNames');
-    } else if (getSportDescriptor(0) == 'pickleballRG') {
-      // do no shuffle
-    } else if (getSportDescriptor(0) == 'badmintonRG') {
-      // do no shuffle
     } else if (getSportDescriptor(1).contains('doubles')) {
       // do no shuffle
     } else {
