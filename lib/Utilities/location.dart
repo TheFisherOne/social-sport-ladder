@@ -154,7 +154,7 @@ class LocationService extends ChangeNotifier {
   Future<void> startTimer() async {
     stopTimer(); // Ensure no multiple timers are running
     // print('Starting location timer');
-    _timer = Timer.periodic(const Duration(seconds: 10), (_) async {
+    _timer = Timer.periodic(const Duration(seconds: 30), (_) async {
       await updateLocation();
     });
     // Get initial location immediately
