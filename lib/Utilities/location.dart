@@ -5,9 +5,11 @@ import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../screens/ladder_config_page.dart';
+import 'location_button.dart';
 
 String locationStatusString = 'Location Not Initialized';
 String lastLocationStatus = '';
+const double maxAcceptableAccuracyMeters = 200.0;
 
 class LocationService extends ChangeNotifier {
   Position? _lastLocation;
@@ -50,9 +52,9 @@ class LocationService extends ChangeNotifier {
     try {
       // On web, it's good to be explicit about accuracy.
       final locationSettings = LocationSettings(
-        accuracy: LocationAccuracy.medium,
+        accuracy: LocationAccuracy.high,
         distanceFilter: 25,
-        timeLimit: const Duration(seconds: 8),
+        timeLimit: const Duration(seconds: 15),
       );
 
       position = await Geolocator.getCurrentPosition(
@@ -85,6 +87,12 @@ class LocationService extends ChangeNotifier {
       }
     }
 
+    if (position != null && position.accuracy > maxAcceptableAccuracyMeters) {
+      lastLocationStatus =
+          'Ignoring inaccurate location (${position.accuracy.round()} m)';
+      position = null;
+    }
+
     if (position != null) {
       lastLocationStatus = '';
       _lastLocation = position;
@@ -101,9 +109,12 @@ class LocationService extends ChangeNotifier {
         notifyListeners();
       }
     } else {
-      lastLocationStatus = 'Error getting location';
+      if (lastLocationStatus.isEmpty ||
+          lastLocationStatus.startsWith('getCurrentPosition timed out')) {
+        lastLocationStatus = 'Error getting location';
+      }
       if (kDebugMode) {
-        print('Error getting location');
+        print(lastLocationStatus);
       }
     }
   }
@@ -178,6 +189,12 @@ class LocationService extends ChangeNotifier {
     permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       _permissionDenied = true;
+      if (locationButtonSupported) {
+        // On Android the user grants location with the system location button.
+        locationStatusString = 'Tap the location button to share your location';
+        notifyListeners();
+        return;
+      }
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
         // Permissions are denied, next time you could try
@@ -186,9 +203,9 @@ class LocationService extends ChangeNotifier {
         // returned true. According to Android guidelines
         // your App should show an explanatory UI now.
         locationStatusString = 'Location permissions are denied';
-        if (kDebugMode) {
-          print('Location permissions are denied');
-        }
+        // if (kDebugMode) {
+        //   print('Location permissions are denied');
+        // }
         notifyListeners();
         return;
       }

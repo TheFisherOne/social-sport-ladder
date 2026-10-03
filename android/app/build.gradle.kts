@@ -17,7 +17,8 @@ plugins {
 
 android {
     namespace = "com.doug.socialsportladder"
-    compileSdk = flutter.compileSdkVersion
+    // androidx.core.locationbutton requires compileSdk 37
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -66,6 +67,10 @@ kotlin {
     compilerOptions {
         jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
     }
+}
+
+dependencies {
+    implementation("androidx.core.locationbutton:locationbutton:1.0.0-alpha01")
 }
 
 flutter {

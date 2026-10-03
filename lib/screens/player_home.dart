@@ -13,6 +13,7 @@ import 'package:social_sport_ladder/screens/score_base.dart';
 
 import '../Utilities/helper_icon.dart';
 import '../Utilities/location.dart';
+import '../Utilities/location_button.dart';
 import '../Utilities/misc.dart';
 import '../Utilities/player_image.dart';
 import '../constants/constants.dart';
@@ -115,7 +116,9 @@ class _PlayerHomeState extends State<PlayerHome> {
     if (_loc == null) {
       return;
     }
-    if (!kIsWeb && _loc!.isPermissionDeniedForever) {
+    if (!kIsWeb &&
+        !locationButtonSupported &&
+        _loc!.isPermissionDeniedForever) {
       await _loc!.openAppSettingsForPermission();
     } else {
       await _loc!.retryPermissionFlow();
@@ -338,57 +341,73 @@ class _PlayerHomeState extends State<PlayerHome> {
                         (checkBoxIcon == Icons.check_box_outline_blank)))
                   Text(
                       'you are ${_loc!.getLastDistanceAway().toStringAsFixed(1)}m away'),
-                Container(
-                  height: appFontSize * 1.4 * 2,
-                  width: 50,
-                  color: (player.id == activeUser.id)
-                      ? Colors.green.shade100
-                      : Colors.blue.shade100,
-                  child: Padding(
-                    padding: const EdgeInsets.all(0.0),
-                    child: InkWell(
-                      onTap: (((player.id == activeUser.id) ||
-                                      activeUser.helper) &&
-                                  ((checkBoxIcon == Icons.check_box) ||
-                                      (checkBoxIcon ==
-                                          Icons.check_box_outline_blank))) &&
-                              (activeLadderDoc!.get("FreezeCheckIns") != true)
-                          ? () async {
-                              bool newPresent = false;
-                              if (checkBoxIcon ==
-                                  Icons.check_box_outline_blank) {
-                                newPresent = true;
-                              }
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      height: appFontSize * 1.4 * 2,
+                      width: 50,
+                      color: (player.id == activeUser.id)
+                          ? Colors.green.shade100
+                          : Colors.blue.shade100,
+                      child: Padding(
+                        padding: const EdgeInsets.all(0.0),
+                        child: InkWell(
+                          onTap: (((player.id == activeUser.id) ||
+                                          activeUser.helper) &&
+                                      ((checkBoxIcon == Icons.check_box) ||
+                                          (checkBoxIcon ==
+                                              Icons
+                                                  .check_box_outline_blank))) &&
+                                  (activeLadderDoc!.get("FreezeCheckIns") !=
+                                      true)
+                              ? () async {
+                                  bool newPresent = false;
+                                  if (checkBoxIcon ==
+                                      Icons.check_box_outline_blank) {
+                                    newPresent = true;
+                                  }
 
-                              writeAudit(
-                                  user: activeUser.id,
-                                  documentName: player.id,
-                                  action: 'Set Present',
-                                  newValue: newPresent.toString(),
-                                  oldValue: player.get('Present').toString());
-                              firestore
-                                  .collection('Ladder')
-                                  .doc(activeLadderId)
-                                  .collection('Players')
-                                  .doc(player.id)
-                                  .update({
-                                'Present': newPresent,
-                                'TimePresent': DateTime.now(),
-                              });
-                            }
-                          : null,
-                      child: (_checkInProgress >= 0)
-                          ? const Icon(Icons.refresh,
-                              color: Colors.black, size: 60)
-                          : Icon(checkBoxIcon,
-                              size: appFontSize * 1.4 * 2,
-                              color: ((checkBoxIcon == Icons.check_box) ||
-                                      (checkBoxIcon ==
-                                          Icons.check_box_outline_blank))
-                                  ? Colors.black
-                                  : Colors.red),
+                                  writeAudit(
+                                      user: activeUser.id,
+                                      documentName: player.id,
+                                      action: 'Set Present',
+                                      newValue: newPresent.toString(),
+                                      oldValue:
+                                          player.get('Present').toString());
+                                  firestore
+                                      .collection('Ladder')
+                                      .doc(activeLadderId)
+                                      .collection('Players')
+                                      .doc(player.id)
+                                      .update({
+                                    'Present': newPresent,
+                                    'TimePresent': DateTime.now(),
+                                  });
+                                }
+                              : null,
+                          child: (_checkInProgress >= 0)
+                              ? const Icon(Icons.refresh,
+                                  color: Colors.black, size: 60)
+                              : Icon(checkBoxIcon,
+                                  size: appFontSize * 1.4 * 2,
+                                  color: ((checkBoxIcon == Icons.check_box) ||
+                                          (checkBoxIcon ==
+                                              Icons.check_box_outline_blank))
+                                      ? Colors.black
+                                      : Colors.red),
+                        ),
+                      ),
                     ),
-                  ),
+                    if (locationButtonSupported &&
+                        (player.id == activeUser.id) &&
+                        (checkBoxIcon == Icons.location_off))
+                      SystemLocationButton(
+                        width: 56,
+                        height: appFontSize * 1.4 * 2,
+                        onPermissionResult: (_) => _fixLocationPermission(),
+                      ),
+                  ],
                 ),
                 SizedBox(
                   height: 10,
@@ -1123,10 +1142,11 @@ class _PlayerHomeState extends State<PlayerHome> {
                                         children: [
                                           Text(
                                               "END OF PLAYER LIST: $locationStatusString/$lastLocationStatus"),
-                                          if ((_loc?.isPermissionDenied ??
-                                                  false) ||
-                                              (_loc?.isPermissionDeniedForever ??
-                                                  false))
+                                          if (!locationButtonSupported &&
+                                              ((_loc?.isPermissionDenied ??
+                                                      false) ||
+                                                  (_loc?.isPermissionDeniedForever ??
+                                                      false)))
                                             Padding(
                                               padding: const EdgeInsets.only(
                                                   top: 8, bottom: 8),
