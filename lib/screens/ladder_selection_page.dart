@@ -29,7 +29,8 @@ Map<String, String?> urlCache = {};
 
 String _withCacheBuster(String url) {
   final Uri parsed = Uri.parse(url);
-  final Map<String, String> updatedQuery = Map<String, String>.from(parsed.queryParameters);
+  final Map<String, String> updatedQuery =
+      Map<String, String>.from(parsed.queryParameters);
   updatedQuery['v'] = DateTime.now().millisecondsSinceEpoch.toString();
   return parsed.replace(queryParameters: updatedQuery).toString();
 }
@@ -73,19 +74,48 @@ Future<bool> getLadderImage(String ladderId,
   return true;
 }
 
+final Map<String, Future<bool>> _imageLoads = {};
+
+/// Loads its own image so only this tile repaints when the URL arrives.
+class _LadderImage extends StatelessWidget {
+  final String ladderId;
+  const _LadderImage({required this.ladderId});
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<bool>(
+      future: _imageLoads.putIfAbsent(ladderId, () => getLadderImage(ladderId)),
+      builder: (context, _) {
+        final String? url = urlCache[ladderId];
+        if (enableImages && url != null) {
+          return Image.network(url, height: 100);
+        }
+        return const SizedBox(height: 100);
+      },
+    );
+  }
+}
+
 class LadderSelectionPage extends StatefulWidget {
   const LadderSelectionPage({super.key});
 
   @override
   State<LadderSelectionPage> createState() => _LadderSelectionPageState();
 }
+
 String? _tipOfTheDayTitle;
 String? _tipOfTheDayBody;
 int? _workingTipOfTheDayNumber;
+// Bumped when the tip changes so only the tip button rebuilds.
+final ValueNotifier<int> _tipRevision = ValueNotifier<int>(0);
+
+void _applyTip(void Function() update) {
+  update();
+  _tipRevision.value++;
+}
 
 class _LadderSelectionPageState extends State<LadderSelectionPage> {
   String _userLadders = '';
-  
 
   int _tipOfTheDayOffset = 0;
 
@@ -107,9 +137,25 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
 
   Color activeLadderBackgroundColor = Colors.brown;
   double _originalAppFontSize = -1;
+  late final Stream<QuerySnapshot> _ladderStream =
+      firestore.collection('Ladder').snapshots();
+
   @override
   void initState() {
     super.initState();
+    _loadTipIfNeeded();
+  }
+
+  int get _todayTipNumber =>
+      (DateTime.now().millisecondsSinceEpoch / Duration.millisecondsPerDay)
+          .floor();
+
+  void _loadTipIfNeeded() {
+    final int wanted = _todayTipNumber + _tipOfTheDayOffset;
+    if (_tipOfTheDayBody == null || wanted != _workingTipOfTheDayNumber) {
+      _workingTipOfTheDayNumber = wanted;
+      _fetchTipOfTheDay(wanted);
+    }
   }
 
   @override
@@ -152,7 +198,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
     if ((tipOfTheDayNumber == null) || (tipOfTheDayNumber < 0)) {
       if (mounted) {
         // print('Fetching tip of the day $tipOfTheDayNumber FAILED');
-        setState(() {
+        _applyTip(() {
           _tipOfTheDayTitle = 'Tip for the day'; // Default title
           _tipOfTheDayBody = 'Did you know feature not configured.';
         });
@@ -170,7 +216,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
       if (collectionSize <= 0) {
         if (mounted) {
           // print('Fetching tip of the day $tipOfTheDayNumber FAILED2');
-          setState(() {
+          _applyTip(() {
             _tipOfTheDayTitle = 'Tip for the day';
             _tipOfTheDayBody = 'No "Did you know" messages available.';
           });
@@ -189,7 +235,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
 
       if (tipOfTheDayDoc.exists) {
         if (mounted) {
-          setState(() {
+          _applyTip(() {
             // print('Fetching tip of the day $tipOfTheDayNumber Worked!');
             // Assuming the fields are 'title' and 'body'
             _tipOfTheDayTitle = tipOfTheDayDoc.id;
@@ -202,7 +248,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
         // and targetIndex is within bounds, but good for robustness.
         if (mounted) {
           // print('Fetching tip of the day $tipOfTheDayNumber FAILED3');
-          setState(() {
+          _applyTip(() {
             _tipOfTheDayTitle = 'Tip for the day';
             _tipOfTheDayBody =
                 'Could not find the selected "Did you know" message. $targetIndex';
@@ -214,7 +260,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
         print('Error fetching TipOfTheDay document $targetIndex: $e');
       }
       if (mounted) {
-        setState(() {
+        _applyTip(() {
           _tipOfTheDayTitle = 'Error';
           _tipOfTheDayBody = 'Error loading "Did you know" message.';
         });
@@ -248,9 +294,8 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
             TextButton(
               child: const Text('Next'),
               onPressed: () {
-                setState(() {
-                  _tipOfTheDayOffset++;
-                });
+                _tipOfTheDayOffset++;
+                _loadTipIfNeeded();
 
                 Navigator.of(context).pop();
               },
@@ -265,19 +310,6 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
         );
       },
     );
-  }
-
-  Future<void> _getAllLadderImages(
-      List<QueryDocumentSnapshot<Object?>> availableDocs) async {
-    bool oneLoaded = false;
-    for (int i = 0; i < availableDocs.length; i++) {
-      if (await getLadderImage(availableDocs[i].id)) {
-        oneLoaded = true;
-      }
-    }
-    if (oneLoaded) {
-      refresh();
-    }
   }
 
   // _getLadderImage(String ladderId) async {
@@ -295,6 +327,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
       setState(() {});
     }
   }
+
   int _buildCount = 0;
 
   @override
@@ -369,7 +402,8 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
       } catch (_) {}
       String errorText = 'Not a supported user "$loggedInUser"';
       if (_userLadders.isEmpty) {
-        errorText = '"$loggedInUser" is not on any ladder\nDo you have another email address?';
+        errorText =
+            '"$loggedInUser" is not on any ladder\nDo you have another email address?';
       }
 
       if (_userLadders.isEmpty || !userOk) {
@@ -404,7 +438,8 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
       }
       if (lastLoggedInUser != activeUser.id) {
         if (kDebugMode) {
-          print('switching logged in user from "$lastLoggedInUser" to "${activeUser.id}"');
+          print(
+              'switching logged in user from "$lastLoggedInUser" to "${activeUser.id}"');
         }
         firestore.collection('Users').doc(activeUser.id).update({
           'LastLogin': DateTime.now(),
@@ -413,7 +448,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
       }
 
       return StreamBuilder<QuerySnapshot>(
-        stream: firestore.collection('Ladder').snapshots(),
+        stream: _ladderStream,
         builder: (BuildContext context,
             AsyncSnapshot<QuerySnapshot<Object?>> snapshot) {
           // print('Ladder snapshot');
@@ -448,9 +483,6 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
           flutterAppReady();
           List<QueryDocumentSnapshot<Object?>> filteredDocs = [];
           int? requiredSoftwareVersion;
-          int? tipOfTheDayNumber = (DateTime.now().millisecondsSinceEpoch /
-                  Duration.millisecondsPerDay)
-              .floor();
           for (var doc in allDocs) {
             if (doc.id == "  SYSTEM CONFIG  ") {
               try {
@@ -499,35 +531,18 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
             }
           }
 
-          _getAllLadderImages(availableDocs);
           // for (int i = 0; i < availableDocs.length; i++) {
           //   _getLadderImage(availableDocs[i].id);
           //   print('"${availableDocs[i].id}" DisplayName: ${availableDocs[i].get('DisplayName')}');
           // }
           // print('urlCache: $urlCache');
           if (kDebugMode) {
-            print('SYSTEM CONFIG RequiredSoftwareVersion: $requiredSoftwareVersion ');
+            print(
+                'SYSTEM CONFIG RequiredSoftwareVersion: $requiredSoftwareVersion ');
           }
           if (requiredSoftwareVersion! > softwareVersion) {
             changeLoadingMessage('');
             return reloadHtml(context, requiredSoftwareVersion as double);
-          }
-
-
-          if ((_tipOfTheDayBody == null) ||
-              ((tipOfTheDayNumber + _tipOfTheDayOffset) !=
-                  _workingTipOfTheDayNumber)) {
-            // print('working tip of the day $tipOfTheDayNumber + $_tipOfTheDayOffset =? $_workingTipOfTheDayNumber');
-            // Or a more specific condition
-            // Using a WidgetsBinding.instance.addPostFrameCallback ensures that
-            // setState is called after the build phase, preventing common errors.
-            _workingTipOfTheDayNumber = tipOfTheDayNumber + _tipOfTheDayOffset;
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted) {
-                // Ensure the widget is still in the tree
-                _fetchTipOfTheDay(_workingTipOfTheDayNumber);
-              }
-            });
           }
 
           return Scaffold(
@@ -672,44 +687,49 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                 itemBuilder: (BuildContext context, int rawRow) {
                   try {
                     if (rawRow == 0) {
-                      if (_tipOfTheDayTitle != null &&
-                          _tipOfTheDayTitle!.isNotEmpty) {
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(
-                              vertical: 8.0, horizontal: 16.0),
-                          child: ElevatedButton(
-                            // Makes the Text tappable
-                            onPressed: () {
-                              if (_tipOfTheDayBody != null &&
-                                  _tipOfTheDayBody!.isNotEmpty) {
-                                showHtmlPopup(context, _tipOfTheDayTitle!,
-                                    _tipOfTheDayBody!);
-                              } else {
-                                // Optional: Show a message if there's no body content
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                      content: Text(
-                                          'No details available for this tip.')),
-                                );
-                              }
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue[
-                                  100], // Change this to your desired color
-                              // You can also set the text color if needed, to ensure contrast:
-                              // foregroundColor: Colors.white,
-                            ),
-                            child: Text(
-                              'Tip of the Day: ${_tipOfTheDayTitle!}',
-                              style: nameStyle,
-                            ),
-                          ),
-                        );
-                      } else {
-                        return const SizedBox(
-                          height: 1,
-                        );
-                      }
+                      return ValueListenableBuilder<int>(
+                          valueListenable: _tipRevision,
+                          builder: (context, _, __) {
+                            if (_tipOfTheDayTitle != null &&
+                                _tipOfTheDayTitle!.isNotEmpty) {
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 8.0, horizontal: 16.0),
+                                child: ElevatedButton(
+                                  // Makes the Text tappable
+                                  onPressed: () {
+                                    if (_tipOfTheDayBody != null &&
+                                        _tipOfTheDayBody!.isNotEmpty) {
+                                      showHtmlPopup(context, _tipOfTheDayTitle!,
+                                          _tipOfTheDayBody!);
+                                    } else {
+                                      // Optional: Show a message if there's no body content
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        const SnackBar(
+                                            content: Text(
+                                                'No details available for this tip.')),
+                                      );
+                                    }
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.blue[
+                                        100], // Change this to your desired color
+                                    // You can also set the text color if needed, to ensure contrast:
+                                    // foregroundColor: Colors.white,
+                                  ),
+                                  child: Text(
+                                    'Tip of the Day: ${_tipOfTheDayTitle!}',
+                                    style: nameStyle,
+                                  ),
+                                ),
+                              );
+                            } else {
+                              return const SizedBox(
+                                height: 1,
+                              );
+                            }
+                          });
                     }
                     int row = rawRow - 1;
                     // if (row == availableDocs.length) {
@@ -763,7 +783,8 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                       nextPlay1 =
                           ' ${DateFormat('E yyyy.MM.dd').format(nextPlay)} $numDaysAwayStr';
                     } else {
-                      nextPlay1 = 'Admin has not configured the next day of play';
+                      nextPlay1 =
+                          'Admin has not configured the next day of play';
                     }
                     return Container(
                         // height: 350,
@@ -823,17 +844,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
                                         ? nameStrikeThruStyle
                                         : nameBigStyle),
                                 // SizedBox(height: 10),
-                                (urlCache.containsKey(availableDocs[row].id) &&
-                                        (urlCache[availableDocs[row].id] !=
-                                            null) &&
-                                        enableImages)
-                                    ? Image.network(
-                                        urlCache[availableDocs[row].id]!,
-                                        height: 100,
-                                      )
-                                    : const SizedBox(
-                                        height: 100,
-                                      ),
+                                _LadderImage(ladderId: availableDocs[row].id),
                                 Container(
                                   // height: 350,
                                   decoration: BoxDecoration(
