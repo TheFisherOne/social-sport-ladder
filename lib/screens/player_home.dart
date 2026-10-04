@@ -116,9 +116,7 @@ class _PlayerHomeState extends State<PlayerHome> {
     if (_loc == null) {
       return;
     }
-    if (!kIsWeb &&
-        !locationButtonSupported &&
-        _loc!.isPermissionDeniedForever) {
+    if (!kIsWeb && _loc!.isPermissionDeniedForever) {
       await _loc!.openAppSettingsForPermission();
     } else {
       await _loc!.retryPermissionFlow();
@@ -401,7 +399,9 @@ class _PlayerHomeState extends State<PlayerHome> {
                     ),
                     if (locationButtonSupported &&
                         (player.id == activeUser.id) &&
-                        (checkBoxIcon == Icons.location_off))
+                        ((checkBoxIcon == Icons.location_off) ||
+                            ((_loc?.isPermissionDenied ?? false) &&
+                                !player.get('Present'))))
                       SystemLocationButton(
                         width: 56,
                         height: appFontSize * 1.4 * 2,
@@ -1142,7 +1142,9 @@ class _PlayerHomeState extends State<PlayerHome> {
                                         children: [
                                           Text(
                                               "END OF PLAYER LIST: $locationStatusString/$lastLocationStatus"),
-                                          if (!locationButtonSupported &&
+                                          if ((!locationButtonSupported ||
+                                                  (_loc?.isPermissionDeniedForever ??
+                                                      false)) &&
                                               ((_loc?.isPermissionDenied ??
                                                       false) ||
                                                   (_loc?.isPermissionDeniedForever ??

@@ -1,4 +1,5 @@
 
+import 'Utilities/location_button.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
@@ -66,6 +67,7 @@ void initTimeZone() {
 void main() async {
 
   WidgetsFlutterBinding.ensureInitialized();
+  await initLocationButtonSupport();
   if (kDebugMode) {
     doDebugEncrypt();
     // print('apiKey:${xorString(encodedApiKey, keyString)}');

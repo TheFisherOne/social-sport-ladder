@@ -7,12 +7,25 @@ import 'package:flutter/services.dart';
 const String _channelName = 'social_sport_ladder/location_button';
 const String _viewType = 'social_sport_ladder/location_button_view';
 
-/// The system location button only exists in the Android app.
-bool get locationButtonSupported =>
-    !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+const int _minSdkForLocationButton = 37; // Android 17
+
+/// True only in the Android app running Android 17 or newer. Set by
+/// [initLocationButtonSupport]; everywhere else the normal permission flow is used.
+bool locationButtonSupported = false;
+
+Future<void> initLocationButtonSupport() async {
+  if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return;
+  try {
+    final int? sdk =
+        await const MethodChannel(_channelName).invokeMethod<int>('getSdkInt');
+    locationButtonSupported = (sdk ?? 0) >= _minSdkForLocationButton;
+  } catch (e) {
+    locationButtonSupported = false;
+  }
+}
 
 /// Hosts the androidx LocationButton. On Android 17+ it grants session-scoped
-/// precise location; on older versions the library shows the normal prompt.
+/// precise location.
 class SystemLocationButton extends StatefulWidget {
   final double width;
   final double height;

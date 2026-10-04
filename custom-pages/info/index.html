@@ -1,9 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Introduction</title>
   <style>
     html, body { margin: 0; height: 100%; }
+    body { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
+    #backBtn { flex: 0 0 auto; margin: 4px; padding: 8px 16px; align-self: flex-start; }
+    iframe { flex: 1 1 auto; width: 100%; border: none; min-height: 0; }
   </style>
   <script>
     window.onload = function() {
@@ -16,9 +21,8 @@
 <body>
 
   <button id="backBtn" onclick="history.back()">Go Back</button>
-  <br>
 
-  <iframe src="SocialSportLadder.html" width="100%" height="100%" style="border:none;"></iframe>
+  <iframe src="SocialSportLadder.html" title="About Social Sport Ladder"></iframe>
 
 </body>
 </html>

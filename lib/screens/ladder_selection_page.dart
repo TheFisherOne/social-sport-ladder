@@ -9,12 +9,12 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:social_sport_ladder/constants/constants.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:social_sport_ladder/screens/calendar_page.dart';
 import 'package:social_sport_ladder/screens/player_home.dart';
 import 'package:social_sport_ladder/screens/super_admin.dart';
 import '../Utilities/helper_icon.dart';
 import '../Utilities/misc.dart';
-import '../help/help_pages.dart';
 import '../main.dart';
 import 'ladder_config_page.dart';
 import 'login_page.dart';
@@ -88,6 +88,19 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
   
 
   int _tipOfTheDayOffset = 0;
+
+  Future<void> _openPickLadderHelp() async {
+    final bool opened = await launchUrl(
+      Uri.parse('https://social-sport-ladder.web.app/info/PickLadder.html'),
+    );
+    if (!opened && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not open the Pick Ladder help page.'),
+        ),
+      );
+    }
+  }
 
   // final _calendarService = CalendarService();
   // List<calendar.Event> _events = [];
@@ -533,14 +546,8 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
               // actionsIconTheme: IconThemeData(size: 20),
               actions: [
                 IconButton(
-                    onPressed: () {
-                      Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) =>
-                                  HelpPage(page: 'PickLadder')));
-                    },
-                    icon: Icon(
+                    onPressed: _openPickLadderHelp,
+                    icon: const Icon(
                       Icons.help,
                       color: Colors.green,
                     )),

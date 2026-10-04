@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../Utilities/helper_icon.dart';
@@ -34,6 +35,22 @@ class _LoginPageState extends State<LoginPage> {
         flutterAppReady();
       }
     });
+  }
+  Future<void> _openAbout() async {
+    bool opened = false;
+    try {
+      opened = await launchUrl(
+          Uri.parse('https://social-sport-ladder.web.app/info/index.html'));
+    } catch (_) {
+      opened = false;
+    }
+    if (!opened && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not open the About page. Please try again later.'),
+        ),
+      );
+    }
   }
   Future<void> _runAuthAction(Future<void> Function() action) async {
     if (_busy) return;
@@ -106,7 +123,11 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _signInWithGoogle() async {
     await _runAuthAction(() async {
       final GoogleAuthProvider googleProvider = GoogleAuthProvider();
-      await FirebaseAuth.instance.signInWithPopup(googleProvider);
+      if (kIsWeb) {
+        await FirebaseAuth.instance.signInWithPopup(googleProvider);
+      } else {
+        await FirebaseAuth.instance.signInWithProvider(googleProvider);
+      }
     });
   }
   Widget _buildLoginForm() {
@@ -243,10 +264,7 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                         const SizedBox(height: 12),
                         TextButton(
-                          onPressed: () {
-                            launchUrl(Uri.parse(
-                                'https://social-sport-ladder.web.app/info/index.html'));
-                          },
+                          onPressed: _openAbout,
                           child: const Text('About Social-Sport-Ladder'),
                         ),
                         const Padding(
