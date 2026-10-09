@@ -116,7 +116,10 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     firestore = testFirestore??FirebaseFirestore.instance;
     if (kIsWeb) {
-      firestore.settings = const Settings(persistenceEnabled: true);
+      firestore.settings = const Settings(
+          persistenceEnabled: true,
+          webExperimentalAutoDetectLongPolling: true,
+      );
     }
     initTimeZone();
 

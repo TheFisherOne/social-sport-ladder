@@ -5,6 +5,7 @@ import 'package:file_saver/file_saver.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:social_sport_ladder/screens/ladder_config_page.dart';
 import 'package:social_sport_ladder/screens/player_home.dart';
 import 'package:social_sport_ladder/screens/score_base.dart';
@@ -834,6 +835,23 @@ class _HelperFunctionDialog extends StatelessWidget {
             label: Text(
                 'Reset WeeksAway, WeeksAwayWithoutNotice, and OnCourtOfFive stats'),
           ),
+        TextButton.icon(
+            icon: const Icon(Icons.open_in_new),
+            onPressed: () async {
+              final opened = await launchUrl(
+                Uri.parse('https://social-sport-ladder.web.app/info/index.html'),
+              );
+              if (!opened && context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Could not open the About page. Please try again later.',
+                    ),
+                  ),
+                );
+              }
+            },
+            label: const Text('About Social-Sport-Ladder')),
       ],
     );
   }

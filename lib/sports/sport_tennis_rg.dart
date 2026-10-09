@@ -829,8 +829,34 @@ Future<void> sportTennisRGPrepareForScoreEntry(
     return;
   }
 
+  // The locally cached list may be stale (e.g. a slow web stream), so rebuild
+  // it from the server before deciding who is on which court.
+  String refreshNote = 'server';
+  List<QueryDocumentSnapshot> allPlayers = players;
+  try {
+    final fresh = await firestore
+        .collection('Ladder')
+        .doc(activeLadderId)
+        .collection('Players')
+        .orderBy('Rank')
+        .get(const GetOptions(source: Source.server));
+    if (fresh.docs.isNotEmpty) {
+      int diffs = 0;
+      final Map<String, bool> oldPresent = {
+        for (var p in players) p.id: (p.get('Present') as bool? ?? false)
+      };
+      for (var d in fresh.docs) {
+        if (oldPresent[d.id] != (d.get('Present') as bool? ?? false)) diffs++;
+      }
+      refreshNote = 'server (differs from screen for $diffs players)';
+      allPlayers = fresh.docs;
+    }
+  } catch (e) {
+    refreshNote = 'local cache (server fetch failed: $e)';
+  }
+
   CourtAssignmentsRgStandard courtAssignments =
-      CourtAssignmentsRgStandard(players);
+      CourtAssignmentsRgStandard(allPlayers);
   // courtAssignments.errorString = 'TEST Exception for testing error handling';
 
   // Check for court assignment errors BEFORE starting transaction
@@ -883,7 +909,7 @@ Future<void> sportTennisRGPrepareForScoreEntry(
             : 'false'; // Or null if you prefer for "does not exist"
 
     // Update all players
-    for (QueryDocumentSnapshot playerDocSnapshot in players) {
+    for (QueryDocumentSnapshot playerDocSnapshot in allPlayers) {
       DocumentReference playerRef =
           ladderRef.collection('Players').doc(playerDocSnapshot.id);
       transaction.update(playerRef, {
@@ -938,13 +964,19 @@ Future<void> sportTennisRGPrepareForScoreEntry(
       });
     }
 
+    final String courtSummary = [
+      for (int c = 0; c < numCourts; c++)
+        '${c + 1}:[${courtAssignments.playersOnEachCourt[c].map((p) => p.id).join(',')}]'
+    ].join(' ');
+
     transactionAudit(
       transaction: transaction,
       user: activeUser.id, // Ensure activeUser and its id are available
       documentName:
           'LadderConfig', // Or more specific like activeLadderId itself
       action: 'Set FreezeCheckIns',
-      newValue: true.toString(),
+      newValue:
+          'true players from $refreshNote present=${courtAssignments.presentPlayers.length} courts=$courtSummary',
       oldValue: oldFreezeCheckInsValue,
     );
 

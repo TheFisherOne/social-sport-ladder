@@ -10,17 +10,10 @@
     #backBtn { flex: 0 0 auto; margin: 4px; padding: 8px 16px; align-self: flex-start; }
     iframe { flex: 1 1 auto; width: 100%; border: none; min-height: 0; }
   </style>
-  <script>
-    window.onload = function() {
-      if (window.history.length <= 1) {
-        document.getElementById('backBtn').style.display = 'none';
-      }
-    };
-  </script>
 </head>
 <body>
 
-  <button id="backBtn" onclick="history.back()">Go Back</button>
+  <button id="backBtn" onclick="if (history.length > 1) history.back(); else window.close();">Go Back</button>
 
   <iframe src="SocialSportLadder.html" title="About Social Sport Ladder"></iframe>
 

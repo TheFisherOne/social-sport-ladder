@@ -108,9 +108,11 @@
       text-align: center;
       font-size: 0.9rem;
     }
+    #backBtn { margin: 4px; padding: 8px 16px; }
   </style>
 </head>
 <body>
+  <button id="backBtn" onclick="if (history.length > 1) history.back(); else window.close();">Go Back</button>
   <header>
     <h1>Pick a Ladder</h1>
     <p>Choose the ladder you want to view and check when it plays next.</p>
@@ -143,6 +145,12 @@
       <p class="tip"><strong>Tip of the Day:</strong> If shown above the ladder cards, tap it to read the tip. Choose Next to view another tip or Close to dismiss it.</p>
       <p>The help icon opens this guide. The text-size controls let you adjust the app's font size. Super-administrator tools appear only for accounts with that access.</p>
     </section>
+
+    <section aria-labelledby="PrivacyPolicy">
+      <h2 id="PrivacyPolicy">Privacy Policy</h2>
+      <p><a href="https://social-sport-ladder.web.app/info/Privacypolicy.html">https://social-sport-ladder.web.app/info/Privacypolicy.html</a></p>
+    </section>
+
   </main>
 
   <footer>Social Sport Ladder</footer>
