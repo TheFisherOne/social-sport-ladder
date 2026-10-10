@@ -8,7 +8,7 @@ bool enableImages = true;
 bool useServerFunctions = true;
 
 const String fireStoreCollectionName = "social-sport-ladder";
-const int softwareVersion = 175;
+const int softwareVersion = 182;
 
 //colors
 Color surfaceColor = Colors.grey.shade300;

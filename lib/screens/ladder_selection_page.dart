@@ -487,7 +487,7 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
             if (doc.id == "  SYSTEM CONFIG  ") {
               try {
                 requiredSoftwareVersion =
-                    doc.get('RequiredSoftwareVersion') as int;
+                    (doc.get('RequiredSoftwareVersion') as num).toInt();
               } catch (e) {
                 if (kDebugMode) {
                   print(
@@ -540,9 +540,10 @@ class _LadderSelectionPageState extends State<LadderSelectionPage> {
             print(
                 'SYSTEM CONFIG RequiredSoftwareVersion: $requiredSoftwareVersion ');
           }
-          if (requiredSoftwareVersion! > softwareVersion) {
+          if (requiredSoftwareVersion != null &&
+              requiredSoftwareVersion > softwareVersion) {
             changeLoadingMessage('');
-            return reloadHtml(context, requiredSoftwareVersion as double);
+            return reloadHtml(context, requiredSoftwareVersion.toDouble());
           }
 
           return Scaffold(

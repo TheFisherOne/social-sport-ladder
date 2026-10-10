@@ -23,7 +23,7 @@ fi
 if [ "$1" != "webonly" ]; then
   if [ "$1" = "debug" ]; then
     echo deploying debug version to make stack traces readable V$next_version
-    flutter build web --profile --dart-define=Dart2jsOptimization=O0
+    flutter build web --release -O0 --source-maps
   else
    echo deploying in normal mode V$next_version
 

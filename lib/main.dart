@@ -60,6 +60,7 @@ String xorString(String s1,String s2){
 }
 List<String> allTimezones = [];
 void initTimeZone() {
+  if (allTimezones.isNotEmpty) return;
   tz.initializeTimeZones();
   allTimezones = tz_data.timeZoneDatabase.locations.keys.toList()
     ..sort();
