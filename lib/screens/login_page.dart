@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../Utilities/helper_icon.dart';
 import '../Utilities/html_none.dart'
@@ -8,11 +9,14 @@ import '../Utilities/html_none.dart'
 import '../Utilities/user_stream.dart';
 import '../main.dart';
 
+Future<void>? _googleSignInInitialization;
+
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
   @override
   State<LoginPage> createState() => _LoginPageState();
 }
+
 class _LoginPageState extends State<LoginPage> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
@@ -27,6 +31,7 @@ class _LoginPageState extends State<LoginPage> {
     _passwordController.dispose();
     super.dispose();
   }
+
   void _notifyFlutterAppReady() {
     if (_appReadySent) return;
     _appReadySent = true;
@@ -36,6 +41,7 @@ class _LoginPageState extends State<LoginPage> {
       }
     });
   }
+
   Future<void> _openAbout() async {
     bool opened = false;
     try {
@@ -47,11 +53,13 @@ class _LoginPageState extends State<LoginPage> {
     if (!opened && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Could not open the About page. Please try again later.'),
+          content:
+              Text('Could not open the About page. Please try again later.'),
         ),
       );
     }
   }
+
   Future<void> _runAuthAction(Future<void> Function() action) async {
     if (_busy) return;
     if (mounted) {
@@ -80,6 +88,7 @@ class _LoginPageState extends State<LoginPage> {
       }
     }
   }
+
   Future<void> _signInWithEmail() async {
     if (!(_formKey.currentState?.validate() ?? false)) {
       return;
@@ -120,16 +129,28 @@ class _LoginPageState extends State<LoginPage> {
       _errorMessage = 'Password reset email sent to $email';
     });
   }
+
   Future<void> _signInWithGoogle() async {
     await _runAuthAction(() async {
       final GoogleAuthProvider googleProvider = GoogleAuthProvider();
       if (kIsWeb) {
         await FirebaseAuth.instance.signInWithPopup(googleProvider);
       } else {
-        await FirebaseAuth.instance.signInWithProvider(googleProvider);
+        _googleSignInInitialization ??= GoogleSignIn.instance.initialize();
+        await _googleSignInInitialization;
+        final GoogleSignInAccount googleUser =
+            await GoogleSignIn.instance.authenticate();
+        final String? idToken = googleUser.authentication.idToken;
+        if (idToken == null) {
+          throw StateError('Google Sign-In did not return an ID token.');
+        }
+        final OAuthCredential credential =
+            GoogleAuthProvider.credential(idToken: idToken);
+        await FirebaseAuth.instance.signInWithCredential(credential);
       }
     });
   }
+
   Widget _buildLoginForm() {
     return Scaffold(
       backgroundColor: Colors.brown[50],
@@ -238,14 +259,13 @@ class _LoginPageState extends State<LoginPage> {
                           const SizedBox(height: 12),
                         ],
                         ElevatedButton.icon(
-                          onPressed: _busy
-                              ? null
-                              : _signInWithEmail,
+                          onPressed: _busy ? null : _signInWithEmail,
                           icon: _busy
                               ? const SizedBox(
                                   width: 18,
                                   height: 18,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                  child:
+                                      CircularProgressIndicator(strokeWidth: 2),
                                 )
                               : const Icon(Icons.login),
                           label: const Text('Sign In'),
@@ -286,6 +306,7 @@ class _LoginPageState extends State<LoginPage> {
       ),
     );
   }
+
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<User?>(

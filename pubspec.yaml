@@ -55,6 +55,7 @@ dependencies:
 #  flutter_html: ^3.0.0  # removed - tip popup now uses plain text rendering
   timezone:
   cloud_functions: ^6.5.0
+  google_sign_in: ^7.2.0
 
 
   # The following adds the Cupertino Icons font to your application.

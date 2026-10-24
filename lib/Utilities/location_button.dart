@@ -13,12 +13,18 @@ const int _minSdkForLocationButton = 37; // Android 17
 /// [initLocationButtonSupport]; everywhere else the normal permission flow is used.
 bool locationButtonSupported = false;
 
+/// Android SDK level of the device (0 if not Android) and the last error
+/// reported by the LocationButton; shown in the player list status line.
+int androidSdkInt = 0;
+String locationButtonError = '';
+
 Future<void> initLocationButtonSupport() async {
   if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return;
   try {
     final int? sdk =
         await const MethodChannel(_channelName).invokeMethod<int>('getSdkInt');
-    locationButtonSupported = (sdk ?? 0) >= _minSdkForLocationButton;
+    androidSdkInt = sdk ?? 0;
+    locationButtonSupported = androidSdkInt >= _minSdkForLocationButton;
   } catch (e) {
     locationButtonSupported = false;
   }
@@ -50,9 +56,12 @@ class _SystemLocationButtonState extends State<SystemLocationButton> {
     super.initState();
     _channel.setMethodCallHandler((call) async {
       if (call.method == 'onPermissionResult') {
+        locationButtonError = '';
         widget.onPermissionResult(call.arguments == true);
-      } else if (call.method == 'onError' && kDebugMode) {
-        debugPrint('LocationButton error: ${call.arguments}');
+      } else if (call.method == 'onError') {
+        locationButtonError = '${call.arguments}';
+        if (kDebugMode) debugPrint('LocationButton error: ${call.arguments}');
+        widget.onPermissionResult(false);
       }
     });
   }

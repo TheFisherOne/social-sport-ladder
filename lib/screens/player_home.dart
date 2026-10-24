@@ -1141,7 +1141,9 @@ class _PlayerHomeState extends State<PlayerHome> {
                                             CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                              "END OF PLAYER LIST: $locationStatusString/$lastLocationStatus"),
+                                              "END OF PLAYER LIST: $locationStatusString/$lastLocationStatus"
+                                              "${androidSdkInt > 0 ? ' [SDK $androidSdkInt, button ${locationButtonSupported ? "on" : "off"}]' : ''}"
+                                              "${locationButtonError.isNotEmpty ? ' [button error: $locationButtonError]' : ''}"),
                                           if ((!locationButtonSupported ||
                                                   (_loc?.isPermissionDeniedForever ??
                                                       false)) &&

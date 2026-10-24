@@ -53,6 +53,7 @@ fi
 
 if [ "$1" != "webonly" ]; then
   echo DONE: Changing Version from "$current_version" to "$next_version"
+  echo Must be 909 user (pink) douglasfisher909@gmail.com
   echo Android bundle in build/app/outputs/bundle/release/app-release.aab
 else
   echo DONE: just updating the web server, not compiling the code

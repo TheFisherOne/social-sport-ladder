@@ -36,9 +36,12 @@ class LocationService extends ChangeNotifier {
     Position? position;
     lastLocationStatus = '';
 
+    // On web the Permissions API is unreliable (Safari reports prompt/denied
+    // inaccurately), so just try getCurrentPosition, which prompts if needed.
     final LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied ||
-        permission == LocationPermission.deniedForever) {
+    if (!kIsWeb &&
+        (permission == LocationPermission.denied ||
+            permission == LocationPermission.deniedForever)) {
       _permissionDenied = true;
       _permissionDeniedForever = permission == LocationPermission.deniedForever;
       lastLocationStatus = _permissionDeniedForever
@@ -59,6 +62,12 @@ class LocationService extends ChangeNotifier {
 
       position = await Geolocator.getCurrentPosition(
           locationSettings: locationSettings);
+      if (_permissionDenied) {
+        _permissionDenied = false;
+        _permissionDeniedForever = false;
+        locationStatusString = 'Location permissions are granted.';
+        notifyListeners();
+      }
     } catch (e) {
       if (e is TimeoutException) {
         lastLocationStatus =
@@ -81,6 +90,9 @@ class LocationService extends ChangeNotifier {
         if (e is PermissionDeniedException) {
           // Stop trying if permission is denied, to avoid spamming requests.
           _permissionDenied = true;
+          lastLocationStatus = kIsWeb
+              ? 'Location was denied. Allow location for this site in browser settings, then tap Retry.'
+              : 'Location permission is denied.';
           stopTimer();
           notifyListeners();
         }
@@ -89,7 +101,7 @@ class LocationService extends ChangeNotifier {
 
     if (position != null && position.accuracy > maxAcceptableAccuracyMeters) {
       lastLocationStatus =
-          'Ignoring inaccurate location (${position.accuracy.round()} m)';
+          'Ignoring inaccurate location (+/-${position.accuracy.round()} m)';
       position = null;
     }
 
@@ -187,6 +199,25 @@ class LocationService extends ChangeNotifier {
     }
 
     permission = await Geolocator.checkPermission();
+    if (kIsWeb && permission != LocationPermission.whileInUse) {
+      // The web plugin reports any failure (timeout, unavailable, dismissed
+      // prompt) as "denied forever", so probe with a real position request.
+      try {
+        await Geolocator.getCurrentPosition(
+            locationSettings:
+                const LocationSettings(timeLimit: Duration(seconds: 20)));
+        permission = LocationPermission.whileInUse;
+      } on PermissionDeniedException {
+        _permissionDenied = true;
+        locationStatusString =
+            'Location was denied. Allow location for this site in browser settings, then tap Retry.';
+        notifyListeners();
+        return;
+      } catch (e) {
+        // Timeout / position unavailable: not a permission problem, keep trying.
+        permission = LocationPermission.whileInUse;
+      }
+    }
     if (permission == LocationPermission.denied) {
       _permissionDenied = true;
       if (locationButtonSupported) {
@@ -202,7 +233,7 @@ class LocationService extends ChangeNotifier {
         // Android's shouldShowRequestPermissionRationale
         // returned true. According to Android guidelines
         // your App should show an explanatory UI now.
-        locationStatusString = 'Location permissions are denied';
+        locationStatusString = 'Location permissions are temporarily denied';
         // if (kDebugMode) {
         //   print('Location permissions are denied');
         // }
