@@ -117,6 +117,10 @@ exports.setBeingEditedBy = onCall(async (request) => {
         transaction.update(scoreDocRef, { BeingEditedBy: activeUserEmail });
         return true;
       }
+      // A stale lock held by the same user (e.g. left over from a previous visit) is still ours.
+      if (currentBeingEditedBy === activeUserEmail) {
+        return true;
+      }
       logger.log(`setBeingEditedBy: the current editor "${currentBeingEditedBy}" is not empty for doc:${docPath}.`);
       return false;
     });

@@ -318,6 +318,13 @@ class _PlayerHomeState extends State<PlayerHome> {
     IconData checkBoxIcon;
     String presentCheckBoxText;
     (checkBoxIcon, presentCheckBoxText) = presentCheckBoxInfo(player);
+    final bool showLocationButton = locationButtonSupported &&
+        (player.id == activeUser.id) &&
+        ((checkBoxIcon == Icons.location_off) ||
+            ((_loc?.isPermissionDenied ?? false) && !player.get('Present')));
+    if (showLocationButton) {
+      presentCheckBoxText = 'Press the button to get your location';
+    }
 
     // print('unfrozenSubLine: presentCheckBoxText: $presentCheckBoxText');
     // print('unfrozenSubLine: ${checkBoxIcon == Icons.check_box} || ${(checkBoxIcon == Icons.check_outline_blank)}');
@@ -397,11 +404,7 @@ class _PlayerHomeState extends State<PlayerHome> {
                         ),
                       ),
                     ),
-                    if (locationButtonSupported &&
-                        (player.id == activeUser.id) &&
-                        ((checkBoxIcon == Icons.location_off) ||
-                            ((_loc?.isPermissionDenied ?? false) &&
-                                !player.get('Present'))))
+                    if (showLocationButton)
                       SystemLocationButton(
                         width: 56,
                         height: appFontSize * 1.4 * 2,

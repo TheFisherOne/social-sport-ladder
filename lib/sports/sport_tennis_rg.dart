@@ -697,23 +697,11 @@ class CourtAssignmentsRgStandard {
           // courtsOf5LeftToAssign--;
         }
       } else {
-        while (courtsOf5LeftToAssign > 0) {
-          randomSeed = randomSeed*31 + 13; // needed so they will not be sequential
-          int courtOfFive = randomSeed %
-              (numberOnCourt.length - (courtsOfFive - courtsOf5LeftToAssign));
-          // print('courtOfFive: $courtOfFive');
-          for (int court = 0; court < numberOnCourt.length; court++) {
-            // print('assigning courts of 5: left: $courtsOf5LeftToAssign checking: $court with: ${numberOnCourt[court]} random: $courtOfFive');
-            if (numberOnCourt[court] == 4) {
-              if (courtOfFive == 0) {
-                // print(' court: $court');
-                numberOnCourt[court] = 5;
-                courtsOf5LeftToAssign--;
-                break;
-              }
-              courtOfFive--;
-            }
-          }
+        final List<int> courtOrder =
+            List.generate(numberOnCourt.length, (index) => index)
+              ..shuffle(Random(randomSeed));
+        for (final int court in courtOrder.take(courtsOf5LeftToAssign)) {
+          numberOnCourt[court] = 5;
         }
       }
       assignedCourtNumber = List.filled(presentPlayers.length, 4);

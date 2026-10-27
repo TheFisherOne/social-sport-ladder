@@ -789,23 +789,23 @@ class ScoreTennisRgState extends State<ScoreTennisRg> with WidgetsBindingObserve
       _pendingClaimTransaction = true;
       if (useServerFunctions) {
         bool result = false;
-        if (kDebugMode) {
-          print("Calling setBeingEditedBy server function Ladder/$activeLadderId/Scores/${widget.scoreDoc.id}'");
-        }
-        try {
-          result = (await FirebaseFunctions.instance
-              .httpsCallable('setBeingEditedBy')
-              .call({'docPath': 'Ladder/$activeLadderId/Scores/${widget.scoreDoc.id}'})).data as bool;
-        } on FirebaseFunctionsException catch (e) {
+        // Retry once: the first call of a session can fail while the function cold-starts.
+        for (int attempt = 0; attempt < 2 && !result; attempt++) {
           if (kDebugMode) {
-            print('setBeingEditedBy: Error Code: ${e.code}');
-// e.g., "unauthenticated" or "invalid-argument"
-            print('Error Message: ${e.message}'); // e.g., "The function must be called while authenticated."
-            print('Optional Details: ${e.details}');
+            print("Calling setBeingEditedBy server function Ladder/$activeLadderId/Scores/${widget.scoreDoc.id}' attempt $attempt");
           }
-        } catch (e) {
-          if (kDebugMode) {
-            print('setBeingEditedBy exception ${e.toString()}');
+          try {
+            result = (await FirebaseFunctions.instance
+                .httpsCallable('setBeingEditedBy')
+                .call({'docPath': 'Ladder/$activeLadderId/Scores/${widget.scoreDoc.id}'})).data as bool;
+          } on FirebaseFunctionsException catch (e) {
+            if (kDebugMode) {
+              print('setBeingEditedBy: Error Code: ${e.code} Message: ${e.message} Details: ${e.details}');
+            }
+          } catch (e) {
+            if (kDebugMode) {
+              print('setBeingEditedBy exception ${e.toString()}');
+            }
           }
         }
         if (result){
@@ -816,8 +816,9 @@ class ScoreTennisRgState extends State<ScoreTennisRg> with WidgetsBindingObserve
           _pendingClaimTransaction = false;
 
           _awaitingOwnClaimSync = false;
-          if (_beingEditedById == activeUser.id) {
-            _beingEditedById = '';
+          // Keep ownership latched; the doc snapshot may already have arrived before this reply.
+          if (!_clearUsEditing) {
+            _beingEditedById = activeUser.id;
           }
 
           if (mounted) {
@@ -867,7 +868,8 @@ class ScoreTennisRgState extends State<ScoreTennisRg> with WidgetsBindingObserve
             // }
             return true;
           }
-          return false;
+          // A stale lock held by this same user is still ours.
+          return currentBeingEditedBy == newId;
         }).catchError((e) {
           // Transaction failed (network error, max retries, etc.).
           // Reset the guard so the next tap can try again, and show an error.
