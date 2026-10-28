@@ -554,7 +554,7 @@ class CourtAssignmentsRgStandard {
       courtsOfFive = 1;
       courtsOfFour = 0;
       numberOnCourt = List.filled(2, 5);
-      numberOnCourt[(activeLadderDoc!.get('RandomCourtOf5') % 1000) % 2] = 6;
+      numberOnCourt[(numToInt(activeLadderDoc!.get('RandomCourtOf5')) % 1000) % 2] = 6;
       if (numberOnCourt[0] == 5) {
         assignedCourtNumber = [1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2];
       } else {
@@ -577,7 +577,7 @@ class CourtAssignmentsRgStandard {
       courtsOfFive = 2;
       courtsOfFour = 0;
       numberOnCourt = List.filled(3, 5);
-      numberOnCourt[(activeLadderDoc!.get('RandomCourtOf5') % 1000) % 3] = 6;
+      numberOnCourt[(numToInt(activeLadderDoc!.get('RandomCourtOf5')) % 1000) % 3] = 6;
       if (numberOnCourt[0] == 6) {
         assignedCourtNumber = [
           1,
@@ -688,7 +688,7 @@ class CourtAssignmentsRgStandard {
       // determine if each player is on a court of 4 or 5
       numberOnCourt = List.filled(totalCourts, 4);
       int courtsOf5LeftToAssign = courtsOfFive;
-      int randomSeed = activeLadderDoc!.get('RandomCourtOf5') % 1000;
+      int randomSeed = numToInt(activeLadderDoc!.get('RandomCourtOf5')) % 1000;
 
       if (sportDescriptorIncludes('consecutiveCourtsOf5')) {
         int courtOfFive = randomSeed % numberOnCourt.length;
@@ -729,7 +729,7 @@ class CourtAssignmentsRgStandard {
         // Priority names that are not present in usedCourtNames are silently skipped.
         List<int> numbers =
             List.generate(usedCourtNames.length, (index) => index);
-        numbers.shuffle(Random(activeLadderDoc!.get('RandomCourtOf5') % 1000));
+        numbers.shuffle(Random(numToInt(activeLadderDoc!.get('RandomCourtOf5')) % 1000));
         List<String> priorityCourtsOf5 = [];
         final String priorityStr =
             getSportDescriptorString('priorityCourtsOf5');
@@ -775,7 +775,7 @@ class CourtAssignmentsRgStandard {
       // var saveList = shuffledCourtNames.toList();
       List<int> numbers =
           List.generate(shuffledCourtNames.length, (index) => index);
-      numbers.shuffle(Random(activeLadderDoc!.get('RandomCourtOf5') % 1000 ));
+      numbers.shuffle(Random(numToInt(activeLadderDoc!.get('RandomCourtOf5')) % 1000));
       // print('random $numbers');
       List<String> newNames = List.filled(shuffledCourtNames.length, '');
       List<String> priorityCourtsOf5 = ['8', '1', '10'];
@@ -886,8 +886,7 @@ Future<void> sportTennisRGPrepareForScoreEntry(
       return; // Exit the transaction early
     }
 
-    int currentRound = activeLadderSnapshot.get('CurrentRound') as int? ??
-        1; // Default to 1 if not found
+    int currentRound = numToInt(activeLadderSnapshot.get('CurrentRound'), 1);
     int numCourts = courtAssignments.numberOnCourt.length;
     String dateStr = '${currentDate}_${currentRound.toString()}';
     String oldFreezeCheckInsValue =
@@ -1290,7 +1289,7 @@ class _SportTennisRGState extends State<SportTennisRG>
                                     .doc(activeLadderId)
                                     .update({
                                   'RandomCourtOf5':
-                                      activeLadderDoc!.get('RandomCourtOf5') +
+                                      numToInt(activeLadderDoc!.get('RandomCourtOf5')) +
                                           1,
                                 });
                               }

@@ -100,7 +100,7 @@ bool isVacationTimeOk(DocumentSnapshot<Object?> ladderDoc) {
   if (nextPlay == null) return false;
 
   TZDateTime timeNow = getDateTimeNow();
-  double vacationStopTime = ladderDoc.get('VacationStopTime');
+  double vacationStopTime = numToDouble(ladderDoc.get('VacationStopTime'));
   int daysAhead = (vacationStopTime ~/ 100);
   vacationStopTime -= daysAhead * 100.0;
   timeNow.subtract(Duration(days: daysAhead));

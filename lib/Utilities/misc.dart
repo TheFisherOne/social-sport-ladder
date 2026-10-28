@@ -1,6 +1,13 @@
 import 'package:social_sport_ladder/screens/ladder_config_page.dart';
 import 'package:timezone/timezone.dart' as tz;
 
+/// Firestore numerics may be stored as int or double; read them safely.
+int numToInt(dynamic v, [int defaultValue = 0]) =>
+    v is num ? v.toInt() : defaultValue;
+
+double numToDouble(dynamic v, [double defaultValue = 0.0]) =>
+    v is num ? v.toDouble() : defaultValue;
+
 int daysBetween(DateTime from, DateTime to) {
   from = DateTime(from.year, from.month, from.day);
   to = DateTime(to.year, to.month, to.day);

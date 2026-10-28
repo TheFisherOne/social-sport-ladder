@@ -646,7 +646,7 @@ class _PlayerHomeState extends State<PlayerHome> {
 
     int assignedCourt = 0;
     try {
-      assignedCourt = player.get('AssignedCourt') as int? ?? 0;
+      assignedCourt = numToInt(player.get('AssignedCourt'));
     } catch (e) {
       assignedCourt = 0;
     }
@@ -950,7 +950,7 @@ class _PlayerHomeState extends State<PlayerHome> {
                     if (pl.id == activeUser.id) {
                       activeUserCourt = 0;
                       try {
-                        activeUserCourt = pl.get('AssignedCourt') as int? ?? 0;
+                        activeUserCourt = numToInt(pl.get('AssignedCourt'));
                       } catch (e) {
                         activeUserCourt = 0;
                       }

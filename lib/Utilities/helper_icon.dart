@@ -393,15 +393,15 @@ class _HelperFunctionDialog extends StatelessWidget {
                             newDaysOfPlay.add(thisDay);
                           }
                           // print('newDaysOfPlay: $newDaysOfPlay updating RandomCourtOf5');
-                          int currentSeed = activeLadderRef.get('RandomCourtOf5') as int? ?? 0;
+                          int currentSeed = numToInt(activeLadderRef.get('RandomCourtOf5'));
                           int newSeed =
                           Random().nextInt(1000);
                           if (currentSeed < 1000) {
                             newSeed += 1000;
                           }
                           // updating CurrentRound
-                          int currentRound = activeLadderRef.get('CurrentRound') as int? ?? 1;
-                          int numberFromWaitList = activeLadderRef.get('NumberFromWaitList') as int? ?? 0;
+                          int currentRound = numToInt(activeLadderRef.get('CurrentRound'), 1);
+                          int numberFromWaitList = numToInt(activeLadderRef.get('NumberFromWaitList'));
 
                           // the Scores documents get initialized when the ladder is refrozen
                           final Map<int, int> playersPerCourt = {};

@@ -156,8 +156,11 @@ class LocationService extends ChangeNotifier {
         (activeLadderDoc!.get('MetersFromLatLong') as num).toDouble();
     if (allowedDistance <= 0.0) return true; // location check disabled
 
-    double distance = measureDistance(activeLadderDoc!.get('Latitude'),
-        activeLadderDoc!.get('Longitude'), where.latitude, where.longitude);
+    double distance = measureDistance(
+        (activeLadderDoc!.get('Latitude') as num).toDouble(),
+        (activeLadderDoc!.get('Longitude') as num).toDouble(),
+        where.latitude,
+        where.longitude);
 
     _lastDistanceAway = distance;
     return distance <= allowedDistance;
