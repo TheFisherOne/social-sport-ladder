@@ -12,6 +12,7 @@ import 'package:social_sport_ladder/screens/player_home.dart';
 import '../Utilities/helper_icon.dart';
 import '../Utilities/rounded_button.dart';
 import '../Utilities/list_search_widget.dart';
+import '../Utilities/misc.dart';
 import '../constants/constants.dart';
 import '../help/help_pages.dart';
 import '../main.dart';
@@ -776,32 +777,32 @@ class _ConfigPageState extends State<ConfigPage> {
                         controller: _randomController,
                         keyboardType: const TextInputType.numberWithOptions(signed: false, decimal: false),
                         entryOK: (entry) {
-                          double number = 0.0;
+                          int number = 0;
                           try {
-                            number = double.parse(entry);
+                            number = int.parse(entry.trim());
                           } catch (e) {
                             return 'Invalid number entered';
                           }
-                          if ((number < 0.0) || (number > 2000.0)) return 'Must be between 0 and 2000';
+                          if ((number < 0) || (number > 2000)) return 'Must be between 0 and 2000';
                           return null;
                         },
                         onIconClicked: (entry) {
                           String attrName = 'RandomCourtOf5';
 
                           String newValueStr = entry.trim().replaceAll(RegExp(r' \s+'), ' ');
-                          String oldValue = activeLadderDoc!.get(attrName).toString();
+                          String oldValue = numToInt(activeLadderDoc!.get(attrName)).toString();
                           if (newValueStr != oldValue) {
                             writeAudit(user: loggedInUser, documentName: 'LadderConfig', action: 'Set $attrName', newValue: newValueStr, oldValue: oldValue);
-                            double number = 0.0;
+                            int number = 0;
                             try {
-                              number = double.parse(entry);
+                              number = int.parse(entry.trim());
                             } catch (_) {}
                             firestore.collection('Ladder').doc(activeLadderId).update({
                               attrName: number,
                             });
                           }
                         },
-                        initialValue: activeLadderDoc!.get('RandomCourtOf5').toString(),
+                        initialValue: numToInt(activeLadderDoc!.get('RandomCourtOf5')).toString(),
                       ),
 
                       MyTextField(
