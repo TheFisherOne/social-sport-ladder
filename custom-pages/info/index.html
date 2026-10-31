@@ -13,9 +13,33 @@
 </head>
 <body>
 
-  <button id="backBtn" onclick="if (history.length > 1) history.back(); else window.close();">Go Back</button>
+  <button id="backBtn">Go Back</button>
 
-  <iframe src="SocialSportLadder.html" title="About Social Sport Ladder"></iframe>
+  <iframe id="content" src="SocialSportLadder.html" title="About Social Sport Ladder"></iframe>
+
+  <script>
+    // history.length never shrinks, so track how deep the iframe has navigated.
+    // Go Back steps back inside the iframe first, then leaves the page.
+    const startLength = history.length;
+    const stack = [];
+    document.getElementById('content').addEventListener('load', function () {
+      let href;
+      try { href = this.contentWindow.location.href; } catch (e) { return; }
+      if (stack.length > 1 && stack[stack.length - 2] === href) stack.pop();
+      else if (stack[stack.length - 1] !== href) stack.push(href);
+    });
+    document.getElementById('backBtn').addEventListener('click', function () {
+      if (stack.length > 1) history.back();
+      else if (startLength > 1) history.back();
+      else {
+        // Scripts can't close a tab they didn't open, so on Android hand control back to the app.
+        window.close();
+        if (/Android/i.test(navigator.userAgent)) {
+          window.location.href = 'socialsportladder://open';
+        }
+      }
+    });
+  </script>
 
 </body>
 </html>
