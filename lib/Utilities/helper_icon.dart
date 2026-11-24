@@ -148,7 +148,8 @@ Widget helperIcon(
     BuildContext context,
     String activeLadderId,
     List<PlayerList>? listOfPlayers,
-    CourtAssignmentsRgStandard courtAssignments) {
+    CourtAssignmentsRgStandard courtAssignments,
+    {ValueChanged<bool>? onDialogVisibilityChanged}) {
   // print('helperIcon: helper: ${activeUser.canBeHelper} ${activeUser.helperEnabled} admin: ${activeUser.canBeAdmin} ${activeUser.adminEnabled} ');
   // check the courtAssignments to make sure it is ready to finalize
   /*
@@ -186,9 +187,17 @@ Widget helperIcon(
         size: 30,
       ),
       onPressed: () async {
-        showDialog<String>(
+        onDialogVisibilityChanged?.call(true);
+        TransitionRoute<dynamic>? dialogRoute;
+        try {
+          await showDialog<String>(
             context: context,
-            builder: (context) => AlertDialog(
+            builder: (context) {
+              final route = ModalRoute.of(context);
+              if (route is TransitionRoute<dynamic>) {
+                dialogRoute = route;
+              }
+              return AlertDialog(
                     title: Text('Helper Functions'),
                     content: ConstrainedBox(
                       constraints: BoxConstraints(
@@ -205,7 +214,13 @@ Widget helperIcon(
                             Navigator.pop(context);
                           },
                           child: const Text('Cancel')),
-                    ]));
+                    ]);
+            });
+          // Keep the native surface hidden through the closing animation.
+          await dialogRoute?.completed;
+        } finally {
+          onDialogVisibilityChanged?.call(false);
+        }
       },
     ),
   );

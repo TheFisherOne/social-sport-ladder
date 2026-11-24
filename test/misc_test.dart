@@ -1,10 +1,54 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:social_sport_ladder/Utilities/misc.dart';
 import 'package:social_sport_ladder/constants/constants.dart';
+import 'package:timezone/data/latest.dart' as tz_data;
+import 'package:timezone/timezone.dart' as tz;
 
 void main() {
+  setUpAll(() {
+    tz_data.initializeTimeZones();
+  });
+
   setUp(() {
     enableImages = false;
+  });
+
+  group('Edmonton timezone data', () {
+    tz.Location edmonton() => tz.getLocation('America/Edmonton');
+
+    test('uses daylight time after the 2026 clock change date', () {
+      final result = tz.TZDateTime.from(
+        DateTime.utc(2026, 11, 24, 19, 37),
+        edmonton(),
+      );
+
+      expect(result.hour, 13);
+      expect(result.minute, 37);
+      expect(result.timeZoneOffset, const Duration(hours: -6));
+    });
+
+    test('uses daylight time immediately before the 2026 transition boundary',
+        () {
+      final result = tz.TZDateTime.from(
+        DateTime.utc(2026, 11, 1, 7, 59),
+        edmonton(),
+      );
+
+      expect(result.hour, 1);
+      expect(result.minute, 59);
+      expect(result.timeZoneOffset, const Duration(hours: -6));
+    });
+
+    test('does not fall back at the 2026 transition boundary', () {
+      final result = tz.TZDateTime.from(
+        DateTime.utc(2026, 11, 1, 8),
+        edmonton(),
+      );
+
+      expect(result.hour, 2);
+      expect(result.minute, 0);
+      expect(result.timeZoneOffset, const Duration(hours: -6));
+    });
   });
 
   group('daysBetween', () {

@@ -34,6 +34,23 @@ bool headerSummarySelected = false;
 bool showScoresWhenFrozen = true;
 int activeUserCourt = -1;
 
+@visibleForTesting
+bool shouldShowLocationButton({
+  required bool supported,
+  required bool isOwnPlayer,
+  required bool isPresent,
+  required bool isFrozen,
+  required bool permissionDenied,
+  required IconData checkBoxIcon,
+}) {
+  return supported &&
+      isOwnPlayer &&
+      !isPresent &&
+      !isFrozen &&
+      (checkBoxIcon == Icons.location_off ||
+          (permissionDenied && checkBoxIcon == Icons.check_box_outline_blank));
+}
+
 Widget headerSummary(
     List<QueryDocumentSnapshot>? players, List<PlayerList> assign) {
   String unAssignedStr = '';
@@ -101,6 +118,7 @@ class _PlayerHomeState extends State<PlayerHome> {
   List<QueryDocumentSnapshot>? _players;
   int _clickedOnRank = -1;
   int _checkInProgress = -1;
+  bool _helperDialogVisible = false;
   // final List<String> _playerCheckinsList = List.empty(growable: true); // saved for later
   late LocationService? _loc;
   final ScrollController _scrollController = ScrollController();
@@ -180,7 +198,13 @@ class _PlayerHomeState extends State<PlayerHome> {
     if (!player.get('Present') && awayList.contains(nextPlayDateStr)) {
       return (
         Icons.airplanemode_active,
-        'You have marked yourself as away for $nextPlayDateStr'
+        '${(player.id == activeUser.id) ?"You":"This player"} gave advance notice in calendar they will not be playing'
+      );
+    }
+    if ((player.data() as Map<String, dynamic>?)?['CantMakeIt'] == true) {
+      return (
+        Icons.close,
+        '${(player.id == activeUser.id) ?"You were ":"This player was "}too late indicating they will not be playing. ${(player.id == activeUser.id) ?"You":"This player"} can play if they clear this in the Calendar'
       );
     }
 
@@ -194,10 +218,19 @@ class _PlayerHomeState extends State<PlayerHome> {
       );
     }
 
+    // print('comparing ${nextPlayDate.hour + nextPlayDate.minute / 100.0} - ${timeNow.hour + timeNow.minute / 100.0}');
     if (((nextPlayDate.hour + nextPlayDate.minute / 100.0) -
-            (timeNow.hour + timeNow.minute / 100.0)) <
+            (timeNow.hour + timeNow.minute / 100.0)) <=
         activeLadderDoc!.get('CheckInStartHours')) {
       if ((!player.get('Present')) && (player.id == activeUser.id)) {
+        if (player.get('WaitListRank') > 0 &&
+            player.get('WaitListRank') >
+                activeLadderDoc!.get('NumberFromWaitList')) {
+          return (
+            Icons.edit_off,
+            'You are on the wait list and not enabled to play this week'
+          );
+        }
         Position? where;
         int secAgo = 9999;
         if (_loc != null) {
@@ -219,18 +252,10 @@ class _PlayerHomeState extends State<PlayerHome> {
       }
       if (player.id == activeUser.id) {
         if (player.get('WaitListRank') > 0) {
-          if (player.get('WaitListRank') <=
-              activeLadderDoc!.get('NumberFromWaitList')) {
-            return (
-              Icons.check_box_outline_blank,
-              'Ready to check in from wait list if you are going to play'
-            );
-          } else {
-            return (
-              Icons.edit_off,
-              'You are on the wait list and not enabled to play this week'
-            );
-          }
+          return (
+            Icons.check_box_outline_blank,
+            'Ready to check in from wait list if you are going to play'
+          );
         } else {
           return (
             Icons.check_box_outline_blank,
@@ -318,10 +343,14 @@ class _PlayerHomeState extends State<PlayerHome> {
     IconData checkBoxIcon;
     String presentCheckBoxText;
     (checkBoxIcon, presentCheckBoxText) = presentCheckBoxInfo(player);
-    final bool showLocationButton = locationButtonSupported &&
-        (player.id == activeUser.id) &&
-        ((checkBoxIcon == Icons.location_off) ||
-            ((_loc?.isPermissionDenied ?? false) && !player.get('Present')));
+    final bool showLocationButton = shouldShowLocationButton(
+      supported: locationButtonSupported,
+      isOwnPlayer: player.id == activeUser.id,
+      isPresent: player.get('Present'),
+      isFrozen: activeLadderDoc!.get('FreezeCheckIns') == true,
+      permissionDenied: _loc?.isPermissionDenied ?? false,
+      checkBoxIcon: checkBoxIcon,
+    );
     if (showLocationButton) {
       presentCheckBoxText = 'Press the button to get your location';
     }
@@ -405,11 +434,14 @@ class _PlayerHomeState extends State<PlayerHome> {
                       ),
                     ),
                     if (showLocationButton)
-                      SystemLocationButton(
-                        width: 56,
-                        height: appFontSize * 1.4 * 2,
-                        onPermissionResult: (_) => _fixLocationPermission(),
-                      ),
+                      _helperDialogVisible
+                          ? SizedBox(width: 56, height: appFontSize * 1.4 * 2)
+                          : SystemLocationButton(
+                              width: 56,
+                              height: appFontSize * 1.4 * 2,
+                              onPermissionResult: (_) =>
+                                  _fixLocationPermission(),
+                            ),
                   ],
                 ),
                 SizedBox(
@@ -723,14 +755,14 @@ class _PlayerHomeState extends State<PlayerHome> {
             else if ((_clickedOnRank == row) ||
                 ((assignedCourt == 0) && isFrozen))
               SizedBox(width: iconSize)
-            else
-              icon,
+            else if (cantMakeIt)
+                Icon(Icons.close, color: Colors.red, size: iconSize)
+            else icon,
             if (weeksRegistered <= 0)
               Icon(Icons.fiber_new, color: Colors.green, size: iconSize),
             if (weeksAwayWithoutNotice >= 3 && activeUser.helper)
               Icon(Icons.warning, color: Colors.yellow, size: iconSize / 2),
-            if (cantMakeIt)
-              Icon(Icons.close, color: Colors.red, size: iconSize),
+
             Expanded(
               child: Text(
                 ' $rank${(waitListRank > 0) ? "w$waitListRank" : ""}: ${player.get('Name')}',
@@ -1098,7 +1130,14 @@ class _PlayerHomeState extends State<PlayerHome> {
                         const SizedBox(width: 10),
                         // (activeUser.mayGetHelperIcon) ?
                         helperIcon(context, activeLadderId, listOfPlayers,
-                            courtAssignments)
+                            courtAssignments,
+                            onDialogVisibilityChanged: (visible) {
+                          if (mounted) {
+                            setState(() {
+                              _helperDialogVisible = visible;
+                            });
+                          }
+                        })
                         // : SizedBox(width: 1),
                         ,
                         SizedBox(width: 20),
