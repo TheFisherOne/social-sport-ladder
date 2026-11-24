@@ -766,36 +766,6 @@ class CourtAssignmentsRgStandard {
           shuffledCourtNames = rotateCourtNames(usedCourtNames, courtCount);
         }
       }
-    } else if (getSportDescriptor(1) == 'rg_mens') {
-      if (activeLadderDoc!.get('RandomCourtOf5') > 1000) {
-        shuffledCourtNames = rotateCourtNames(usedCourtNames, 3);
-      }
-    } else if (getSportDescriptor(1) == 'rg_womens') {
-      // print('before: $shuffledCourtNames');
-      // var saveList = shuffledCourtNames.toList();
-      List<int> numbers =
-          List.generate(shuffledCourtNames.length, (index) => index);
-      numbers.shuffle(Random(numToInt(activeLadderDoc!.get('RandomCourtOf5')) % 1000));
-      // print('random $numbers');
-      List<String> newNames = List.filled(shuffledCourtNames.length, '');
-      List<String> priorityCourtsOf5 = ['8', '1', '10'];
-      if (totalCourts == 3) priorityCourtsOf5 = ['8', '10'];
-      if (totalCourts == 2) priorityCourtsOf5 = ['8'];
-
-      for (int i = 0; i < totalCourts; i++) {
-        int courtNum = numbers[i]; // process them in random order
-        if ((numberOnCourt[courtNum] == 5) && (priorityCourtsOf5.isNotEmpty)) {
-          newNames[courtNum] = priorityCourtsOf5.removeAt(0);
-          shuffledCourtNames.remove(newNames[courtNum]);
-        }
-      }
-      for (int i = 0; i < totalCourts; i++) {
-        int courtNum = numbers[i];
-        if (newNames[courtNum].isNotEmpty) continue;
-        newNames[courtNum] = shuffledCourtNames.removeAt(0);
-      }
-      shuffledCourtNames = newNames;
-      // print('after shuffle: $shuffledCourtNames');
     } else if (getSportDescriptor(1).contains('doubles')) {
       // do no shuffle
     } else {
