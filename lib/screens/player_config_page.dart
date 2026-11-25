@@ -6,7 +6,8 @@ import 'package:file_saver/file_saver.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
-import 'package:material_ui/material_ui.dart';
+// ignore: deprecated_member_use
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:social_sport_ladder/Utilities/string_validators.dart';
 import 'package:social_sport_ladder/constants/constants.dart';

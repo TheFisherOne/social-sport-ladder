@@ -29,7 +29,6 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  material_ui: ^1.11.1
   firebase_core:
   firebase_auth:
   firebase_storage:
@@ -48,6 +47,7 @@ dependencies:
 #  googleapis_auth:
   http:
   url_launcher:
+  # Still uses Flutter's deprecated Material library; keep app imports compatible.
   table_calendar:
   convert:
   provider:

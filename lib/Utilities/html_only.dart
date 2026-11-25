@@ -4,7 +4,8 @@ import 'package:web/web.dart' as web;
 
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
-import 'package:material_ui/material_ui.dart';
+// ignore: deprecated_member_use
+import 'package:flutter/material.dart';
 
 import '../constants/constants.dart';
 import '../screens/calendar_page.dart';
