@@ -1,5 +1,5 @@
 import 'package:flutter/services.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 // if you want to enable images in android studio you must edit cors.json to include the write port number for localhost:12345
 // then run gsutil cores set cors.json gs://social-sport-ladder.appspot.com
