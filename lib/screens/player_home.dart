@@ -665,8 +665,7 @@ class _PlayerHomeState extends State<PlayerHome> {
             activeLadderDoc!.get('NumberFromWaitList'))) {
       icon = Icon(Icons.horizontal_rule, color: Colors.black, size: iconSize);
     } else {
-      icon = Icon(Icons.check_box_outline_blank,
-          color: Colors.black, size: iconSize);
+      icon = Icon(Icons.person_outline, color: Colors.black, size: iconSize);
     }
 
     bool isFrozen = false;
