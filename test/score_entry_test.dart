@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 // ignore: deprecated_member_use
 import 'package:flutter/material.dart';
@@ -69,12 +71,204 @@ Map<String, dynamic> createPlayer(int rank) {
   };
 }
 
+class DelayedTransactionFirestore extends FakeFirebaseFirestore {
+  Completer<void>? nextTransaction;
+
+  @override
+  Future<T> runTransaction<T>(TransactionHandler<T> transactionHandler,
+      {Duration timeout = const Duration(seconds: 30),
+      int maxAttempts = 5}) async {
+    final gate = nextTransaction;
+    nextTransaction = null;
+    if (gate != null) await gate.future;
+    return super.runTransaction(transactionHandler,
+        timeout: timeout, maxAttempts: maxAttempts);
+  }
+}
+
+Future<DocumentReference> showScoreSheet(
+    WidgetTester tester, DelayedTransactionFirestore instance, int players) async {
+  activeUser.id = 'test01@gmail.com';
+  activeUser.helperEnabled = true;
+  testFirestore = instance;
+  firestore = instance;
+  final dateToday = DateFormat('yyyy.MM.dd').format(DateTime.now());
+  await initActiveLadderDoc(instance, overrides: {
+    'DaysOfPlay': '${dateToday}_18:00',
+    'SportDescriptor': 'generic|MoveDownIfAwayWithoutNotice=1',
+  });
+  final userRef = instance.doc('Users/test01@gmail.com');
+  await userRef.set({'DisplayName': 'test1'});
+  loggedInUserDoc = await userRef.get();
+  final ladderRef = instance.collection('Ladder').doc('Ladder 500');
+  for (int i = 1; i <= players; i++) {
+    await ladderRef
+        .collection('Players')
+        .doc('test${i.toString().padLeft(2, '0')}@gmail.com')
+        .set(createPlayer(i));
+  }
+  var playerDocs = await ladderRef.collection('Players').get();
+  await prepareForScoreEntry(activeLadderDoc!, playerDocs.docs);
+  playerDocs = await ladderRef.collection('Players').get();
+  await tester.pumpWidget(MaterialApp(
+      home: ScoreBase(
+    ladderName: 'Ladder 500',
+    round: 1,
+    court: 1,
+    fullPlayerList: playerDocs.docs,
+    allowEdit: true,
+  )));
+  await tester.pumpAndSettle();
+  final scoreDocs = await ladderRef.collection('Scores').get();
+  return scoreDocs.docs.single.reference;
+}
+
 void main() {
   setUp(() {
     enableImages = false;
     useServerFunctions = false;
   });
   initTimeZone();
+
+  for (final players in [4, 5]) {
+    testWidgets('autofill remains usable while a $players-player claim waits',
+        (tester) async {
+      final instance = DelayedTransactionFirestore();
+      final scoreRef = await showScoreSheet(tester, instance, players);
+      final gate = Completer<void>();
+      instance.nextTransaction = gate;
+
+      await tester.tap(find.byKey(const Key('scoreBox-0-0')));
+      await tester.pump();
+      expect(find.text('Waiting for score lock...'), findsOneWidget);
+      expect(find.byKey(const Key('save-button')), findsNothing);
+      expect(find.byKey(const Key('cancel-button')), findsNothing);
+      final arrow = find.ancestor(
+          of: find.byIcon(Icons.arrow_upward), matching: find.byType(IconButton));
+      expect(arrow, findsOneWidget);
+      expect(tester.widget<IconButton>(arrow).onPressed, isNotNull);
+      await tester.tap(arrow);
+      await tester.pump();
+      expect(
+          find.descendant(
+              of: find.byKey(Key('scoreBox-${players == 4 ? 3 : 1}-0')),
+              matching: find.text('1')),
+          findsOneWidget);
+      expect((await scoreRef.get()).get('BeingEditedBy'), isEmpty);
+
+      gate.complete();
+      await tester.pumpAndSettle();
+      expect(find.text('Waiting for score lock...'), findsNothing);
+      expect(find.byKey(const Key('save-button')), findsOneWidget);
+      expect(find.byKey(const Key('cancel-button')), findsOneWidget);
+      expect((await scoreRef.get()).get('BeingEditedBy'), activeUser.id);
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
+  }
+
+  testWidgets('competing editor discards local scores while claim waits',
+      (tester) async {
+    final instance = DelayedTransactionFirestore();
+    final scoreRef = await showScoreSheet(tester, instance, 4);
+    final gate = Completer<void>();
+    instance.nextTransaction = gate;
+    await tester.tap(find.byKey(const Key('scoreBox-0-0')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('autofill-0')));
+    await tester.pump();
+
+    await scoreRef.update({'BeingEditedBy': 'test02@gmail.com'});
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Scores being entered by:'), findsOneWidget);
+    expect(find.text('Waiting for score lock...'), findsNothing);
+    expect(find.byKey(const Key('save-button')), findsNothing);
+    expect(
+        find.descendant(
+            of: find.byKey(const Key('scoreBox-0-0')),
+            matching: find.text('1')),
+        findsNothing);
+    gate.complete();
+    await tester.pumpAndSettle();
+    expect((await scoreRef.get()).get('BeingEditedBy'), 'test02@gmail.com');
+    expect(find.byKey(const Key('save-button')), findsNothing);
+    await scoreRef.update({'BeingEditedBy': ''});
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('scoreBox-0-0')));
+    await tester.pumpAndSettle();
+    expect(
+        find.descendant(
+            of: find.byKey(const Key('scoreBox-0-0')),
+            matching: find.text('1')),
+        findsOneWidget);
+    expect(find.byKey(const Key('save-button')), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('autofill can initiate a claim for previously saved scores',
+      (tester) async {
+    final instance = DelayedTransactionFirestore();
+    final scoreRef = await showScoreSheet(tester, instance, 4);
+    await scoreRef.update({'GameScores': '1,,|,,|,,|,,'});
+    await tester.pumpAndSettle();
+    final gate = Completer<void>();
+    instance.nextTransaction = gate;
+    await tester.tap(find.byKey(const Key('autofill-0')));
+    await tester.pump();
+    expect(find.text('Waiting for score lock...'), findsOneWidget);
+    expect(
+        find.descendant(
+            of: find.byKey(const Key('scoreBox-3-0')),
+            matching: find.text('1')),
+        findsOneWidget);
+    gate.complete();
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('save-button')), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('claim failure keeps local scores and reports the error',
+      (tester) async {
+    final instance = DelayedTransactionFirestore();
+    await showScoreSheet(tester, instance, 4);
+    final gate = Completer<void>();
+    instance.nextTransaction = gate;
+    await tester.tap(find.byKey(const Key('scoreBox-0-0')));
+    await tester.pump();
+    gate.completeError(StateError('network unavailable'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Failed to claim score entry lock'), findsOneWidget);
+    expect(find.text('Waiting for score lock...'), findsNothing);
+    expect(find.byKey(const Key('save-button')), findsNothing);
+    expect(
+        find.descendant(
+            of: find.byKey(const Key('scoreBox-0-0')),
+            matching: find.text('1')),
+        findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('save does not write scores after another editor takes the lock',
+      (tester) async {
+    final instance = DelayedTransactionFirestore();
+    final scoreRef = await showScoreSheet(tester, instance, 4);
+    final initialScores = (await scoreRef.get()).get('GameScores');
+    await tester.tap(find.byKey(const Key('scoreBox-0-0')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('save-button')), findsOneWidget);
+
+    final gate = Completer<void>();
+    instance.nextTransaction = gate;
+    await tester.tap(find.byKey(const Key('save-button')));
+    await tester.pump();
+    await scoreRef.update({'BeingEditedBy': 'test02@gmail.com'});
+    gate.complete();
+    await tester.pumpAndSettle();
+    expect((await scoreRef.get()).get('GameScores'), initialScores);
+    expect(find.textContaining('Scores being entered by:'), findsOneWidget);
+    expect(find.textContaining('Error:'), findsNothing);
+    expect(find.byKey(const Key('save-button')), findsNothing);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
 
   testWidgets('score entry, 4 players, generic|rg_mens',
       (WidgetTester tester) async {

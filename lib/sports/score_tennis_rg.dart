@@ -47,6 +47,7 @@ class ScoreTennisRgState extends State<ScoreTennisRg> with WidgetsBindingObserve
   bool _clearUsEditing = false;
   bool _pendingClaimTransaction = false; // guard: only one runTransaction in flight at a time
   bool _awaitingOwnClaimSync = false;
+  int _claimGeneration = 0;
   late String _beingEditedByName;
   late String _gameScoresStr;
   late List<List<int?>> _gameScores;
@@ -131,6 +132,11 @@ class ScoreTennisRgState extends State<ScoreTennisRg> with WidgetsBindingObserve
         // }
         _clearUsEditing = false;
         _awaitingOwnClaimSync = false;
+        _pendingClaimTransaction = false;
+        _claimGeneration++;
+        if (_scoreEntryErrorString.startsWith('Failed to claim score entry lock')) {
+          _scoreEntryErrorString = '';
+        }
         _beingEditedById = docBeingEditedById;
         // print('updateFromDoc4 _startTimer');
         _startTimer();
@@ -651,11 +657,7 @@ class ScoreTennisRgState extends State<ScoreTennisRg> with WidgetsBindingObserve
   bool _canUseAutoFill() {
     if (!widget.allowEdit) return false;
     if (!(_loggedInPlayerOnCourt || activeUser.helper)) return false;
-    // Allow local lock owner while waiting for stream sync after claim transaction.
-    if ((_beingEditedById != activeUser.id) && !_awaitingOwnClaimSync) {
-      return false;
-    }
-    return true;
+    return _beingEditedById.isEmpty || _beingEditedById == activeUser.id;
   }
 
   void addToGlobalEmails(String email) async {
@@ -721,6 +723,7 @@ class ScoreTennisRgState extends State<ScoreTennisRg> with WidgetsBindingObserve
 
       _beingEditedById = '';
       _clearUsEditing = true;
+      _claimGeneration++;
       _pendingClaimTransaction = false; // reset so a fresh tap can claim again
       _awaitingOwnClaimSync = false;
       cancelWorkingScores();
@@ -776,18 +779,16 @@ class ScoreTennisRgState extends State<ScoreTennisRg> with WidgetsBindingObserve
       return;
     }
     if (_beingEditedById.isEmpty && !_pendingClaimTransaction) {
-      // Optimistically claim locally so Save/autofill are visible immediately.
+      // Permit local edits while the server is deciding the claim.
       _beingEditedById = newId;
       _awaitingOwnClaimSync = true;
+      _pendingClaimTransaction = true;
+      final int claimGeneration = ++_claimGeneration;
+      _scoreEntryErrorString = '';
       if (mounted) {
         setState(() {});
       }
 
-      // Guard against multiple concurrent transactions (e.g. rapid taps before
-      // Firebase responds). Without this flag every tap would spawn a new
-      // runTransaction and they would all conflict/retry, and if they all fail
-      // the save button would never appear.
-      _pendingClaimTransaction = true;
       if (useServerFunctions) {
         bool result = false;
         // Retry once: the first call of a session can fail while the function cold-starts.
@@ -809,18 +810,13 @@ class ScoreTennisRgState extends State<ScoreTennisRg> with WidgetsBindingObserve
             }
           }
         }
+        if (claimGeneration != _claimGeneration) return;
         if (result){
           // Transaction completed (success or conditional no-op). Reset the guard.
           if (kDebugMode) {
             print('setBeingEditedBy returned success!');
           }
           _pendingClaimTransaction = false;
-
-          _awaitingOwnClaimSync = false;
-          // Keep ownership latched; the doc snapshot may already have arrived before this reply.
-          if (!_clearUsEditing) {
-            _beingEditedById = activeUser.id;
-          }
 
           if (mounted) {
             setState(() {});
@@ -872,6 +868,7 @@ class ScoreTennisRgState extends State<ScoreTennisRg> with WidgetsBindingObserve
           // A stale lock held by this same user is still ours.
           return currentBeingEditedBy == newId;
         }).catchError((e) {
+          if (claimGeneration != _claimGeneration) return false;
           // Transaction failed (network error, max retries, etc.).
           // Reset the guard so the next tap can try again, and show an error.
           if (kDebugMode) {
@@ -886,12 +883,16 @@ class ScoreTennisRgState extends State<ScoreTennisRg> with WidgetsBindingObserve
           }
           return false;
         }).then((claimed) {
+          if (claimGeneration != _claimGeneration) return;
           // Transaction completed (success or conditional no-op). Reset the guard.
           _pendingClaimTransaction = false;
           if (claimed != true) {
             _awaitingOwnClaimSync = false;
             if (_beingEditedById == activeUser.id) {
               _beingEditedById = '';
+            }
+            if (_scoreEntryErrorString.isEmpty) {
+              _scoreEntryErrorString = 'Failed to claim score entry lock';
             }
           }
           if (mounted) {
@@ -1522,7 +1523,7 @@ class ScoreTennisRgState extends State<ScoreTennisRg> with WidgetsBindingObserve
                       null,
                       useOrder2 ? Colors.green.shade200 : null,
                       Colors.blue.shade200,
-                    ][row])),
+                    ][row], key: Key('scoreBox-$row-0'))),
             Expanded(
                 flex: 1,
                 child: scoreBox(getScore(row, 1), row, 1,
@@ -1532,7 +1533,7 @@ class ScoreTennisRgState extends State<ScoreTennisRg> with WidgetsBindingObserve
                       null,
                       Colors.blue.shade200,
                       useOrder2 ? null : Colors.green.shade200,
-                    ][row])),
+                    ][row], key: Key('scoreBox-$row-1'))),
             Expanded(
                 flex: 1,
                 child: scoreBox(getScore(row, 2), row, 2,
@@ -1542,11 +1543,12 @@ class ScoreTennisRgState extends State<ScoreTennisRg> with WidgetsBindingObserve
                       Colors.blue.shade200,
                       useOrder2 ? null : Colors.green.shade200,
                       useOrder2 ? Colors.green.shade200 : null,
-                    ][row])),
+                    ][row], key: Key('scoreBox-$row-2'))),
             Expanded(
                 flex: 1,
                 child: scoreBox(getScore(row, 3), row, 3,
-                    backgroundColor: [Colors.green.shade200, Colors.blue.shade200, Colors.green.shade200, null, null][row])),
+                    backgroundColor: [Colors.green.shade200, Colors.blue.shade200, Colors.green.shade200, null, null][row],
+                    key: Key('scoreBox-$row-3'))),
             Expanded(
                 flex: 1,
                 child: scoreBox(getScore(row, 4), row, 4,
@@ -1556,7 +1558,7 @@ class ScoreTennisRgState extends State<ScoreTennisRg> with WidgetsBindingObserve
                       null,
                       useOrder2 ? null : Colors.green.shade200,
                       useOrder2 ? Colors.green.shade200 : null,
-                    ][row])),
+                    ][row], key: Key('scoreBox-$row-4'))),
             Expanded(
                 flex: 1,
                 child: Padding(
@@ -1835,7 +1837,11 @@ class ScoreTennisRgState extends State<ScoreTennisRg> with WidgetsBindingObserve
                     style: nameStyle,
                   ),
                 const Divider(color: Colors.black),
-                if (((_beingEditedById == activeUser.id) || _awaitingOwnClaimSync) && widget.allowEdit)
+                if (_pendingClaimTransaction && _beingEditedById == activeUser.id && widget.allowEdit)
+                  Text('Waiting for score lock...', style: nameStyle),
+                if (!_pendingClaimTransaction &&
+                    ((_beingEditedById == activeUser.id) || _awaitingOwnClaimSync) &&
+                    widget.allowEdit)
                   Row(
                     children: [
                       Align(
@@ -1857,7 +1863,7 @@ class ScoreTennisRgState extends State<ScoreTennisRg> with WidgetsBindingObserve
                               expectedTotals[_playerList[play]] = score;
                             }
                             try {
-                              await firestore.runTransaction((transaction) async {
+                              final bool saved = await firestore.runTransaction((transaction) async {
                                 List<int> scores = List.empty(growable: true);
                                 List<String> matchScores = List.empty(growable: true);
 
@@ -1887,15 +1893,17 @@ class ScoreTennisRgState extends State<ScoreTennisRg> with WidgetsBindingObserve
                                     print('score doc $_scoreDocStr disappeared while saving for user $thisUser');
                                   }
                                   _scoreEntryErrorString = 'Score sheet was refreshed while saving. Please try again.';
-                                  return; // Abort the transaction
+                                  return false;
                                 }
                                 if (scoreSnapshot.get('BeingEditedBy') != thisUser) {
                                   final String kickedOutBy = (scoreSnapshot.get('BeingEditedBy') as String?) ?? '';
                                   if (kDebugMode) {
                                     print('this user $thisUser got kicked out by: $kickedOutBy');
                                   }
-                                  _scoreEntryErrorString = 'this user $thisUser got kicked out by: $kickedOutBy';
-                                  return; // Abort the transaction
+                                  if (kickedOutBy.isEmpty) {
+                                    _scoreEntryErrorString = 'Score entry lock was lost before saving.';
+                                  }
+                                  return false;
                                 }
 
                                 for (int play = 0; play < scores.length; play++) {
@@ -1933,7 +1941,14 @@ class ScoreTennisRgState extends State<ScoreTennisRg> with WidgetsBindingObserve
                                   'GameScores': gameScoresStr,
                                   // 'EndingRanks': endingRanksStr,
                                 });
+                                return true;
                               });
+                              if (!saved) {
+                                if (mounted) {
+                                  setState(() {});
+                                }
+                                return;
+                              }
                               updateBeingEditedBy('');
                               _scoreEntryErrorString = '';
                               whereInScores = '';
